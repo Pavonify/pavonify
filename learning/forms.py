@@ -3,6 +3,7 @@ from .models import VocabularyWord, VocabularyList, Class, User, Student, Assign
 from django.contrib.auth.forms import UserCreationForm
 from django.utils import timezone
 from datetime import timedelta
+from django.utils.timezone import now, timedelta
 from .models import User
 from django_countries.widgets import CountrySelectWidget
 from django_countries.fields import CountryField  # ✅ Import CountryField
@@ -27,14 +28,36 @@ class TeacherRegistrationForm(UserCreationForm):
     full_name = forms.CharField(label="Full Name", max_length=100, widget=forms.TextInput(attrs={"class": "form-control"}))
     email = forms.EmailField(label="Email", widget=forms.EmailInput(attrs={"class": "form-control"}))
     username = forms.CharField(label="Username", max_length=50, widget=forms.TextInput(attrs={"class": "form-control"}))
-    password = forms.CharField(label="Password", widget=forms.PasswordInput(attrs={"class": "form-control"}))
+    password1 = forms.CharField(label="Password", widget=forms.PasswordInput(attrs={"class": "form-control"}))
+    password2 = forms.CharField(label="Confirm Password", widget=forms.PasswordInput(attrs={"class": "form-control"}))
     country = CountryField(blank_label="Select a country").formfield(
         widget=CountrySelectWidget(attrs={"class": "form-control"})
     )
 
     class Meta:
-        model = User
-        fields = ['full_name', 'email', 'username', 'password1', 'password2', 'country']
+        model = User  # Ensure you're using your custom User model
+        fields = ["full_name", "email", "username", "password1", "password2", "country"]
+
+    def clean_email(self):
+        """
+        Ensures the email is unique before saving.
+        """
+        email = self.cleaned_data.get("email")
+        if User.objects.filter(email=email).exists():
+            raise forms.ValidationError("A user with this email already exists.")
+        return email
+
+    def save(self, commit=True):
+        """
+        Saves the teacher as a basic (non-premium) user.
+        """
+        user = super().save(commit=False)
+        user.is_teacher = True  # ✅ Set as a teacher
+        user.first_name, user.last_name = self.cleaned_data["full_name"].split(" ", 1) if " " in self.cleaned_data["full_name"] else (self.cleaned_data["full_name"], "")
+        user.premium_expiration = now()  # ✅ Ensures they start as Basic
+        if commit:
+            user.save()
+        return user
 
 
 class VocabularyListForm(forms.ModelForm):

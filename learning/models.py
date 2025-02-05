@@ -24,33 +24,30 @@ class User(AbstractUser):
     is_student = models.BooleanField(default=False)
     is_teacher = models.BooleanField(default=False)
     is_lead_teacher = models.BooleanField(default=False)
-    school = models.ForeignKey('School', on_delete=models.SET_NULL, null=True, blank=True)
+    school = models.ForeignKey("School", on_delete=models.SET_NULL, null=True, blank=True)
 
-    first_name = models.CharField(max_length=50)
-    last_name = models.CharField(max_length=50)
-    email = models.EmailField(unique=True)  # Ensure email is unique
-    country = CountryField(blank_label="Select a country")  # ✅ Drop-down of countries
-    
-    # Add premium_expiration field.
-    # For a Basic user, this defaults to the current time (i.e. expired),
-    # so that teacher.is_premium will be False.
+    first_name = models.CharField(max_length=50, blank=False)
+    last_name = models.CharField(max_length=50, blank=False)
+    email = models.EmailField(unique=True)  # ✅ Ensures email is unique
+    country = CountryField(blank_label="Select a country")  # ✅ Dropdown for countries
+
+    # Default premium_expiration to "expired" so they start as Basic
     premium_expiration = models.DateTimeField(default=now)
-    
+
     @property
     def is_premium(self):
         """
-        Returns True if the teacher's premium subscription is active (expiration in the future).
+        Returns True if the user's premium subscription is active.
         """
         return self.premium_expiration > now()
-    
+
     def upgrade_to_premium(self, days=30):
         """
-        Upgrade the teacher to premium by setting the premium_expiration
-        to a specified number of days in the future (default 30 days).
+        Upgrades the teacher to premium by extending their expiration date.
         """
         self.premium_expiration = now() + timedelta(days=days)
         self.save()
-    
+
     def __str__(self):
         return self.username
 

@@ -663,31 +663,17 @@ def lead_teacher_dashboard(request):
 def register_teacher(request):
     if request.method == "POST":
         form = TeacherRegistrationForm(request.POST)
-        account_type = request.POST.get("account_type")
-
         if form.is_valid():
-            user = form.save(commit=False)
-            user.is_teacher = True  # Set user as a teacher
-            
-            if account_type == "premium":
-                # ✅ Create a Stripe Checkout Session for subscriptions
-                try:
-                    checkout_session = stripe.checkout.Session.create(
-                        payment_method_types=["card"],
-                        line_items=[{
-                            "price": settings.STRIPE_PRICE_ID,  # ✅ Use your Stripe Price ID
-                            "quantity": 1,
-                        }],
-                        mode="subscription",  # ✅ Set to 'subscription' for recurring payments
-                        success_url="https://randomid.ngrok.io/payment-success/",
-                        cancel_url="https://randomid.ngrok.io/register-teacher/",
-                    )
-                    request.session["temp_user"] = request.POST  # Store form data temporarily
-                    return redirect(checkout_session.url)  # ✅ Redirect to Stripe Checkout
-                except Exception as e:
-                    messages.error(request, f"Stripe Error: {str(e)}")
-                    return redirect("register_teacher")  
+            user = form.save(commit=True)  # ✅ Ensures saving with `is_premium = False`
+            login(request, user)  # ✅ Auto-login new teacher
+            messages.success(request, "Your account has been created successfully!")
+            return redirect("teacher_dashboard")  # ✅ Redirect to dashboard
+        else:
+            messages.error(request, "There were errors in the form. Please correct them.")
+    else:
+        form = TeacherRegistrationForm()
 
+    return render(request, "learning/register_teacher.html", {"form": form})
             # ✅ If Basic account, just create the user
             user.save()
             login(request, user)  # Auto-login new teacher
