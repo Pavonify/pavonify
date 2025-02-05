@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create Class</title>
+  <style>
+    /* Global Box-Sizing */
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+    
+    /* Base Styles */
+    body {
+      font-family: Arial, sans-serif;
+      background: #e3f2fd; /* Light blue/grey background */
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+    
+    /* Page Header */
+    .page-header {
+      width: 100%;
+      max-width: 800px;
+      margin-bottom: 20px;
+      text-align: center;
+      position: relative;
+    }
+    
+    .back-btn {
+      position: absolute;
+      left: 0;
+      top: 0;
+      background-color: #ff2c61;
+      color: #fff;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 5px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      text-decoration: none;
+    }
+    
+    .back-btn:hover {
+      background-color: #d4204c;
+    }
+    
+    .page-header h1 {
+      margin: 10px 0 0;
+      font-size: 28px;
+      color: #0aa2ef;
+    }
+    
+    /* Form Container */
+    .form-container {
+      background: #fff;
+      padding: 30px;
+      border-radius: 10px;
+      width: 100%;
+      max-width: 800px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    /* Style any form elements if needed */
+    form p {
+      margin: 15px 0;
+      color: #333;
+      font-size: 16px;
+    }
+    
+    form input,
+    form select,
+    form textarea {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      font-size: 16px;
+    }
+    
+    /* Submit Button */
+    button[type="submit"] {
+      margin-top: 25px;
+      background-color: #ff2c61;
+      color: #fff;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 5px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    
+    button[type="submit"]:hover {
+      background-color: #d4204c;
+    }
+    
+    /* Back Link (if you prefer a link instead of a button) */
+    a.back-link {
+      display: inline-block;
+      margin-top: 20px;
+      background-color: #ff2c61;
+      color: #fff;
+      padding: 10px 15px;
+      border-radius: 5px;
+      text-decoration: none;
+      transition: background-color 0.3s ease;
+    }
+    
+    a.back-link:hover {
+      background-color: #d4204c;
+    }
+  </style>
+</head>
+<body>
+  <!-- Page Header with Back Button and Heading -->
+  <div class="page-header">
+    <a href="{% url 'teacher_dashboard' %}" class="back-btn">Back to Dashboard</a>
+    <h1>Create Class</h1>
+  </div>
+  
+  <!-- Form Container -->
+  <div class="form-container">
+    <form method="POST" enctype="multipart/form-data">
+      {% csrf_token %}
+      {{ form.as_p }}
+      <button type="submit">Create Class</button>
+    </form>
+  </div>
+</body>
+</html>

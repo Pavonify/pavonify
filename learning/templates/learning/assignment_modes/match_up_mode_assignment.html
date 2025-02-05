@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Match Up Mode</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 24px;
+            color: #0aa2ef;
+        }
+
+        .container {
+            display: flex;
+            justify-content: center;
+            gap: 50px;
+            margin: 20px;
+        }
+
+        .column {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .tile, .target {
+            width: 120px;
+            height: 60px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #f8f9fa;
+            border: 1px solid #ccc;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .target.correct {
+            background-color: #28a745;
+            color: white;
+            font-weight: bold;
+        }
+
+        .completed-message {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+            font-size: 24px;
+            color: green;
+        }
+
+        .completed-message.visible {
+            display: block;
+        }
+
+        .restart-button {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .restart-button button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            cursor: pointer;
+            font-size: 18px;
+            border-radius: 5px;
+        }
+
+        .restart-button button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>Match Up Mode: {{ assignment.name }}</h1>
+
+    <div class="container">
+        <div class="column" id="source-words">
+            {% for word in source_words %}
+            <div class="tile" draggable="true" data-id="{{ word.id }}">{{ word.word }}</div>
+            {% endfor %}
+        </div>
+        <div class="column" id="target-words">
+            {% for word in target_words %}
+            <div class="target" data-id="{{ word.id }}">{{ word.translation }}</div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="completed-message" id="completed-message">Assignment Complete!</div>
+    <div class="restart-button" id="restart-button">
+        <button onclick="restartGame()">Restart</button>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const sourceWordsContainer = document.getElementById("source-words");
+            const targetWordsContainer = document.getElementById("target-words");
+            const tiles = document.querySelectorAll(".tile");
+            const targets = document.querySelectorAll(".target");
+            const completedMessage = document.getElementById("completed-message");
+            const restartButton = document.getElementById("restart-button");
+
+            const assignmentId = {{ assignment.id }};
+            const pointsPerMatch = {{ assignment.points_per_matchup }};
+            const csrfToken = "{{ csrf_token }}";
+
+            function updatePoints(points) {
+                fetch("{% url 'update_assignment_points' %}", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": csrfToken,
+                    },
+                    body: JSON.stringify({
+                        assignment_id: assignmentId,
+                        points: points,
+                    }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        console.log(`Points updated successfully: ${data.new_total_points}`);
+
+                        // Send points update to parent window (assignment page)
+                        if (window.parent) {
+                            window.parent.postMessage({
+                                type: "activity_complete",
+                                assignmentId: assignmentId,
+                                pointsEarned: points
+                            }, "*");
+                        }
+                    } else {
+                        console.error("Failed to update points:", data.error);
+                    }
+                })
+                .catch(error => console.error("Error updating points:", error));
+            }
+
+            tiles.forEach(tile => {
+                tile.addEventListener("dragstart", e => {
+                    e.dataTransfer.setData("text", e.target.dataset.id);
+                    e.dataTransfer.setData("text-tile", e.target.textContent);
+                });
+            });
+
+            targets.forEach(target => {
+                target.addEventListener("dragover", e => {
+                    e.preventDefault();
+                });
+
+                target.addEventListener("drop", e => {
+                    const sourceId = e.dataTransfer.getData("text");
+                    const sourceWord = e.dataTransfer.getData("text-tile");
+                    const targetId = e.target.dataset.id;
+
+                    if (sourceId === targetId) {
+                        // Mark as correct
+                        e.target.classList.add("correct");
+                        e.target.textContent = `${sourceWord} = ${e.target.textContent}`;
+
+                        const tile = document.querySelector(`.tile[data-id='${sourceId}']`);
+                        if (tile) tile.remove();
+
+                        // Update points dynamically
+                        updatePoints(pointsPerMatch);
+
+                        // Check if all tiles are matched
+                        const remainingTiles = document.querySelectorAll(".tile");
+                        if (remainingTiles.length === 0) {
+                            completedMessage.classList.add("visible");
+                            restartButton.style.display = "block"; // Show Restart Button
+                        }
+                    }
+                });
+            });
+
+            // Function to restart the game
+            window.restartGame = function() {
+                // Shuffle the words
+                const sourceTiles = [...sourceWordsContainer.children];
+                const targetTiles = [...targetWordsContainer.children];
+                
+                // Clear containers
+                sourceWordsContainer.innerHTML = "";
+                targetWordsContainer.innerHTML = "";
+
+                // Shuffle and reappend tiles
+                shuffleArray(sourceTiles);
+                shuffleArray(targetTiles);
+                sourceTiles.forEach(tile => {
+                    tile.classList.remove("correct");
+                    sourceWordsContainer.appendChild(tile);
+                });
+                targetTiles.forEach(target => {
+                    target.classList.remove("correct");
+                    targetWordsContainer.appendChild(target);
+                });
+
+                // Hide completion message and restart button
+                completedMessage.classList.remove("visible");
+                restartButton.style.display = "none";
+
+                // Reattach event listeners
+                attachTileEvents();
+            };
+
+            // Function to shuffle arrays
+            function shuffleArray(array) {
+                for (let i = array.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [array[i], array[j]] = [array[j], array[i]];
+                }
+            }
+
+            // Function to reattach event listeners to shuffled elements
+            function attachTileEvents() {
+                document.querySelectorAll(".tile").forEach(tile => {
+                    tile.addEventListener("dragstart", e => {
+                        e.dataTransfer.setData("text", e.target.dataset.id);
+                        e.dataTransfer.setData("text-tile", e.target.textContent);
+                    });
+                });
+
+                document.querySelectorAll(".target").forEach(target => {
+                    target.addEventListener("dragover", e => {
+                        e.preventDefault();
+                    });
+
+                    target.addEventListener("drop", e => {
+                        const sourceId = e.dataTransfer.getData("text");
+                        const sourceWord = e.dataTransfer.getData("text-tile");
+                        const targetId = e.target.dataset.id;
+
+                        if (sourceId === targetId) {
+                            e.target.classList.add("correct");
+                            e.target.textContent = `${sourceWord} = ${e.target.textContent}`;
+
+                            const tile = document.querySelector(`.tile[data-id='${sourceId}']`);
+                            if (tile) tile.remove();
+                        }
+                    });
+                });
+            }
+        });
+    </script>
+</body>
+</html>

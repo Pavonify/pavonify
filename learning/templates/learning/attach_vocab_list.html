@@ -1,0 +1,14 @@
+<h2>Attach Vocabulary Lists to {{ class_instance.name }}</h2>
+<form method="post">
+    {% csrf_token %}
+    <ul>
+        {% for vocab in vocab_lists %}
+            <li>
+                <input type="checkbox" name="vocab_lists" value="{{ vocab.id }}">
+                {{ vocab.name }}
+            </li>
+        {% endfor %}
+    </ul>
+    <button type="submit">Attach</button>
+</form>
+<a href="{% url 'teacher_dashboard' %}">Back to Dashboard</a>

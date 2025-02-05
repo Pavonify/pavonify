@@ -1,0 +1,9 @@
+<h2>Vocabulary List: {{ vocab_list.name }}</h2>
+<p>Language: {{ vocab_list.source_language }} -> {{ vocab_list.target_language }}</p>
+<h3>Words</h3>
+<ul>
+    {% for word in words %}
+        <li>{{ word.word }} - {{ word.translation }}</li>
+    {% endfor %}
+</ul>
+<a href="{% url 'view_class' vocab_list.classes.first.id %}">Back to Class</a>

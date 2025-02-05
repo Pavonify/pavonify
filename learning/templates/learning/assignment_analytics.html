@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Assignment Analytics</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <style>
+    /* Global Box-Sizing */
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+    
+    /* Base Styles */
+    body {
+      font-family: Arial, sans-serif;
+      background: #e3f2fd;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+    
+    /* Container */
+    .container {
+      max-width: 800px;
+      width: 100%;
+      background: #fff;
+      border-radius: 10px;
+      padding: 30px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+    
+    /* Header */
+    h1 {
+      color: #0aa2ef;
+      margin-bottom: 20px;
+    }
+    
+    /* Assignment Details Section */
+    .assignment-details {
+      background: #f9f9f9;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 20px;
+      text-align: left;
+    }
+    .assignment-details h2 {
+      margin: 0 0 10px;
+      color: #333;
+      font-size: 22px;
+    }
+    .assignment-details p {
+      margin: 5px 0;
+      font-size: 16px;
+      color: #555;
+    }
+    
+    /* Back Link */
+    .back-link {
+      display: inline-block;
+      margin-bottom: 20px;
+      background-color: #ff2c61;
+      color: #fff;
+      padding: 10px 15px;
+      border-radius: 5px;
+      text-decoration: none;
+      transition: background-color 0.3s ease;
+      font-size: 14px;
+    }
+    .back-link:hover {
+      background-color: #d4204c;
+    }
+    
+    /* Table Styles */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+    }
+    table th, table td {
+      border: 1px solid #ddd;
+      padding: 12px;
+      text-align: center;
+      font-size: 16px;
+    }
+    table th {
+      background-color: #0aa2ef;
+      color: #fff;
+    }
+    table tbody tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+    
+    /* Status Styling */
+    .status-completed {
+      color: green;
+      font-weight: bold;
+    }
+    .status-completed i {
+      margin-right: 5px;
+      color: green;
+    }
+    .status-incomplete {
+      color: red;
+      font-weight: bold;
+    }
+    .status-incomplete i {
+      margin-right: 5px;
+      color: red;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Assignment Analytics</h1>
+    
+    <!-- Assignment Details Section -->
+    <div class="assignment-details">
+      <h2>{{ assignment.name }}</h2>
+      <p><strong>Deadline:</strong> {{ assignment.deadline|date:"M d, Y H:i" }}</p>
+      <p><strong>Target Points:</strong> {{ assignment.target_points }}</p>
+    </div>
+    
+    <!-- Back Button -->
+    <a href="{% url 'teacher_dashboard' %}" class="back-link">&larr; Back to Dashboard</a>
+    
+    <!-- Analytics Table -->
+    <table>
+      <thead>
+        <tr>
+          <th>Student</th>
+          <th>Points Earned</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for progress in progress_list %}
+        <tr>
+          <td>{{ progress.student.username }}</td>
+          <td>{{ progress.points_earned }}</td>
+          <td>
+            {% if progress.completed or progress.points_earned >= assignment.target_points %}
+              <span class="status-completed">
+                <i class="fas fa-check-circle"></i>Completed
+              </span>
+            {% else %}
+              <span class="status-incomplete">
+                <i class="fas fa-times-circle"></i>Incomplete
+              </span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</body>
+</html>

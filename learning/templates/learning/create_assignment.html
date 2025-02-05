@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create Assignment</title>
+  <style>
+    /* Global Box-Sizing */
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+
+    /* Base Styles */
+    body {
+      font-family: Arial, sans-serif;
+      background: #e3f2fd;  /* Light blue/grey background */
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    /* Page Header */
+    .page-header {
+      width: 100%;
+      max-width: 800px;
+      margin-bottom: 20px;
+      position: relative;
+      text-align: center;
+    }
+    .back-button-container {
+      text-align: left;
+    }
+    .back-btn {
+      background-color: #ff2c61;
+      color: #fff;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 5px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    .back-btn:hover {
+      background-color: #d4204c;
+    }
+    .page-header h1 {
+      margin-top: 10px;
+      font-size: 28px;
+      color: #0aa2ef;
+    }
+
+    /* Form Container */
+    form {
+      background: #fff;
+      padding: 30px;
+      border-radius: 10px;
+      width: 100%;
+      max-width: 800px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+    form label {
+      display: block;
+      margin-top: 15px;
+      font-weight: bold;
+      color: #333;
+    }
+    form input[type="text"],
+    form input[type="datetime-local"],
+    form input[type="number"],
+    form select {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      font-size: 16px;
+    }
+
+    /* Section Header */
+    form h4 {
+      margin-top: 25px;
+      color: #0aa2ef;
+      font-size: 20px;
+      border-bottom: 2px solid #0aa2ef;
+      padding-bottom: 5px;
+    }
+
+    /* Checkbox Groups */
+    .checkbox-group {
+      display: flex;
+      flex-wrap: nowrap;
+      align-items: center;
+      margin-top: 10px;
+    }
+    .checkbox-group > label {
+      display: flex;
+      align-items: center;
+      margin-right: 20px;
+      font-weight: normal;
+      color: #333;
+    }
+    .checkbox-group input[type="checkbox"] {
+      margin-right: 8px;
+    }
+    /* Points input styling */
+    .points-input {
+      width: 120px;
+      margin-left: 8px;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      font-size: 16px;
+    }
+
+    /* Submit Button */
+    button[type="submit"] {
+      margin-top: 25px;
+      background-color: #ff2c61;
+      color: #fff;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 5px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    button[type="submit"]:hover {
+      background-color: #d4204c;
+    }
+  </style>
+</head>
+<body>
+  <!-- Page Header with Back Button and Heading -->
+
+      <div class="page-header"><h1>Create an Assignment for {{ class_assigned }}</h1></div>
+  </div>
+
+  <!-- Assignment Creation Form -->
+  <form method="post">
+    {% csrf_token %}
+    <label for="name">Assignment Name:</label>
+    <input type="text" name="name" id="name" required>
+
+    <label for="vocab_list">Vocabulary List:</label>
+    <select name="vocab_list" id="vocab_list" required>
+      {% for vocab_list in vocab_lists %}
+      <option value="{{ vocab_list.id }}">{{ vocab_list.name }}</option>
+      {% endfor %}
+    </select>
+
+    <label for="deadline">Deadline:</label>
+    <input type="datetime-local" name="deadline" id="deadline" required>
+
+    <label for="target_points">Target Points:</label>
+    <input type="number" name="target_points" id="target_points" required>
+
+    <h4>Select Modes:</h4>
+
+    <div class="checkbox-group">
+      <label>
+        <input type="checkbox" name="include_flashcards"> Flashcards
+      </label>
+      <label>
+        Points per Flashcard:
+        <input type="number" name="points_per_flashcard" value="0" class="points-input">
+      </label>
+    </div>
+
+    <div class="checkbox-group">
+      <label>
+        <input type="checkbox" name="include_matchup"> Match-Up
+      </label>
+      <label>
+        Points per Match-Up:
+        <input type="number" name="points_per_matchup" value="1" class="points-input">
+      </label>
+    </div>
+
+    <div class="checkbox-group">
+      <label>
+        <input type="checkbox" name="include_fill_gap"> Fill Gap
+      </label>
+      <label>
+        Points per Gap Fill:
+        <input type="number" name="points_per_fill_gap" value="1" class="points-input">
+      </label>
+    </div>
+
+    <div class="checkbox-group">
+      <label>
+        <input type="checkbox" name="include_destroy_wall"> Destroy the Wall
+      </label>
+      <label>
+        Points per brick destroyed:
+        <input type="number" name="points_per_destroy_wall" value="1" class="points-input">
+      </label>
+    </div>
+
+    <div class="checkbox-group">
+      <label>
+        <input type="checkbox" name="include_unscramble"> Unscramble
+      </label>
+      <label>
+        Points per Unscramble:
+        <input type="number" name="points_per_unscramble" value="1" class="points-input">
+      </label>
+    </div>
+
+<!-- Listening Dictation Mode -->
+<div class="checkbox-group">
+  <label>
+    <input type="checkbox" name="include_listening_dictation"> Listening Dictation
+  </label>
+  <label>
+    Points per Dictation:
+    <input type="number" name="points_per_listening_dictation" value="1" class="points-input">
+  </label>
+</div>
+
+<!-- Listening Translation Mode -->
+<div class="checkbox-group">
+  <label>
+    <input type="checkbox" name="include_listening_translation"> Listening Translation
+  </label>
+  <label>
+    Points per Translation:
+    <input type="number" name="points_per_listening_translation" value="1" class="points-input">
+  </label>
+</div>
+
+
+    <button type="submit">Create Assignment</button>       <button onclick="history.back();" class="back-btn">Back</button>
+
+  </form>
+</body>
+</html>

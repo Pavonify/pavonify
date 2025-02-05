@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>View Vocabulary</title>
+</head>
+<body>
+    <h1>{{ vocab_list.name }}</h1>
+    <p>Source Language: {{ vocab_list.source_language }}</p>
+    <p>Target Language: {{ vocab_list.target_language }}</p>
+    <ul>
+        {% for word in vocab_list.words.all %}
+        <li>
+            {{ word.word|default:"[No Word]" }} - {{ word.translation|default:"[No Translation]" }}
+        </li>
+        {% empty %}
+        <li>No words in this vocabulary list.</li>
+        {% endfor %}
+    </ul>
+    <a href="{% url 'student_dashboard' %}">Back to Dashboard</a>
+</body>
+</html>

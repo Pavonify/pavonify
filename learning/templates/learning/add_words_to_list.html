@@ -1,0 +1,121 @@
+<style>
+  /* Global Box-Sizing */
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  /* Base Styles */
+  body {
+    font-family: Arial, sans-serif;
+    background: #e3f2fd; /* Light blue/grey background */
+    margin: 0;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+  }
+
+  /* Page Header */
+  .page-header {
+    width: 100%;
+    max-width: 800px;
+    margin-bottom: 20px;
+    text-align: center;
+    position: relative;
+  }
+  .back-btn {
+    position: absolute;
+    left: 0;
+    top: 0;
+    background-color: #ff2c61;
+    color: #fff;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 5px;
+    font-size: 14px;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  .back-btn:hover {
+    background-color: #d4204c;
+  }
+  .page-header h1 {
+    margin: 10px 0 0;
+    font-size: 28px;
+    color: #0aa2ef;
+  }
+
+  /* Form Container */
+  .form-container {
+    background: #fff;
+    padding: 30px;
+    border-radius: 10px;
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  /* Form Elements */
+  form p {
+    margin: 15px 0;
+    color: #333;
+    font-size: 16px;
+  }
+  form input,
+  form select,
+  form textarea {
+    width: 100%;
+    padding: 10px;
+    margin-top: 5px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 16px;
+  }
+
+  /* Submit Button */
+  form button[type="submit"] {
+    margin-top: 25px;
+    background-color: #ff2c61;
+    color: #fff;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  form button[type="submit"]:hover {
+    background-color: #d4204c;
+  }
+
+  /* Back Link */
+  .back-link {
+    display: inline-block;
+    margin-top: 20px;
+    background-color: #ff2c61;
+    color: #fff;
+    padding: 10px 15px;
+    border-radius: 5px;
+    text-decoration: none;
+    transition: background-color 0.3s ease;
+  }
+  .back-link:hover {
+    background-color: #d4204c;
+  }
+</style>
+
+<div class="page-header">
+  <h1>Add Words to List: {{ vocab_list.name }}</h1>
+</div>
+
+<div class="form-container">
+  <form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Add Words</button>
+  </form>
+  <a href="{% url 'teacher_dashboard' %}" class="back-link">Back to Dashboard</a>
+</div>

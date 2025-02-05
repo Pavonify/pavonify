@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Edit Vocabulary List</title>
+  <style>
+    /* Global Box-Sizing */
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+
+    /* Base Styles */
+    body {
+      font-family: Arial, sans-serif;
+      background: #e3f2fd; /* Light blue/grey background */
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    /* Page Header */
+    .page-header {
+      width: 100%;
+      max-width: 800px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    .page-header h1 {
+      margin: 10px 0;
+      font-size: 28px;
+      color: #0aa2ef;
+    }
+
+    /* Form Container */
+    .form-container {
+      background: #fff;
+      padding: 30px;
+      border-radius: 10px;
+      width: 100%;
+      max-width: 800px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+    .form-container form p {
+      margin: 15px 0;
+      color: #333;
+      font-size: 16px;
+    }
+    .form-container form input,
+    .form-container form select,
+    .form-container form textarea {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      font-size: 16px;
+    }
+
+    /* Button Group: All buttons on one line with a small gap */
+    .button-group {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      align-items: center;
+      margin-top: 20px;
+      flex-wrap: wrap;
+    }
+    /* Inline Form for the Delete Button */
+    .inline-form {
+      display: inline-flex;
+      align-items: center;
+      vertical-align: middle;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* Button Styles */
+    .btn {
+      background-color: #ff2c61;
+      color: #fff;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 5px;
+      text-decoration: none;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      font-size: 16px;
+      white-space: nowrap;
+    }
+    .btn:hover {
+      background-color: #d4204c;
+    }
+  </style>
+</head>
+<body>
+  <div class="page-header">
+    <h1>Edit List Details</h1>
+  </div>
+
+  <div class="form-container">
+    <!-- Edit Form -->
+    <form method="POST" id="editForm">
+      {% csrf_token %}
+      {{ form.as_p }}
+    </form>
+    
+    <!-- Button Group: All action buttons in one line -->
+    <div class="button-group">
+      <!-- Save Changes Button (triggers form submission) -->
+      <button type="button" class="btn" onclick="document.getElementById('editForm').submit();">
+        Save Changes
+      </button>
+      
+      <!-- Delete Button wrapped in an inline form -->
+      <form method="POST" action="{% url 'delete_vocabulary_list' vocab_list.id %}" class="inline-form">
+        {% csrf_token %}
+        <button type="submit" class="btn" onclick="return confirm('Are you sure you want to delete this list?');">
+          Delete this List
+        </button>
+      </form>
+      
+      <!-- Edit Words Link -->
+      <a href="{% url 'edit_vocabulary_words' vocab_list.id %}" class="btn">
+        Edit Words
+      </a>
+      
+      <!-- Back to Dashboard Link -->
+      <a href="{% url 'teacher_dashboard' %}" class="btn">
+        Back to Dashboard
+      </a>
+    </div>
+  </div>
+</body>
+</html>

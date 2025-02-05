@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View Assignments</title>
+</head>
+<body>
+    <h1>Your Assignments</h1>
+    <table border="1">
+        <thead>
+            <tr>
+                <th>Class</th>
+                <th>Points Target</th>
+                <th>Deadline</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for assignment in assignments %}
+            <tr>
+                <td>{{ assignment.class_assigned.name }}</td>
+                <td>{{ assignment.points_target }}</td>
+                <td>{{ assignment.deadline }}</td>
+                <td>{{ assignment.description }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="4">No assignments created yet.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <a href="{% url 'create_assignment' %}">Create New Assignment</a>
+</body>
+</html>

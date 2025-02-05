@@ -1,0 +1,162 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Edit Words for "{{ vocab_list.name }}"</title>
+  <style>
+    /* Global Box-Sizing */
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+    
+    /* Base Styles */
+    body {
+      font-family: Arial, sans-serif;
+      background: #e3f2fd;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+    
+    /* Container */
+    .container {
+      background: #fff;
+      padding: 30px;
+      border-radius: 10px;
+      max-width: 900px;
+      width: 100%;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+    
+    h1 {
+      color: #0aa2ef;
+      margin-bottom: 20px;
+    }
+    
+    /* Table Styling */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+    }
+    table th, table td {
+      border: 1px solid #ddd;
+      padding: 12px;
+      text-align: center;
+      font-size: 16px;
+    }
+    table th {
+      background-color: #0aa2ef;
+      color: #fff;
+    }
+    table tbody tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+    
+    /* Flag Icon Styling */
+    .flag {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      object-fit: cover;
+      vertical-align: middle;
+      margin: 0 5px;
+    }
+    
+    /* Input Field Styling */
+    input[type="text"] {
+      width: 90%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      font-size: 14px;
+    }
+    
+    /* Button Group */
+    .button-group {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 20px;
+    }
+    
+    /* Button Styles */
+    .btn, button {
+      background-color: #ff2c61;
+      color: #fff;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 5px;
+      text-decoration: none;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      font-size: 16px;
+      white-space: nowrap;
+    }
+    .btn:hover, button:hover {
+      background-color: #d4204c;
+    }
+    
+    /* Inline form styling for deletion links within table cells */
+    .inline-form {
+      display: inline;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Edit Words for "{{ vocab_list.name }}"</h1>
+    
+    <form method="POST" action="{% url 'edit_vocabulary_words' vocab_list.id %}">
+      {% csrf_token %}
+      <table>
+        <thead>
+          <tr>
+            <th>Select</th>
+            <th>
+              <img class="flag" src="{% static 'flags/'|add:vocab_list.source_language|add:'.png' %}" alt="{{ vocab_list.source_language }}">
+            </th>
+            <th>
+              <img class="flag" src="{% static 'flags/'|add:vocab_list.target_language|add:'.png' %}" alt="{{ vocab_list.target_language }}">
+            </th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for word in words %}
+          <tr>
+            <td>
+              <input type="checkbox" name="selected_words" value="{{ word.id }}">
+            </td>
+            <td>
+              <input type="text" name="word_{{ word.id }}" value="{{ word.word }}">
+            </td>
+            <td>
+              <input type="text" name="translation_{{ word.id }}" value="{{ word.translation }}">
+            </td>
+            <td>
+              <a href="{% url 'delete_vocabulary_word' word.id %}" class="btn">Delete</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <div class="button-group">
+        <button type="submit" name="action" value="save">Save Changes</button>
+        <button type="submit" name="action" value="bulk_delete">Delete Selected</button>
+      </div>
+    </form>
+    
+    <div class="button-group">
+      <a href="{% url 'teacher_dashboard' %}" class="btn">Back to Dashboard</a>
+    </div>
+  </div>
+</body>
+</html>

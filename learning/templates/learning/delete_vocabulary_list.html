@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Delete Vocabulary List</title>
+  <style>
+    /* Global box-sizing */
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+    
+    /* Base styles */
+    body {
+      font-family: Arial, sans-serif;
+      background: #e3f2fd;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+    
+    /* Container styling */
+    .container {
+      background: #fff;
+      padding: 30px;
+      border-radius: 10px;
+      max-width: 600px;
+      width: 100%;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      text-align: center;
+    }
+    
+    h1 {
+      color: #0aa2ef;
+      margin-bottom: 20px;
+    }
+    
+    p {
+      font-size: 16px;
+      color: #333;
+      margin-bottom: 20px;
+    }
+    
+    form {
+      margin-bottom: 20px;
+    }
+    
+    button[type="submit"] {
+      background-color: #ff2c61;
+      color: #fff;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 5px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    
+    button[type="submit"]:hover {
+      background-color: #d4204c;
+    }
+    
+    a.cancel-link {
+      display: inline-block;
+      background-color: #ff2c61;
+      color: #fff;
+      padding: 10px 15px;
+      border-radius: 5px;
+      text-decoration: none;
+      transition: background-color 0.3s ease;
+      font-size: 16px;
+    }
+    
+    a.cancel-link:hover {
+      background-color: #d4204c;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Delete Vocabulary List</h1>
+    <p>Are you sure you want to delete the vocabulary list "{{ vocab_list.name }}"?</p>
+    <form method="POST">
+      {% csrf_token %}
+      <button type="submit">Confirm Delete</button>
+    </form>
+    <a href="{% url 'vocabulary_list' %}" class="cancel-link">Cancel</a>
+  </div>
+</body>
+</html>

@@ -1,0 +1,75 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Page Title{% endblock %}</title>
+    <style>
+        /* Include your sidebar, pane, and button styles here */
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            margin: 0;
+            height: 100vh;
+        }
+        .sidebar {
+            background-color: #0aa2ef;
+            color: white;
+            padding: 20px;
+            width: 250px;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+        }
+        .sidebar img {
+            display: block;
+            margin: 0 auto 20px;
+            max-width: 100%;
+            width: calc(100% - 30px);
+            border-radius: 5px;
+        }
+        .sidebar nav a {
+            display: block;
+            color: white;
+            text-decoration: none;
+            padding: 10px 15px;
+            margin: 5px 0;
+            border-radius: 5px;
+            background-color: #0a8fd9;
+            text-align: center;
+        }
+        .sidebar nav a:hover {
+            background-color: #086baf;
+        }
+        .main-content {
+            flex-grow: 1;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }
+        .pane {
+            background-color: #fec10e;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            color: white;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <img src="{% static 'learning/pavonify_logo.png' %}" alt="Pavonify Logo">
+        <h2>Teacher Dashboard</h2>
+        <nav>
+            <a href="{% url 'teacher_dashboard' %}">Dashboard</a>
+            <a href="{% url 'create_class' %}">Create Class</a>
+            <a href="{% url 'add_vocabulary_list' %}">Add Vocabulary List</a>
+            <a href="{% url 'teacher_logout' %}">Logout</a>
+        </nav>
+    </div>
+    <div class="main-content">
+        {% block content %}
+        <!-- Page-specific content will go here -->
+        {% endblock %}
+    </div>
+</body>
+</html>

@@ -1,0 +1,50 @@
+{% block content %}
+<h1>Share Class: {{ class_instance.name }}</h1>
+
+<form method="POST" id="shareForm">
+    {% csrf_token %}
+    <label for="username">Enter Teacher's Username:</label>
+    <input type="text" name="username" id="username" required>
+    <button type="submit">Share</button>
+</form>
+
+<h2>Currently Shared With:</h2>
+<ul id="sharedWithList">
+    {% for teacher in class_instance.teachers.all %}
+        <li data-username="{{ teacher.username }}">
+            {{ teacher.username }}
+            <a href="{% url 'remove_teacher_from_class' class_instance.id teacher.id %}" class="remove-teacher">Remove</a>
+        </li>
+    {% empty %}
+        <li>No teachers currently associated with this class.</li>
+    {% endfor %}
+</ul>
+
+<a href="{% url 'teacher_dashboard' %}">Back to Dashboard</a>
+
+<script>
+    document.getElementById('shareForm').addEventListener('submit', function(event) {
+        event.preventDefault(); // Prevent the form from being submitted immediately
+
+        const username = document.getElementById('username').value.trim();
+        if (username === "") {
+            alert("Please enter a username before sharing.");
+            return;
+        }
+
+        // Check if the username is already in the list
+        const sharedWithList = document.getElementById('sharedWithList').querySelectorAll('li[data-username]');
+        const alreadyShared = Array.from(sharedWithList).some(item => item.dataset.username === username);
+
+        if (alreadyShared) {
+            alert(`The teacher "${username}" is already associated with this class.`);
+            return;
+        }
+
+        const confirmation = confirm(`You are about to share this class with the teacher: ${username}. Are you sure you want to proceed?`);
+        if (confirmation) {
+            this.submit(); // Submit the form if confirmed
+        }
+    });
+</script>
+{% endblock %}

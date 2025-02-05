@@ -1,0 +1,153 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vocabulary List: {{ vocab_list.name }}</title>
+  <style>
+    /* Global Box-Sizing */
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+    
+    /* Base Styles */
+    body {
+      font-family: Arial, sans-serif;
+      background: #e3f2fd;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+    
+    /* Container */
+    .container {
+      background: #fff;
+      padding: 30px;
+      border-radius: 10px;
+      max-width: 800px;
+      width: 100%;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+    
+    h1 {
+      color: #0aa2ef;
+      margin-bottom: 20px;
+    }
+    
+    /* Language Icons */
+    .language-icons p {
+      margin: 10px 0;
+      font-size: 16px;
+      color: #333;
+    }
+    .flag {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      object-fit: cover;
+      vertical-align: middle;
+      margin-left: 5px;
+    }
+    
+    /* Table Styling */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+    }
+    table, th, td {
+      border: 1px solid #ddd;
+    }
+    th, td {
+      padding: 12px;
+      text-align: center;
+      font-size: 16px;
+    }
+    th {
+      background-color: #0aa2ef;
+      color: #fff;
+    }
+    tbody tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+    
+    /* Button Styles */
+    .buttons {
+      margin-top: 20px;
+    }
+    .buttons button,
+    .buttons a {
+      background-color: #ff2c61;
+      color: #fff;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 5px;
+      text-decoration: none;
+      margin: 0 5px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      white-space: nowrap;
+    }
+    .buttons button:hover,
+    .buttons a:hover {
+      background-color: #d4204c;
+    }
+    
+    /* Print Styles */
+    @media print {
+      .no-print {
+        display: none;
+      }
+      body {
+        background: #fff;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Vocabulary List: {{ vocab_list.name }}</h1>
+    
+    <div class="language-icons">
+      <p>Source Language:
+        <img class="flag" src="{% static 'flags/'|add:vocab_list.source_language|add:'.png' %}" alt="{{ vocab_list.source_language }}">
+      </p>
+      <p>Target Language:
+        <img class="flag" src="{% static 'flags/'|add:vocab_list.target_language|add:'.png' %}" alt="{{ vocab_list.target_language }}">
+      </p>
+    </div>
+    
+    <table>
+      <thead>
+        <tr>
+          <th>
+            <img class="flag" src="{% static 'flags/'|add:vocab_list.source_language|add:'.png' %}" alt="{{ vocab_list.source_language }}">
+          </th>
+          <th>
+            <img class="flag" src="{% static 'flags/'|add:vocab_list.target_language|add:'.png' %}" alt="{{ vocab_list.target_language }}">
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for word in words %}
+        <tr>
+          <td>{{ word.word }}</td>
+          <td>{{ word.translation }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    
+    <div class="buttons no-print">
+      <button onclick="window.print();">Print</button>
+      <a href="{% url 'teacher_dashboard' %}" class="back-link">Back to Dashboard</a>
+    </div>
+  </div>
+</body>
+</html>

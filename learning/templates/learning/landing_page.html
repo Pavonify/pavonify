@@ -1,0 +1,483 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome to Pavonify 🦚</title>
+  <style>
+    @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css');
+
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      min-height: 100vh;
+      background: #e3f2fd; /* Light blue/grey background */
+      display: flex;
+  overflow-x: hidden;
+  width: 100%;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      background-color: #0aa2ef;
+      color: white;
+      padding: 20px;
+      width: 250px;
+      box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      position: fixed;
+      left: 0;
+      top: 0;
+      height: 100vh;
+    }
+
+    .sidebar img {
+      width: 80%;
+      border-radius: 10px;
+      margin-bottom: 20px;
+    }
+
+    .sidebar h2 {
+      margin: 0 0 10px;
+      font-size: 24px;
+    }
+
+    .sidebar p {
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    /* Main Content */
+    .main-content {
+      flex-grow: 1;
+      padding: 40px;
+      text-align: center;
+      margin-left: 250px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .pane {
+      background-color: white;
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      max-width: 800px;
+      width: 100%;
+      text-align: center;
+      animation: fadeIn 1s ease-in-out;
+      margin-bottom: 20px;
+    }
+
+    .pane h1 {
+      margin-top: 0;
+      color: #0aa2ef;
+      font-size: 28px;
+    }
+
+    .pane p {
+      font-size: 16px;
+      color: #333;
+    }
+
+    /* Table Styling */
+    table {
+      margin: 20px auto;
+      border-collapse: collapse;
+      width: 100%;
+      max-width: 600px;
+      background: white;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    table th {
+      padding: 12px;
+      background-color: #0aa2ef;
+      color: white;
+      text-align: center;
+      font-size: 16px;
+      border: 1px solid #ddd;
+    }
+
+    table td {
+      padding: 10px;
+      border: 1px solid #ddd;
+      text-align: center;
+      font-size: 14px;
+      color: #333;
+    }
+
+    /* Highlight the Pavonify column in table body only */
+    table tbody td:nth-child(2) {
+      background-color: #e0f7fa;
+      font-weight: bold;
+    }
+
+    /* Zebra Striping for Body Rows */
+    table tbody tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+
+    td a {
+      text-decoration: none;
+      color: white;
+      background-color: #ff2c61;
+      padding: 10px 15px;
+      border-radius: 5px;
+      display: inline-block;
+      transition: background-color 0.3s ease;
+    }
+
+    td a:hover {
+      background-color: #d4204c;
+    }
+
+    /* Role Icons */
+    .role-icon {
+      font-size: 18px;
+      margin-right: 5px;
+    }
+
+    /* Disabled Buttons */
+    .disabled {
+      background-color: rgba(0, 0, 0, 0.2);
+      color: rgba(255, 255, 255, 0.5);
+      cursor: not-allowed;
+      position: relative;
+    }
+
+    .disabled:hover::after {
+      content: "🚀 We are working on creating whole-school features! Stay tuned!";
+      position: absolute;
+      top: -35px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #333;
+      color: white;
+      font-size: 12px;
+      padding: 5px 10px;
+      border-radius: 5px;
+      white-space: nowrap;
+      opacity: 1;
+      z-index: 1000;
+    }
+
+    /* About Sections */
+    .about-section {
+      background: white;
+      padding: 25px;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      text-align: center;
+      max-width: 800px;
+      width: 100%;
+      margin: 20px 0;
+      animation: fadeIn 1s ease-in-out;
+    }
+
+    .about-section h2 {
+      color: #0aa2ef;
+      margin-bottom: 10px;
+      font-size: 24px;
+    }
+
+    .about-section p {
+      font-size: 16px;
+      line-height: 1.5;
+      color: #333;
+    }
+
+    /* Feature Tiles */
+    .features {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      margin-top: 20px;
+      margin-bottom: 40px;
+      flex-wrap: wrap;
+    }
+
+    .feature-box {
+      background: white;
+      padding: 15px;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      width: 280px;
+      text-align: center;
+      transition: transform 0.3s ease-in-out;
+    }
+
+    .feature-box:hover {
+      transform: scale(1.05);
+    }
+
+    .feature-box img {
+      width: 100%;
+      border-radius: 10px;
+    }
+
+    .feature-box h3 {
+      font-size: 18px;
+      color: #0aa2ef;
+      margin: 10px 0 5px;
+    }
+
+    .feature-box p {
+      font-size: 14px;
+      color: #555;
+    }
+
+    /* Animations */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+/* Developer Timeline */
+.developer-timeline {
+  width: 100%;
+  max-width: 900px;
+  margin: 40px auto;
+  text-align: center;
+  padding: 20px;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.developer-timeline h2 {
+  color: #0aa2ef;
+  margin-bottom: 15px;
+  font-size: 24px;
+}
+
+.timeline-container {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  gap: 20px;
+  padding: 10px 0;
+  scrollbar-width: thin;
+  scrollbar-color: #0aa2ef #f0f0f0;
+}
+
+.timeline-item {
+  background: #e3f2fd;
+  padding: 15px;
+  border-radius: 10px;
+  min-width: 180px;
+  text-align: center;
+  transition: transform 0.3s ease-in-out;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.timeline-container::-webkit-scrollbar {
+  display: none; /* Hides the scrollbar */
+}
+
+.timeline-item h3 {
+  font-size: 16px;
+  color: #0aa2ef;
+  margin-bottom: 5px;
+}
+
+.timeline-item p {
+  font-size: 14px;
+  color: #333;
+}
+
+.timeline-item:hover {
+  transform: scale(1.05);
+  background: #bde0fe;
+}
+
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <img src="{% static 'learning/pavonify_logo.png' %}" alt="Pavonify Logo">
+    <h2></h2>
+    <p>🌍 Your <strong>ultimate interactive language learning platform!</strong><br>
+       🎮 Play engaging games, <strong>build vocabulary</strong>, and track your progress.<br>
+       🚀 Join as a <strong>student or teacher</strong> and start learning today!</p>
+  </div>
+
+  <div class="main-content">
+    <div class="pane">
+      <h1>Welcome to Pavonify</h1>
+      <p>Choose your role to begin:</p>
+      <table>
+        <thead>
+          <tr>
+            <th>I am a…</th>
+            <th><i class="fas fa-user role-icon"></i> Student</th>
+            <th><i class="fas fa-chalkboard-teacher role-icon"></i> Teacher</th>
+            <th><i class="fas fa-user-tie role-icon"></i> Lead Teacher</th>
+            <th><i class="fas fa-school role-icon"></i> School</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Login</td>
+            <td><a href="{% url 'student_login' %}" class="btn">Login</a></td>
+            <td><a href="{% url 'login' %}" class="btn">Login</a></td>
+            <td><a href="#" class="btn disabled">Login</a></td>
+            <td><a href="#" class="btn disabled">Sign Up</a></td>
+          </tr>
+          <tr>
+            <td>Register</td>
+            <td>-</td>
+            <td><a href="{% url 'register_teacher' %}" class="btn">Register</a></td>
+            <td>-</td>
+            <td>-</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- About Pavonify -->
+    <div class="about-section">
+      <h2>About Pavonify</h2>
+      <p>Hi, I'm <strong>Sam</strong>, a language teacher from the UK working in a school in India with over 10 years of experience.  
+         I found that existing language learning platforms fell short for both students and teachers, so I built <strong>Pavonify</strong>—a fun and effective way to learn languages, track progress, and compete with classmates. Pavonify is a tool built by <strong>a language teacher for language teachers</strong>.</p>
+    </div>
+
+    <!-- Features Comparison Section -->
+    <div class="about-section">
+      <h2>Features Comparison</h2>
+      <p>See how Pavonify stacks up against other leading language platforms for teachers:</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Feature</th>
+            <th><span style="color: #FFFF00;">Pavonify</span></th>
+            <th>Quizlet</th>
+            <th>Memrise</th>
+            <th>Duolingo for Schools</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Interactive Games</td>
+            <td>✔️</td>
+            <td>✔️</td>
+            <td>✔️</td>
+            <td>✔️</td>
+          </tr>
+          <tr>
+            <td>Vocabulary Building</td>
+            <td>✔️</td>
+            <td>✔️</td>
+            <td>✔️</td>
+            <td>✔️</td>
+          </tr>
+          <tr>
+            <td>Progress Tracking</td>
+            <td>✔️</td>
+            <td>〰️</td>
+            <td>〰️</td>
+            <td>✔️</td>
+          </tr>
+          <tr>
+            <td>Class Leaderboards</td>
+            <td>✔️</td>
+            <td>❌</td>
+            <td>❌</td>
+            <td>❌</td>
+          </tr>
+          <tr>
+            <td>Teacher Dashboard</td>
+            <td>✔️</td>
+            <td>✔️</td>
+            <td>❌</td>
+            <td>✔️</td>
+          </tr>
+          <tr>
+            <td>Student Management</td>
+            <td>✔️</td>
+            <td>❌</td>
+            <td>❌</td>
+            <td>❌</td>
+          </tr>
+          <tr>
+            <td>Custom Content Creation</td>
+            <td>✔️</td>
+            <td>✔️</td>
+            <td>✔️</td>
+            <td>❌</td>
+          </tr>
+          <tr>
+            <td>Worksheet Maker</td>
+            <td>✔️</td>
+            <td>❌</td>
+            <td>❌</td>
+            <td>❌</td>
+          </tr>
+          <tr>
+            <td>Cost for Teachers</td>
+            <td>£2.99/month</td>
+            <td>$35.99/year</td>
+            <td>$8.99/month</td>
+            <td>Free</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Feature Tiles -->
+    <div class="features">
+      <div class="feature-box">
+        <img src="{% static 'homepage/gapfillmode.png' %}" alt="Gap-Fill Mode">
+        <h3>Engaging Activities</h3>
+        <p>Complete fun challenges to test and reinforce your vocabulary!</p>
+      </div>
+      <div class="feature-box">
+        <img src="{% static 'homepage/independentpractice.png' %}" alt="Independent Practice">
+        <h3>Independent Practice</h3>
+        <p>Students earn points when practicing new words!</p>
+      </div>
+      <div class="feature-box">
+        <img src="{% static 'homepage/classleaderboard.png' %}" alt="Class Leaderboards">
+        <h3>Class Leaderboards</h3>
+        <p>Students compete against each other in leaderboards and earn rewards!</p>
+      </div>
+    </div>
+
+<!-- Developer Timeline Section -->
+<div class="developer-timeline">
+  <h2>🚀 Pavonify Roadmap</h2>
+  <div class="timeline-container">
+    <div class="timeline-item">
+      <h3>🎮 More Game Modes</h3>
+      <p>Listening games and phonics-based challenges.</p>
+    </div>
+    <div class="timeline-item">
+      <h3>🏆 Live Competitions</h3>
+      <p>Real-time student competitions with leaderboards.</p>
+    </div>
+    <div class="timeline-item">
+      <h3>🎖️ More Student Awards</h3>
+      <p>Unlockable badges and achievement tracking.</p>
+    </div>
+    <div class="timeline-item">
+      <h3>📜 Teacher Worksheet Maker</h3>
+      <p>Generate custom worksheets based on vocab lists.</p>
+    </div>
+    <div class="timeline-item">
+      <h3>🤖 AI Functionality</h3>
+      <p>Personalized AI-powered language learning tools.</p>
+    </div>
+  </div>
+</div>
+
+    <p>Contact Us</p>
+  </div>
+</body>
+</html>

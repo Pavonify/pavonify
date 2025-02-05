@@ -1,0 +1,238 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Match Up Mode - Pavonify</title>
+  <style>
+    /* Global Styles */
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      background: #e3f2fd;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    /* Pane Container for Main Content */
+    .pane {
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      padding: 20px;
+      width: 90%;
+      max-width: 800px;
+      text-align: center;
+      margin: 20px;
+    }
+
+    .pane h1 {
+      color: #0aa2ef;
+      font-size: 28px;
+      margin-top: 0;
+      margin-bottom: 20px;
+    }
+
+    /* Stats Box */
+    .stats {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 15px;
+      border-radius: 10px;
+      background-color: #f1f1f1;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      width: 200px;
+      font-size: 14px;
+      text-align: left;
+    }
+
+    .stats h3 {
+      margin: 0 0 10px;
+      font-size: 16px;
+    }
+
+    /* Back Button Styling (Grey) */
+    .back-button {
+      display: inline-block;
+      margin-top: 20px;
+      padding: 10px 15px;
+      background-color: #ccc;
+      color: black;
+      text-decoration: none;
+      border-radius: 5px;
+      transition: background-color 0.3s ease;
+    }
+
+    .back-button:hover {
+      background-color: #aaa;
+    }
+
+    /* Container for Columns */
+    .container {
+      display: flex;
+      justify-content: center;
+      gap: 50px;
+      margin: 20px auto;
+    }
+
+    /* Column Grid Styling */
+    .column {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+    /* Tile and Target Styling */
+    .tile, .target {
+      width: 120px;
+      height: 60px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background-color: #f8f9fa;
+      border: 1px solid #ccc;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .target.correct {
+      background-color: #28a745;
+      color: white;
+      font-weight: bold;
+    }
+
+    /* Completed Message Styling */
+    .completed-message {
+      display: none;
+      text-align: center;
+      margin-top: 20px;
+      font-size: 24px;
+      color: green;
+    }
+
+    .completed-message.visible {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <!-- Fixed Stats Box -->
+  <div class="stats" id="stats">
+    <h3>Stats</h3>
+    <p><strong>Name:</strong> {{ student.first_name }}</p>
+    <p><strong>Time in Mode:</strong> <span id="time-in-mode">0</span> seconds</p>
+    <p><strong>Session Points:</strong> <span id="session-points">0</span></p>
+    <p><strong>Weekly Points:</strong> <span id="weekly-points">{{ student.weekly_points }}</span></p>
+    <p><strong>Total Points:</strong> <span id="total-points">{{ student.total_points }}</span></p>
+  </div>
+
+  <!-- Main Content Pane -->
+  <div class="pane">
+    <h1>Match Up Mode: {{ vocab_list.name }}</h1>
+
+    <div class="container">
+      <div class="column" id="source-words">
+        {% for word in source_words %}
+          <div class="tile" draggable="true" data-id="{{ word.id }}">{{ word.word }}</div>
+        {% endfor %}
+      </div>
+      <div class="column" id="target-words">
+        {% for word in target_words %}
+          <div class="target" data-id="{{ word.id }}">{{ word.translation }}</div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="completed-message" id="completed-message">Complete!</div>
+    <a href="{% url 'student_dashboard' %}" class="back-button">Back to Dashboard</a>
+  </div>
+
+  <script>
+    const tiles = document.querySelectorAll(".tile");
+    const targets = document.querySelectorAll(".target");
+    const completedMessage = document.getElementById("completed-message");
+    const timeInModeEl = document.getElementById("time-in-mode");
+    const sessionPointsEl = document.getElementById("session-points");
+    const weeklyPointsEl = document.getElementById("weekly-points");
+    const totalPointsEl = document.getElementById("total-points");
+
+    let sessionPoints = 0;
+    let weeklyPoints = parseInt(weeklyPointsEl.textContent);
+    let totalPoints = parseInt(totalPointsEl.textContent);
+    let timeInMode = 0;
+
+    // Timer to count time in mode
+    setInterval(() => {
+      timeInMode++;
+      timeInModeEl.textContent = timeInMode;
+    }, 1000);
+
+    tiles.forEach(tile => {
+      tile.addEventListener("dragstart", e => {
+        e.dataTransfer.setData("text", e.target.dataset.id);
+        e.dataTransfer.setData("text-tile", e.target.textContent);
+      });
+    });
+
+    targets.forEach(target => {
+      target.addEventListener("dragover", e => {
+        e.preventDefault();
+      });
+
+      target.addEventListener("drop", e => {
+        const sourceId = e.dataTransfer.getData("text");
+        const sourceWord = e.dataTransfer.getData("text-tile");
+        const targetId = e.target.dataset.id;
+
+        if (sourceId === targetId) {
+          // Correct match
+          e.target.classList.add("correct");
+          e.target.textContent = `${sourceWord} = ${e.target.textContent}`;
+
+          const tile = document.querySelector(`.tile[data-id='${sourceId}']`);
+          if (tile) tile.remove();
+
+          // Update session points
+          sessionPoints += 2;
+          sessionPointsEl.textContent = sessionPoints;
+
+          // Update weekly and total points
+          weeklyPoints += 2;
+          totalPoints += 2;
+          weeklyPointsEl.textContent = weeklyPoints;
+          totalPointsEl.textContent = totalPoints;
+
+          // Update points on the server
+          fetch("/update-points/", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-CSRFToken": getCSRFToken(),
+            },
+            body: JSON.stringify({ points: 2 }),
+          }).catch(err => console.error("Error updating points:", err));
+
+          // Check if all tiles are matched
+          const remainingTiles = document.querySelectorAll(".tile");
+          if (remainingTiles.length === 0) {
+            completedMessage.classList.add("visible");
+          }
+        }
+      });
+    });
+
+    // Helper function to get CSRF token
+    function getCSRFToken() {
+      const cookieValue = document.cookie
+        .split("; ")
+        .find(row => row.startsWith("csrftoken="))
+        ?.split("=")[1];
+      return cookieValue;
+    }
+  </script>
+</body>
+</html>

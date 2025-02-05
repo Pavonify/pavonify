@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unscramble the Word</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            text-align: center;
+        }
+
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            width: 80%;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 22px;
+            color: #0aa2ef;
+            margin-bottom: 10px;
+        }
+
+        #scrambled-word {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+
+        #hint {
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: #555;
+        }
+
+        input[type="text"] {
+            padding: 10px;
+            font-size: 16px;
+            width: 250px;
+            text-align: center;
+            border: 2px solid #ccc;
+            border-radius: 5px;
+        }
+
+        button {
+            background-color: #0aa2ef;
+            color: white;
+            padding: 10px 15px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            background-color: #086baf;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Unscramble the Word: {{ assignment.vocab_list.name }}</h1>
+        <div id="scrambled-word">Loading...</div>
+        <p id="hint">Hint: <span id="word-hint">Loading...</span></p>
+        <input type="text" id="answer" placeholder="Type the word here">
+        <button id="submit">Submit</button>
+    </div>
+
+    <script>
+        const words = JSON.parse('{{ words_json|safe }}');
+        const scrambledWordElement = document.getElementById("scrambled-word");
+        const hintElement = document.getElementById("word-hint");
+        const answerInput = document.getElementById("answer");
+        const submitButton = document.getElementById("submit");
+
+        let currentIndex = 0;
+
+        // Function to shuffle a word ensuring it's different
+        function shuffleWord(word) {
+            let scrambled;
+            do {
+                scrambled = word.split('').sort(() => Math.random() - 0.5).join('');
+            } while (scrambled === word);
+            return scrambled;
+        }
+
+        // Display the current word
+        function displayWord() {
+            const currentWord = words[currentIndex];
+            scrambledWordElement.textContent = shuffleWord(currentWord.word);
+            hintElement.textContent = currentWord.translation;
+            answerInput.value = '';
+            answerInput.focus();
+        }
+
+        // Handle Submit Button
+        submitButton.addEventListener("click", () => {
+            const userAnswer = answerInput.value.trim();
+            const correctAnswer = words[currentIndex].word;
+
+            if (userAnswer.toLowerCase() === correctAnswer.toLowerCase()) {
+                fetch("{% url 'update_assignment_points' %}", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": "{{ csrf_token }}",
+                    },
+                    body: JSON.stringify({ assignment_id: {{ assignment.id }}, points: 5 }),
+                });
+
+                currentIndex++;
+                if (currentIndex < words.length) {
+                    displayWord();
+                } else {
+                    alert("Well done! You've completed the game!");
+                }
+            } else {
+                alert("Incorrect! Try again.");
+            }
+        });
+
+        // Allow Enter key to submit
+        answerInput.addEventListener("keypress", (event) => {
+            if (event.key === "Enter") {
+                submitButton.click();
+            }
+        });
+
+        displayWord();
+    </script>
+</body>
+</html>

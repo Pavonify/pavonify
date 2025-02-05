@@ -1,0 +1,250 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Destroy the Wall - Pavonify</title>
+  <style>
+    /* Global Styles */
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      background: #e3f2fd;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      text-align: center;
+    }
+
+    /* Pane Container for Main Content */
+    .pane {
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      padding: 20px;
+      width: 90%;
+      max-width: 800px;
+      margin: 20px;
+      position: relative;
+    }
+
+    /* Stats Box with Higher z-index */
+    .stats {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1000;  /* Ensures the stats box is on top */
+      padding: 15px;
+      border-radius: 10px;
+      background-color: #f1f1f1;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      width: 200px;
+      font-size: 14px;
+      text-align: left;
+    }
+
+    .stats h3 {
+      margin: 0 0 10px;
+      font-size: 16px;
+    }
+
+    /* Back Button Styling (Grey) */
+    .back-button {
+      display: inline-block;
+      margin: 10px;
+      padding: 10px 15px;
+      background-color: #ccc;
+      color: black;
+      text-decoration: none;
+      border-radius: 5px;
+      transition: background-color 0.3s ease;
+    }
+
+    .back-button:hover {
+      background-color: #aaa;
+    }
+
+    /* Heading & Instruction */
+    h1 {
+      color: #0aa2ef;
+      font-size: 28px;
+      margin-top: 0;
+      margin-bottom: 10px;
+    }
+
+    p.instruction {
+      margin: 10px 0 20px;
+      font-size: 16px;
+    }
+
+    /* Target Word Styling */
+    #target-word {
+      font-size: 28px;
+      margin: 20px 0;
+    }
+
+    /* Wall Grid */
+    #wall {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 15px;
+      margin: 20px auto;
+      max-width: 600px;
+    }
+
+    .brick {
+      background-color: #fec10e;
+      padding: 20px;
+      border-radius: 8px;
+      color: white;
+      font-weight: bold;
+      font-size: 18px;
+      text-align: center;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    .brick:hover {
+      background-color: #d49a0b;
+    }
+
+    /* Feedback Message Styling */
+    #feedback-message {
+      font-size: 20px;
+      font-weight: bold;
+      margin-top: 15px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <!-- Fixed Stats Box -->
+  <div class="stats" id="stats">
+    <h3>Stats</h3>
+    <p><strong>Name:</strong> {{ student.first_name }}</p>
+    <p><strong>Time in Mode:</strong> <span id="time-in-mode">0</span> seconds</p>
+    <p><strong>Session Points:</strong> <span id="session-points">0</span></p>
+    <p><strong>Weekly Points:</strong> <span id="weekly-points">{{ student.weekly_points }}</span></p>
+    <p><strong>Total Points:</strong> <span id="total-points">{{ student.total_points }}</span></p>
+  </div>
+
+  <!-- Main Content Pane -->
+  <div class="pane">
+    <a href="{% url 'student_dashboard' %}" class="back-button">Back to Dashboard</a>
+    <h1>Destroy the Wall</h1>
+    <p class="instruction">Click on the correct word to match the source word!</p>
+    <div id="target-word"></div>
+    <div id="wall"></div>
+    <!-- Feedback Message -->
+    <div id="feedback-message"></div>
+  </div>
+
+  <script>
+    const words = JSON.parse(`{{ words_json|safe }}`);
+    const targetWordElement = document.getElementById("target-word");
+    const wall = document.getElementById("wall");
+    const feedbackMessage = document.getElementById("feedback-message");
+    const sessionPointsEl = document.getElementById("session-points");
+    const weeklyPointsEl = document.getElementById("weekly-points");
+    const totalPointsEl = document.getElementById("total-points");
+    const timeInModeEl = document.getElementById("time-in-mode");
+
+    let sessionPoints = 0;
+    let weeklyPoints = parseInt(weeklyPointsEl.textContent);
+    let totalPoints = parseInt(totalPointsEl.textContent);
+    let timeInMode = 0;
+    let currentWordIndex = 0;
+
+    // Shuffle the words for randomized target sequence
+    const shuffledWords = [...words];
+    shuffledWords.sort(() => Math.random() - 0.5);
+
+    // Timer to count time spent in mode
+    setInterval(() => {
+      timeInMode++;
+      timeInModeEl.textContent = timeInMode;
+    }, 1000);
+
+    // Set the next target word
+    function setNextTargetWord() {
+      targetWordElement.innerText = shuffledWords[currentWordIndex].translation;
+    }
+
+    if (shuffledWords.length > 0) {
+      setNextTargetWord();
+    } else {
+      targetWordElement.innerText = "No words available.";
+    }
+
+    // Function to show feedback for 1 second
+    function showFeedback(message, color) {
+      feedbackMessage.textContent = message;
+      feedbackMessage.style.color = color;
+      feedbackMessage.style.display = "block";
+      setTimeout(() => {
+        feedbackMessage.style.display = "none";
+      }, 1000);
+    }
+
+    // Populate the wall with bricks
+    words.forEach(word => {
+      const brick = document.createElement("div");
+      brick.classList.add("brick");
+      brick.textContent = word.word;
+      brick.dataset.translation = word.translation;
+
+      brick.addEventListener("click", () => {
+        // Check if the brick's translation matches the target
+        if (brick.dataset.translation === shuffledWords[currentWordIndex].translation) {
+          showFeedback("Correct!", "green");
+          brick.style.visibility = "hidden";
+
+          // Update points
+          sessionPoints++;
+          weeklyPoints++;
+          totalPoints++;
+          sessionPointsEl.textContent = sessionPoints;
+          weeklyPointsEl.textContent = weeklyPoints;
+          totalPointsEl.textContent = totalPoints;
+
+          // Update points on the server
+          fetch("/update-points/", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-CSRFToken": getCSRFToken(),
+            },
+            body: JSON.stringify({ points: 1 }),
+          }).catch(err => console.error("Error updating points:", err));
+
+          // Wait 1 second before moving to the next target word
+          setTimeout(() => {
+            currentWordIndex++;
+            if (currentWordIndex < shuffledWords.length) {
+              setNextTargetWord();
+            } else {
+              targetWordElement.innerText = "Well done! You've destroyed the wall!";
+              wall.innerHTML = ""; // Clear the wall
+            }
+          }, 1000);
+        } else {
+          showFeedback("Incorrect! Try again!", "red");
+        }
+      });
+
+      wall.appendChild(brick);
+    });
+
+    // Helper function to get CSRF token
+    function getCSRFToken() {
+      const cookieValue = document.cookie
+        .split("; ")
+        .find(row => row.startsWith("csrftoken="))
+        ?.split("=")[1];
+      return cookieValue;
+    }
+  </script>
+</body>
+</html>

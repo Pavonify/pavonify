@@ -1,0 +1,700 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Teacher Dashboard</title>
+  <style>
+    /* Global Box-Sizing */
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+    /* Import Font Awesome for icons */
+    @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css');
+    
+    /* Global Styles */
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      min-height: 100vh;
+      background: #e3f2fd;
+      display: flex;
+    }
+    
+    /* Sidebar */
+    .sidebar {
+      background-color: #0aa2ef;
+      color: white;
+      padding: 20px;
+      width: 250px;
+      box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      position: fixed;
+      left: 0;
+      top: 0;
+      height: 100vh;
+    }
+    .sidebar img {
+      width: 80%;
+      border-radius: 10px;
+      margin-bottom: 20px;
+    }
+    .sidebar h2 {
+      margin: 0 0 10px;
+      font-size: 24px;
+    }
+    .sidebar nav {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .sidebar nav a {
+      display: block;
+      width: 100%;
+      color: white;
+      text-decoration: none;
+      padding: 10px 15px;
+      margin: 5px 0;
+      border-radius: 5px;
+      background-color: #0a8fd9;
+      text-align: center;
+      transition: background-color 0.3s ease;
+    }
+    .sidebar nav a:hover,
+    .sidebar nav a.active {
+      background-color: #086baf;
+    }
+    /* Upgrade prompt in the sidebar for Basic users (gold) */
+    {% if not request.user.is_premium %}
+    .upgrade-prompt {
+      background-color: #FFD700;
+      color: #333;
+      padding: 10px;
+      border-radius: 5px;
+      margin-top: 20px;
+      text-align: center;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .upgrade-prompt:hover {
+      background-color: #e6c200;
+    }
+    {% endif %}
+    
+    /* Main Content */
+    .main-content {
+      margin-left: 250px;
+      flex-grow: 1;
+      padding: 40px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+    .pane {
+      display: none;
+      background-color: white;
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      max-width: 800px;
+      width: 100%;
+      margin-bottom: 20px;
+      animation: fadeIn 1s ease-in-out;
+      color: #333;
+    }
+    .pane.active {
+      display: block;
+    }
+    .pane h2 {
+      margin-top: 0;
+      color: #0aa2ef;
+      font-size: 28px;
+    }
+    
+    /* Overview Pane: Statistics, Leaderboards, and Upgrade Prompts */
+    .stats {
+      text-align: left;
+      margin: 0 auto 20px;
+      max-width: 600px;
+      font-size: 16px;
+      color: #333;
+    }
+    .stats ul {
+      list-style: none;
+      padding: 0;
+    }
+    .stats li {
+      margin: 5px 0;
+    }
+    .leaderboard {
+      text-align: left;
+      margin: 20px auto;
+      max-width: 600px;
+    }
+    .leaderboard h3 {
+      color: #0aa2ef;
+      margin-bottom: 10px;
+    }
+    .leaderboard table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .leaderboard th, .leaderboard td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: center;
+      font-size: 14px;
+    }
+    .leaderboard th {
+      background-color: #0aa2ef;
+      color: #fff;
+    }
+    .leaderboard tbody tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+    .upgrade-message {
+      margin-top: 10px;
+      font-size: 14px;
+      color: #FFD700;
+    }
+    
+    /* Table Styling for other panes */
+    table {
+      margin: 20px auto;
+      border-collapse: collapse;
+      width: 100%;
+      max-width: 600px;
+      background: white;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    table th {
+      padding: 12px;
+      background-color: #0aa2ef;
+      color: white;
+      text-align: center;
+      font-size: 16px;
+      border: 1px solid #ddd;
+    }
+    table td {
+      padding: 10px;
+      border: 1px solid #ddd;
+      text-align: center;
+      font-size: 14px;
+      color: #333;
+    }
+    table tbody tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+    
+    /* Flag Styles */
+    .flag {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      object-fit: cover;
+      vertical-align: middle;
+    }
+    .vocab-languages {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 5px;
+      margin-top: 5px;
+    }
+    
+    /* Button Styles */
+    .btn {
+      background-color: #ff2c61;
+      color: white;
+      border: none;
+      padding: 6px 10px;
+      border-radius: 5px;
+      text-decoration: none;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      font-size: 14px;
+      white-space: nowrap;
+    }
+    .btn:hover {
+      background-color: #d4204c;
+    }
+    /* Change upgrade buttons to gold */
+    .upgrade-btn {
+      background-color: #FFD700;
+      color: #333;
+      border: none;
+      padding: 6px 10px;
+      border-radius: 5px;
+      text-decoration: none;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      font-size: 14px;
+      white-space: nowrap;
+    }
+    .upgrade-btn:hover {
+      background-color: #e6c200;
+    }
+    /* Button groups for inline buttons */
+    .btn-group, .vocab-actions, .action-buttons {
+      display: flex;
+      gap: 5px;
+      justify-content: center;
+      align-items: center;
+      flex-wrap: nowrap;
+    }
+    .inline-form {
+      display: inline-flex;
+      gap: 5px;
+      align-items: center;
+    }
+    
+    /* Class Item Styling */
+    .class-item {
+      background-color: white;
+      color: #333;
+      padding: 15px;
+      margin: 10px 0;
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      transition: transform 0.3s ease-in-out;
+    }
+    .class-item > .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+    }
+    .class-item:hover {
+      transform: scale(1.02);
+    }
+    
+    /* Assignments Container */
+    .assignments-container {
+      display: none;
+      margin-top: 15px;
+      background: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      border: 1px solid #e0e0e0;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      color: #333;
+      text-align: left;
+    }
+    .assignments-header {
+      background-color: #0aa2ef;
+      color: white;
+      padding: 8px 12px;
+      border-radius: 5px;
+      margin-bottom: 10px;
+      font-size: 18px;
+      font-weight: bold;
+    }
+    .assignment-item {
+      margin: 10px 0;
+      padding: 10px;
+      border-bottom: 1px solid #ddd;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .assignment-item:last-child {
+      border-bottom: none;
+    }
+    
+    /* Fade In Animation */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <img src="{% static 'learning/pavonify_logo.png' %}" alt="Pavonify Logo">
+    <h2>Teacher Dashboard</h2>
+    <nav>
+      <a href="#" data-pane="overview" class="active">Overview</a>
+      <a href="#" data-pane="classes">Classes</a>
+      <a href="#" data-pane="vocabulary">Vocabulary Lists</a>
+      <a href="#" data-pane="assignments">Assignments</a>
+      <a href="#" data-pane="students">Students</a>
+      <a href="#" data-pane="worksheet-lab">✨Worksheet Lab✨</a>
+      {% if not request.user.is_premium %}
+      <a href="{% url 'teacher_upgrade' %}" class="upgrade-prompt"><style="color: #FFFF00;">Upgrade to Premium</style></a>
+      {% endif %}
+      <form method="post" action="{% url 'teacher_logout' %}" style="display:inline;">
+        {% csrf_token %}
+        <button type="submit" class="btn">Logout</button>
+      </form>
+    </nav>
+  </div>
+  
+  <!-- Main Content -->
+  <div class="main-content">
+    <!-- Overview Pane -->
+    <div class="pane active" id="overview">
+      <h2>Overview</h2>
+<!-- Upgrade Message for Basic Users -->
+{% if not request.user.is_premium %}
+  <p class="upgrade-message">You're currently on the Basic plan. Upgrade to Premium for more features!</p>
+  <a href="{% url 'teacher_upgrade' %}" class="upgrade-btn">Upgrade to Premium</a>
+{% endif %}
+      <!-- Statistics -->
+      <div class="stats">
+        <ul>
+          <li>
+            <strong>Total Classes:</strong> 
+            {% if request.user.is_premium %}
+              {{ classes|length }}
+            {% else %}
+              {{ classes|slice:"0:2"|length }} (Basic: max 2)
+            {% endif %}
+          </li>
+          <li>
+            <strong>Total Vocabulary Lists:</strong> 
+            {% if request.user.is_premium %}
+              {{ vocab_lists|length }}
+            {% else %}
+              {{ vocab_lists|slice:"0:3"|length }} (Basic: max 3)
+            {% endif %}
+          </li>
+          <li><strong>Total Students:</strong> {{ students|length }}</li>
+        </ul>
+      </div>
+      
+      <!-- Overall Leaderboard -->
+      <div class="leaderboard">
+        <h3>Overall Leaderboard</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Rank</th>
+              <th>Student</th>
+              <th>Total Points</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for student in overall_leaderboard %}
+            <tr>
+              <td>{{ forloop.counter }}</td>
+              <td>{{ student.username }}</td>
+              <td>{{ student.total_points }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="3">No data available.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      
+      <!-- Leaderboard by Class -->
+      <div class="leaderboard-by-class">
+        <h3>Leaderboard by Class</h3>
+        {% for class_data in by_class_leaderboards %}
+          <h4>{{ class_data.class_instance.name }}</h4>
+          <table>
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th>Student</th>
+                <th>Points Earned</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for student in class_data.leaderboard %}
+              <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ student.username }}</td>
+                <td>{{ student.points }}</td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="3">No data available for this class.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        {% endfor %}
+      </div>
+      
+      <!-- Recent Activity -->
+      <div class="recent-activity">
+        <h3>Recent Activity</h3>
+        <p>Placeholder for your recent activity feed...</p>
+      </div>
+    </div>
+    
+    <!-- Classes Pane -->
+    <div class="pane" id="classes">
+      <h2>Classes</h2>
+      {% if not request.user.is_premium and classes|length >= 2 %}
+        <p class="upgrade-message">You can create a maximum of 2 classes as a Basic User. <a href="{% url 'teacher_upgrade' %}" class="upgrade-btn">Upgrade to Premium</a></p>
+      {% else %}
+        <a href="{% url 'create_class' %}" class="btn">Add Class</a>
+      {% endif %}
+      <table>
+        <thead>
+          <tr>
+            <th>Class Name</th>
+            <th>Language</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for class_instance in classes %}
+            {% if request.user.is_premium or forloop.counter0 < 2 %}
+          <tr>
+            <td>{{ class_instance.name }}</td>
+            <td>
+              <img class="flag" src="{% static 'flags/'|add:class_instance.language|add:'.png' %}" alt="{{ class_instance.language }}">
+            </td>
+            <td>
+              <div class="btn-group">
+                <a href="{% url 'edit_class' class_instance.id %}" class="btn">Edit</a>
+                {% if not request.user.is_premium and class_instance.students.all|length >= 15 %}
+                  <span class="upgrade-message">Max 15 students reached (Upgrade required)</span>
+                {% else %}
+                  <a href="{% url 'add_students' class_instance.id %}" class="btn">Add Students</a>
+                {% endif %}
+                <a href="{% url 'delete_class' class_instance.id %}" class="btn" onclick="return confirm('Are you sure?');">Delete</a>
+                <a href="{% url 'view_attached_vocab' class_instance.id %}" class="btn">View Attached Lists</a>
+              </div>
+            </td>
+          </tr>
+            {% endif %}
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    
+    <!-- Vocabulary Pane -->
+    <div class="pane" id="vocabulary">
+      <h2>Vocabulary Lists</h2>
+      {% if not request.user.is_premium and vocab_lists|length >= 3 %}
+        <p class="upgrade-message">You can create a maximum of 3 vocabulary lists as a Basic User. <a href="{% url 'teacher_upgrade' %}" class="upgrade-btn">Upgrade to Premium</a></p>
+      {% else %}
+        <a href="{% url 'add_vocabulary_list' %}" class="btn">Create List</a>
+      {% endif %}
+      <table>
+        <thead>
+          <tr>
+            <th>List</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for vocab_list in vocab_lists %}
+            {% if request.user.is_premium or forloop.counter0 < 3 %}
+          <tr>
+            <td>
+              <div>{{ vocab_list.name }}</div>
+              <div class="vocab-languages">
+                <img class="flag" src="{% static 'flags/'|add:vocab_list.source_language|add:'.png' %}" alt="{{ vocab_list.source_language }}">
+                <i class="fas fa-arrow-right"></i>
+                <img class="flag" src="{% static 'flags/'|add:vocab_list.target_language|add:'.png' %}" alt="{{ vocab_list.target_language }}">
+              </div>
+            </td>
+            <td>
+              <div class="vocab-actions">
+                <a href="{% url 'edit_vocabulary_list_details' vocab_list.id %}" class="btn">Edit</a>
+                <a href="{% url 'view_vocabulary_words' vocab_list.id %}" class="btn">View</a>
+                <a href="{% url 'add_words_to_list' vocab_list.id %}" class="btn">Add Words</a>
+                <a href="{% url 'delete_vocabulary_list' vocab_list.id %}" class="btn">Delete</a>
+                <!-- Inline form for attaching this vocab list to a class -->
+                <form method="post" action="{% url 'attach_vocab_list' vocab_list.id %}" class="inline-form">
+                  {% csrf_token %}
+                  <select name="class_id" {% if vocab_list.unattached_classes|length == 0 %} disabled {% endif %}>
+                    {% if vocab_list.unattached_classes|length == 0 %}
+                      <option>All classes attached</option>
+                    {% else %}
+                      {% for available_class in vocab_list.unattached_classes %}
+                        <option value="{{ available_class.id }}">{{ available_class.name }}</option>
+                      {% endfor %}
+                    {% endif %}
+                  </select>
+                  <button type="submit" class="btn" {% if vocab_list.unattached_classes|length == 0 %} disabled {% endif %}>
+                    Attach to Class
+                  </button>
+                </form>
+              </div>
+            </td>
+          </tr>
+            {% endif %}
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    
+    <!-- Students Pane -->
+    <div class="pane" id="students">
+      <h2>Students</h2>
+      <table id="students-table">
+        <thead>
+          <tr>
+            <th data-column="name" data-order="asc">Full Name</th>
+            <th data-column="year" data-order="asc">Year</th>
+            <th data-column="last_login" data-order="asc">Last Login</th>
+            <th data-column="total_points" data-order="asc">Total Points</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for student in students %}
+          <tr>
+            <td>{{ student.first_name }} {{ student.last_name }}</td>
+            <td>{{ student.year_group }}</td>
+            <td>{{ student.last_login|date:"Y-m-d H:i" }}</td>
+            <td>{{ student.total_points }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    
+    <!-- Assignments Pane -->
+    <div class="pane" id="assignments">
+      <h2>Your Classes</h2>
+      <div id="classes-container">
+        {% for class_instance in classes %}
+          {% if request.user.is_premium or forloop.counter0 < 1 %}
+        <div class="class-item">
+          <div class="header">
+            <strong>{{ class_instance.name }}</strong>
+          </div>
+          <div class="action-buttons">
+            <button class="toggle-assignments" data-class-id="{{ class_instance.id }}">Show Assignments</button>
+            {% if request.user.is_premium %}
+              <a href="{% url 'create_assignment' class_instance.id %}" class="btn">Create Assignment</a>
+            {% else %}
+              {% if class_instance.live_assignments|length < 1 %}
+                <a href="{% url 'create_assignment' class_instance.id %}" class="btn">Create Assignment</a>
+              {% else %}
+                <span class="upgrade-message">Upgrade to Premium to add more assignments</span>
+              {% endif %}
+            {% endif %}
+          </div>
+          <div class="assignments-container" id="assignments-{{ class_instance.id }}">
+            <div class="assignments-header">Live Assignments</div>
+            {% for assignment in class_instance.live_assignments %}
+            <div class="assignment-item">
+              <span>{{ assignment.name }} – Due: {{ assignment.deadline|date:"M d, Y H:i" }}</span>
+              {% if request.user.is_premium %}
+                <a href="{% url 'assignment_analytics' assignment.id %}" class="btn">Analytics</a>
+              {% else %}
+                <span class="upgrade-message">Upgrade for Analytics</span>
+              {% endif %}
+            </div>
+            {% empty %}
+            <p>No live assignments.</p>
+            {% endfor %}
+            
+            <div class="assignments-header">Expired Assignments</div>
+            {% for assignment in class_instance.expired_assignments %}
+            <div class="assignment-item">
+              <span>{{ assignment.name }} – Expired on: {{ assignment.deadline|date:"M d, Y H:i" }}</span>
+              {% if request.user.is_premium %}
+                <a href="{% url 'assignment_analytics' assignment.id %}" class="btn">Analytics</a>
+              {% else %}
+                <span class="upgrade-message">Upgrade for Analytics</span>
+              {% endif %}
+            </div>
+            {% empty %}
+            <p>No expired assignments.</p>
+            {% endfor %}
+          </div>
+        </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+
+<!-- Worksheet Lab Pane -->
+<div class="pane" id="worksheet-lab">
+    <h2>Worksheet Lab</h2>
+    <form method="GET" action="{% url 'worksheet_lab' %}">
+        <label for="vocab-list">Select Vocabulary List:</label>
+        <select name="vocab_list" id="vocab-list" required>
+            <option value="">-- Select a List --</option>
+            {% for vocab_list in vocab_lists %}
+            <option value="{{ vocab_list.id }}">{{ vocab_list.name }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit" class="btn">Create 🪄</button>
+    </form>
+</div>
+
+
+  </div>
+  
+  <script>
+    // Sidebar Navigation: Switch content panes
+    const navLinks = document.querySelectorAll(".sidebar nav a");
+    const panes = document.querySelectorAll(".pane");
+    navLinks.forEach(link => {
+      link.addEventListener("click", e => {
+        e.preventDefault();
+        navLinks.forEach(l => l.classList.remove("active"));
+        panes.forEach(pane => pane.classList.remove("active"));
+        link.classList.add("active");
+        const targetPane = link.getAttribute("data-pane");
+        if (targetPane) {
+          document.getElementById(targetPane).classList.add("active");
+        }
+      });
+    });
+    
+    // Expand/Collapse Assignments in the Assignments Pane
+    document.querySelectorAll(".toggle-assignments").forEach(button => {
+      button.addEventListener("click", () => {
+        const classId = button.dataset.classId;
+        const container = document.getElementById(`assignments-${classId}`);
+        if (container.style.display === "block") {
+          container.style.display = "none";
+          button.textContent = "Show Assignments";
+        } else {
+          container.style.display = "block";
+          button.textContent = "Hide Assignments";
+        }
+      });
+    });
+    
+    // Sort Students Table Columns
+    const table = document.getElementById("students-table");
+    const headers = table.querySelectorAll("th");
+    headers.forEach(header => {
+      header.addEventListener("click", () => {
+        const column = header.getAttribute("data-column");
+        const order = header.getAttribute("data-order");
+        const rows = Array.from(table.querySelector("tbody").rows);
+        rows.sort((rowA, rowB) => {
+          const cellA = rowA.querySelector(`td:nth-child(${header.cellIndex + 1})`).textContent.trim();
+          const cellB = rowB.querySelector(`td:nth-child(${header.cellIndex + 1})`).textContent.trim();
+          if (column === "last_login") {
+            const dateA = new Date(cellA);
+            const dateB = new Date(cellB);
+            return order === "asc" ? dateA - dateB : dateB - dateA;
+          }
+          if (column === "total_points" || column === "year") {
+            return order === "asc" ? cellA - cellB : cellB - cellA;
+          }
+          return order === "asc" ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
+        });
+        rows.forEach(row => table.querySelector("tbody").appendChild(row));
+        header.setAttribute("data-order", order === "asc" ? "desc" : "asc");
+      });
+    });
+  </script>
+</body>
+</html>

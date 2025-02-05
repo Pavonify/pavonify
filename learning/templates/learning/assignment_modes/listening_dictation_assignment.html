@@ -1,0 +1,265 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Listening Dictation - Assignment Mode</title>
+  <style>
+    /* Global Styles */
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      background: #e3f2fd;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start; /* Aligns content to the top */
+      padding-top: 20px;
+    overflow-x: hidden; /* Prevent horizontal scroll */
+    overflow-y: auto; /* Allow only necessary vertical scrolling */
+    height: 100%;
+    }
+
+    /* Main Container */
+    .pane {
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      padding: 20px;
+      width: 90%;
+      max-width: 600px;
+      text-align: center;
+      margin-top: 0;
+    }
+
+    .pane h1 {
+      color: #0aa2ef;
+      font-size: 24px;
+      margin-bottom: 15px;
+    }
+
+    /* Dictation Controls */
+    .dictation-controls {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+
+    /* Input Styling */
+    .input-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .input-container input {
+      padding: 10px;
+      font-size: 16px;
+      width: 250px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      text-align: center;
+    }
+
+    /* Buttons */
+    .button {
+      padding: 10px 15px;
+      font-size: 16px;
+      cursor: pointer;
+      background-color: #0aa2ef;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      transition: background-color 0.3s ease;
+    }
+
+    .button:hover {
+      background-color: #0882c1;
+    }
+
+    /* Skip Button */
+    .skip-button {
+      background-color: #ff9f1c;
+    }
+
+    .skip-button:hover {
+      background-color: #e88d17;
+    }
+
+    /* Accent Keyboard */
+    .accent-keyboard {
+      display: flex;
+      gap: 5px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 10px;
+    }
+
+    .accent-key {
+      padding: 5px 10px;
+      font-size: 16px;
+      cursor: pointer;
+      background-color: #ddd;
+      border: 1px solid #bbb;
+      border-radius: 5px;
+      transition: background-color 0.3s ease;
+    }
+
+    .accent-key:hover {
+      background-color: #ccc;
+    }
+
+    /* Status Message */
+    #feedback {
+      font-size: 18px;
+      font-weight: bold;
+      margin-top: 10px;
+    }
+
+    /* Correct Answer Container */
+    #correct-answer-container {
+      display: none;
+      background-color: #0aa2ef;
+      color: white;
+      padding: 10px;
+      border-radius: 5px;
+      margin-top: 15px;
+      font-weight: bold;
+    }
+
+  </style>
+</head>
+<body>
+
+  <!-- Main Pane -->
+  <div class="pane">
+    <h1>Listening Dictation: {{ vocab_list.name }}</h1>
+
+    <div class="dictation-controls">
+      <button id="play-word" class="button">🔊 Play Word</button>
+    </div>
+
+    <div class="input-container">
+      <input type="text" id="user-input" placeholder="Type what you hear..." />
+      <div id="accent-keyboard" class="accent-keyboard"></div>
+      <div style="display: flex; gap: 10px; margin-top: 10px;">
+        <button id="submit-answer" class="button">Submit</button>
+        <button id="skip-button" class="button skip-button">Skip</button>
+      </div>
+    </div>
+
+    <div id="feedback"></div>
+
+    <div id="correct-answer-container">
+      Correct Answer: <span id="correct-answer"></span>
+      <br><br>
+      <button id="continue-button" class="button">Continue</button>
+    </div>
+  </div>
+
+  <script>
+    let words = JSON.parse('{{ words_json|escapejs }}');
+    let targetLanguage = "{{ target_language }}";
+    let currentIndex = 0;
+    let assignmentId = {{ assignment.id }};
+    let pointsPerCorrect = 5;
+    let csrfToken = "{{ csrf_token }}";
+
+    words = words.sort(() => Math.random() - 0.5);
+
+    function getLanguageCode(lang) {
+        const langMap = {
+            "fr": "fr-FR", "de": "de-DE", "es": "es-ES", "it": "it-IT", "en": "en-US"
+        };
+        return langMap[lang] || "en-US"; 
+    }
+
+    function createAccentKeyboard() {
+        const accents = {
+            "fr": "é è ê ë à â ç ô î ï û ù",
+            "de": "ä ö ü ß",
+            "es": "á é í ó ú ñ ü",
+            "it": "à è é ì ò ù"
+        };
+
+        const keyboardDiv = document.getElementById("accent-keyboard");
+        const langAccents = accents[targetLanguage] || "";
+
+        langAccents.split(" ").forEach(accent => {
+            const button = document.createElement("button");
+            button.className = "accent-key";
+            button.textContent = accent;
+            button.addEventListener("click", () => {
+                document.getElementById("user-input").value += accent;
+            });
+            keyboardDiv.appendChild(button);
+        });
+    }
+
+    function speakWord() {
+        if (!('speechSynthesis' in window)) {
+            alert("Your browser does not support speech synthesis.");
+            return;
+        }
+
+        const word = words[currentIndex].translation;
+        const utterance = new SpeechSynthesisUtterance(word);
+        utterance.lang = getLanguageCode(targetLanguage);
+        speechSynthesis.speak(utterance);
+    }
+
+    function checkAnswer() {
+        const userAnswer = document.getElementById("user-input").value.trim().toLowerCase();
+        const correctAnswer = words[currentIndex].translation.toLowerCase();
+        const feedbackElement = document.getElementById("feedback");
+
+        if (userAnswer === correctAnswer) {
+            feedbackElement.textContent = "✅ Correct!";
+            feedbackElement.style.color = "green";
+
+            updateAssignmentPoints(pointsPerCorrect);
+            setTimeout(nextWord, 1000);
+        } else {
+            feedbackElement.textContent = "❌ Try again!";
+            feedbackElement.style.color = "red";
+        }
+    }
+
+    function nextWord() {
+        document.getElementById("user-input").value = "";
+        currentIndex = (currentIndex + 1) % words.length;
+        document.getElementById("correct-answer-container").style.display = "none";
+        speakWord();
+    }
+
+    function updateAssignmentPoints(points) {
+        fetch("{% url 'update_assignment_points' %}", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "X-CSRFToken": csrfToken },
+            body: JSON.stringify({ assignment_id: assignmentId, points: points }),
+        })
+        .then(() => {
+            if (window.parent) {
+                window.parent.postMessage({ type: "activity_complete", assignmentId: assignmentId, pointsEarned: points }, "*");
+            }
+        });
+    }
+
+    document.getElementById("play-word").addEventListener("click", speakWord);
+    document.getElementById("submit-answer").addEventListener("click", checkAnswer);
+    
+    document.getElementById("skip-button").addEventListener("click", () => {
+        document.getElementById("correct-answer").textContent = words[currentIndex].translation;
+        document.getElementById("correct-answer-container").style.display = "block";
+    });
+
+    document.getElementById("continue-button").addEventListener("click", nextWord);
+
+    createAccentKeyboard();
+  </script>
+
+</body>
+</html>

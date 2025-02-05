@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Destroy the Wall</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            background-color: #f9f9f9;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            font-size: 24px;
+            color: #0aa2ef;
+            margin-bottom: 10px;
+        }
+
+        p {
+            font-size: 16px;
+            margin-bottom: 15px;
+        }
+
+        #target-word {
+            font-size: 28px;
+            font-weight: bold;
+            margin: 15px 0;
+            padding: 10px 20px;
+            background-color: #0aa2ef;
+            color: white;
+            border-radius: 8px;
+            display: inline-block;
+        }
+
+        #wall {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 12px;
+            margin: 20px auto;
+            max-width: 600px;
+        }
+
+        .brick {
+            background-color: #fec10e;
+            padding: 18px;
+            border-radius: 8px;
+            color: white;
+            font-weight: bold;
+            font-size: 18px;
+            text-align: center;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out;
+        }
+
+        .brick:hover {
+            background-color: #d49a0b;
+        }
+
+        .brick.hidden {
+            visibility: hidden;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Destroy the Wall</h1>
+    <p>Click on the correct word to match the source word!</p>
+
+    <div id="target-word"></div>
+    <div id="wall"></div>
+
+    <script>
+        const words = JSON.parse(`{{ words_json|safe }}`);
+        const targetWordElement = document.getElementById("target-word");
+        const wall = document.getElementById("wall");
+
+        let currentWordIndex = 0;
+
+        // Shuffle words to randomize the target order
+        const shuffledWords = [...words].sort(() => Math.random() - 0.5);
+
+        // Set the next target word
+        const setNextTargetWord = () => {
+            targetWordElement.innerText = shuffledWords[currentWordIndex].translation;
+        };
+
+        if (shuffledWords.length > 0) {
+            setNextTargetWord();
+        } else {
+            targetWordElement.innerText = "No words available.";
+        }
+
+        // Populate the wall with bricks
+        words.forEach(word => {
+            const brick = document.createElement("div");
+            brick.classList.add("brick");
+            brick.textContent = word.word;
+            brick.dataset.translation = word.translation;
+
+            brick.addEventListener("click", () => {
+                if (brick.dataset.translation === shuffledWords[currentWordIndex].translation) {
+                    brick.classList.add("hidden");
+                    currentWordIndex++;
+
+                    if (currentWordIndex < shuffledWords.length) {
+                        setNextTargetWord();
+                    } else {
+                        targetWordElement.innerText = "Well done! You've destroyed the wall!";
+                        wall.innerHTML = ""; // Clear remaining bricks
+                    }
+                } else {
+                    alert("Incorrect word. Try again!");
+                }
+            });
+
+            wall.appendChild(brick);
+        });
+    </script>
+
+</body>
+</html>

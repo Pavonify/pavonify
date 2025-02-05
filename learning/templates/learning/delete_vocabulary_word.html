@@ -1,0 +1,7 @@
+<h1>Delete Word</h1>
+<p>Are you sure you want to delete the word "{{ word.word }}"?</p>
+<form method="post">
+    {% csrf_token %}
+    <button type="submit">Yes, Delete</button>
+</form>
+<a href="{% url 'view_vocabulary_list' word.list.id %}">Cancel</a>

@@ -1,0 +1,865 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Worksheet Lab</title>
+
+
+    <!-- jQuery and jQuery UI (for draggable and resizable features) -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+
+
+
+    <style>
+
+
+@media print {
+    /* Hide everything except the worksheet */
+    body * {
+        visibility: hidden !important;
+    }
+
+    /* Show only the worksheet page */
+    .worksheet-page, .worksheet-page * {
+        visibility: visible !important;
+    }
+
+    /* Keep the worksheet page formatted correctly */
+    .worksheet-page {
+        width: 21cm !important; /* A4 width */
+        height: 29.7cm !important; /* A4 height */
+        margin: 0 auto !important;
+        padding: 20px !important;
+        box-shadow: none !important;
+        background: white !important;
+        position: relative !important;
+    }
+
+    /* Ensure worksheet content remains inside the worksheet */
+    .worksheet-content {
+        width: 100% !important;
+        text-align: left !important;
+    }
+
+    /* Ensure boxes remain positioned correctly and spaced properly */
+    .worksheet-box {
+        position: absolute !important; /* Keep original layout */
+        border: 1px solid #000 !important; /* Make it print-friendly */
+        padding: 10px !important;
+        background: white !important;
+        box-shadow: none !important;
+        overflow: visible !important;
+        page-break-inside: avoid !important;
+    }
+
+    /* Preserve spacing between boxes by adding margins */
+    .worksheet-box:not(:first-child) {
+        margin-top: 10px !important;
+    }
+
+    /* Hide UI controls (drag, resize, delete) */
+    .remove-box, .drag-handle, .resize-handle {
+        display: none !important;
+    }
+}
+
+        /* Global Box-Sizing */
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+
+        /* Import Font Awesome */
+        @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css');
+
+        /* Global Styles */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            min-height: 100vh;
+            background: #e3f2fd;
+            display: flex;
+        }
+
+        /* Fixed Sidebar */
+        .sidebar {
+            background-color: #0aa2ef;
+            color: white;
+            padding: 20px;
+            width: 250px;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            position: fixed;
+            left: 0;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
+        }
+
+        /* Custom Scrollbar (For Webkit browsers) */
+        .sidebar::-webkit-scrollbar {
+            width: 8px;
+        }
+        .sidebar::-webkit-scrollbar-track {
+            background: #0aa2ef;
+            border-radius: 10px;
+        }
+        .sidebar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 10px;
+        }
+        .sidebar::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.8);
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: 250px;
+            flex-grow: 1;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            overflow-y: auto;
+            height: 100vh;
+        }
+
+        /* Toolbar */
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        /* Worksheet Lab Styles */
+        .pane {
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        /* Task Type Section */
+        .pane h2 {
+            color: #0aa2ef;
+            font-size: 28px;
+            margin-top: 0;
+        }
+
+        /* Ensure the preview box always keeps the scrollbar */
+        .box {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-top: 10px;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+            box-shadow: 0 2px 3px rgba(0, 0, 0, 0.1);
+            color: #333;
+            min-height: 50px;
+            max-height: calc(100vh - 400px); /* Adjust based on viewport height */
+            width: 90%;
+            text-align: left;
+            font-size: 14px;
+            line-height: 1.5;
+            overflow-y: auto !important; /* Forces scrollbar to always appear */
+            display: block;
+        }
+
+        /* Ensure Scrollbar is Visible in Webkit Browsers */
+        .box::-webkit-scrollbar {
+            width: 6px; /* Thin scrollbar */
+        }
+
+        .box::-webkit-scrollbar-track {
+            background: #f1f1f1; /* Light grey */
+            border-radius: 5px;
+        }
+
+        .box::-webkit-scrollbar-thumb {
+            background: #888; /* Slightly darker for visibility */
+            border-radius: 5px;
+        }
+
+        .box::-webkit-scrollbar-thumb:hover {
+            background: #555; /* Darker when hovered */
+        }
+
+        /* Dynamic Button Positioning */
+        .sidebar .buttons-wrapper {
+            margin-top: auto; /* Push buttons down dynamically */
+            padding-top: 10px;
+            width: 100%;
+            text-align: center;
+        }
+
+        /* Form Elements */
+        label {
+            display: block;
+            margin-top: 5px;
+            font-weight: bold;
+        }
+        select, input[type="number"], input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        /* Buttons */
+        button {
+            background-color: #ff2c61;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            margin-top: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            font-size: 14px;
+        }
+        button:hover {
+            background-color: #d4204c;
+        }
+
+        /* Small Rounded Light Blue Buttons */
+        .button-row {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        /* Individual Small Button */
+        .button-row button {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            font-size: 18px;
+            padding: 5px;
+            text-align: center;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #4da3ff; /* Light Blue */
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .button-row button:hover {
+            background-color: #1e87ff; /* Slightly darker blue on hover */
+        }
+
+        /* Worksheet Layout (A4 Paper Style with Grid) */
+        .worksheet-page {
+            width: 21cm; /* A4 width */
+            height: 29.7cm; /* A4 height */
+            background: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+ background-image: 
+        linear-gradient(rgba(150, 150, 150, 0.4) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(150, 150, 150, 0.4) 1px, transparent 1px);	
+            background-size: 20px 20px; /* Grid spacing */
+        }
+
+        /* Pavonify Logo */
+        .worksheet-logo {
+            width: 120px;
+            margin-bottom: 10px;
+        }
+
+        /* Worksheet Title */
+        #worksheet-title {
+            font-size: 24px;
+            color: #0aa2ef;
+            margin-bottom: 10px;
+        }
+
+        /* Print-friendly Styling */
+        @media print {
+            body {
+                background: none;
+            }
+            .worksheet-page {
+                box-shadow: none;
+                border: none;
+            }
+        }
+
+        /* Worksheet Content */
+        .worksheet-content {
+            width: 100%;
+            text-align: left;
+        }
+
+/* Draggable & Resizable Worksheet Box */
+.worksheet-box {
+    position: absolute;
+    border: 1px solid #ccc;
+    padding: 10px;
+    background-color: #fff;
+    border-radius: 5px;
+    box-shadow: 0 2px 3px rgba(0, 0, 0, 0.1);
+    width: auto; /* Adjust width to content */
+    min-width: 150px;
+    max-width: 60%; /* Prevent excessive width */
+    height: auto; /* Adjust height to content */
+    min-height: 50px;
+    max-height: 300px; /* Prevent excessive height */
+    text-align: left;
+    overflow: auto;
+    cursor: default; /* No drag cursor on the whole box */
+    display: inline-block; /* Ensure width adjusts to text */
+    white-space: normal; /* Allow text to wrap */
+}
+
+/* Top-Right Controls (Drag Handle & Remove Button) */
+.box-controls {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    display: flex;
+    gap: 5px;
+}
+
+/* Drag Handle (Moves the Box) */
+.drag-handle {
+    cursor: grab;
+    font-size: 14px;
+    color: #666; /* Subtle color */
+    padding: 3px;
+}
+
+/* Remove Button (X) */
+.remove-box {
+    font-size: 14px;
+    color: #ff2c61;
+    cursor: pointer;
+    font-weight: bold;
+    transition: color 0.3s ease;
+    padding: 3px;
+}
+.remove-box:hover {
+    color: #d4204c;
+}
+
+/* Resize Handle (Bottom-Right Corner) */
+.resize-handle {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background: #ccc; /* Matches box border */
+    bottom: 2px;
+    right: 2px;
+    cursor: se-resize;
+    border-radius: 2px;
+    z-index: 10;
+}
+
+    .upgrade-btn {
+      background-color: #FFD700;
+      color: #333;
+      border: none;
+      padding: 6px 10px;
+      border-radius: 5px;
+      text-decoration: none;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      font-size: 14px;
+      white-space: nowrap;
+    }
+    .upgrade-btn:hover {
+      background-color: #e6c200;
+    }
+
+
+        /* Keep Important Buttons at the Bottom */
+        .sidebar-footer {
+            position: sticky;
+            bottom: 0;
+            background: #0aa2ef;
+            padding: 10px;
+            width: 100%;
+            text-align: center;
+        }
+        .sidebar-footer button {
+            width: 90%;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="toolbar">
+<!-- Print Button (Disabled for Basic Users) -->
+{% if request.user.is_premium %}
+    <button id="printBtn" onclick="printWorksheet()">Print Worksheet 🖨️</button>
+    <button id="downloadBtn" onclick="downloadPDF()">Download as PDF 📄</button>
+{% else %}
+<div class="premium-restriction">
+    <p class="upgrade-message">
+        <span class="lock-icon">🔒</span> Printing and exporting are Premium features.
+    </p>
+    <a href="{% url 'teacher_upgrade' %}" class="upgrade-btn">Upgrade to Premium</a>
+</div>
+{% endif %}
+            <button onclick="goBack()">Back to Dashboard</button>
+        </div>
+
+        <!-- Worksheet Lab Pane -->
+        <div class="pane" id="worksheet-lab">
+            <div class="container">
+                <div class="sidebar">
+                    <!-- Worksheet Title Input -->
+                    <h3>Set Worksheet Title:</h3>
+                    <input type="text" id="worksheet-title-input" placeholder="Enter worksheet title">
+                    <button onclick="updateWorksheetTitle()">Update Title</button>
+
+                    <h2>Add a Box</h2>
+                    <label for="task-type">Select Task Type:</label>
+                    <select id="task-type">
+                        <option value="translate_source_to_target">Translate from Source to Target</option>
+                        <option value="translate_target_to_source">Translate from Target to Source</option>
+                        <option value="match_up">Match Up</option>
+                        <option value="complete_missing_letters">Complete the Missing Letters</option>
+                        <option value="complete_missing_vowels">Complete the Missing Vowels</option>
+                        <option value="multiple_choice">Multiple Choice Translation</option>
+                        <option value="faulty_translation">Faulty Translation</option>
+                        <option value="unscramble">Unscramble the Letters</option>
+                    </select>
+
+                    <label for="question-count">Number of Questions:</label>
+                    <input type="number" id="question-count" min="1" max="10" value="1">
+
+                    <!-- Compact Button Row Above Preview Box -->
+                    <div class="button-row">
+                        <button onclick="generateBox()" title="Generate Preview">🪄</button>
+                        <button onclick="addToWorksheet()" title="Add to Worksheet">➕</button>
+                        <button onclick="refreshWords()" title="Refresh Words">🔄</button>
+                    </div>
+
+                    <h3>Preview:</h3>
+                    <div id="box-preview" class="box"></div>
+                </div>
+
+                <!-- Worksheet Print Preview (More like a real page) -->
+                <div class="worksheet-page">
+                    <img src="{% static 'learning/pavonify_logo.png' %}" alt="Pavonify Logo" class="worksheet-logo">
+                    <h1 id="worksheet-title">{{ vocab_list.name }} Worksheet</h1>
+                    <hr>
+                    <div id="worksheet-preview" class="worksheet-content">
+                        <!-- Tasks will be added here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JSON Data for Words -->
+    <script>
+        function adjustSidebarHeight() {
+            const sidebar = document.querySelector('.sidebar');
+            const contentHeight = sidebar.scrollHeight;
+
+            // Ensure sidebar expands when new content is added
+            sidebar.style.height = contentHeight + "px";
+        }
+
+        function updateWorksheetTitle() {
+            const titleInput = document.getElementById('worksheet-title-input');
+            const worksheetTitle = document.getElementById('worksheet-title');
+
+            if (titleInput.value.trim() !== "") {
+                worksheetTitle.textContent = titleInput.value;
+            } else {
+                alert("Please enter a valid title.");
+            }
+        }
+
+        // Set default title when the page loads
+        window.onload = function () {
+            const titleInput = document.getElementById('worksheet-title-input');
+            const defaultTitle = "{{ vocab_list.name }} Worksheet";
+            titleInput.value = defaultTitle;
+        };
+
+        const words = JSON.parse('{{ words_json|escapejs }}');
+
+function printWorksheet() {
+    const worksheet = document.querySelector('.worksheet-page');
+    const originalContents = document.body.innerHTML;
+
+    // Replace page content with only the worksheet
+    document.body.innerHTML = worksheet.outerHTML;
+
+    // Trigger print
+    window.print();
+
+    // Restore the original page after printing
+    document.body.innerHTML = originalContents;
+
+    // Reattach event listeners (if needed)
+    attachDragAndResize();
+}
+
+
+
+        function goBack() {
+            window.history.back();
+        }
+
+function generateBox() {
+    const taskType = document.getElementById('task-type').value;
+    const questionCount = parseInt(document.getElementById('question-count').value, 10);
+    const previewDiv = document.getElementById('box-preview');
+
+    if (words.length < questionCount) {
+        alert('Not enough words in the vocabulary list!');
+        return;
+    }
+
+    // Shuffle words and select required amount
+    const shuffledWords = [...words].sort(() => 0.5 - Math.random()).slice(0, questionCount);
+    let content = '<strong>';
+
+    switch (taskType) {
+        case 'translate_source_to_target':
+            content += 'Translate these words:</strong><br>';
+            shuffledWords.forEach((word, index) => {
+                content += `${index + 1}. ${word.word} ➝ _______<br>`;
+            });
+            break;
+
+        case 'translate_target_to_source':
+            content += 'Translate these words into your native language:</strong><br>';
+            shuffledWords.forEach((word, index) => {
+                content += `${index + 1}. ${word.translation} ➝ _______<br>`;
+            });
+            break;
+
+        case 'match_up':
+            content += 'Match the words with their meanings:</strong><br>';
+            let answers = shuffledWords.map(w => w.translation).sort(() => Math.random() - 0.5);
+            shuffledWords.forEach((word, index) => {
+                content += `${index + 1}. ${word.word} _______ ${String.fromCharCode(97 + index)}) ${answers[index]}<br>`;
+            });
+            break;
+
+        case 'complete_missing_letters':
+            content += 'Fill in the missing letters:</strong><br>';
+            shuffledWords.forEach((word, index) => {
+                let missingLetters = word.translation.replace(/[bcdfghjklmnpqrstvwxyz]/gi, '_'); // Remove consonants
+                content += `${index + 1}. ${missingLetters} (${word.word})<br>`; // Add source word in brackets
+            });
+            break;
+
+        case 'complete_missing_vowels':
+            content += 'Fill in the missing vowels:</strong><br>';
+            shuffledWords.forEach((word, index) => {
+                let missingVowels = word.translation.replace(/[aeiou]/gi, '_'); // Remove vowels
+                content += `${index + 1}. ${missingVowels} (${word.word})<br>`; // Add source word in brackets
+            });
+            break;
+
+        case 'multiple_choice':
+            content += 'Select the correct translation:</strong><br>';
+            shuffledWords.forEach((word, index) => {
+                let incorrectChoices = [...words]
+                    .filter(w => w.translation !== word.translation)
+                    .sort(() => Math.random() - 0.5)
+                    .slice(0, 2);
+                
+                let choices = [word.translation, ...incorrectChoices.map(w => w.translation)]
+                    .sort(() => Math.random() - 0.5);
+                
+                content += `${index + 1}. ${word.word}: (${choices.join(', ')})<br>`;
+            });
+            break;
+
+        case 'faulty_translation':
+            content += 'Tick ✔ if correct, ✖ if incorrect:</strong><br>';
+            shuffledWords.forEach((word, index) => {
+                let correct = Math.random() < 0.5; // 50% chance of being correct
+                let displayedTranslation = correct ? word.translation : words[Math.floor(Math.random() * words.length)].translation;
+                
+                content += `${index + 1}. ${word.word} ➝ ${displayedTranslation}  (✔/✖)<br>`;
+            });
+            break;
+
+        case 'unscramble':
+            content += 'Unscramble the words:</strong><br>';
+            shuffledWords.forEach((word, index) => {
+                let scrambled = word.translation.split('').sort(() => 0.5 - Math.random()).join('');
+                content += `${index + 1}. ${scrambled} ➝ _______ (${word.word})<br>`; // Add source word in brackets
+            });
+            break;
+    }
+
+    previewDiv.innerHTML = content;
+
+    // Adjust preview box height dynamically
+    previewDiv.style.height = "auto";
+    previewDiv.style.overflowY = "auto";
+    previewDiv.style.display = "block";
+    previewDiv.style.maxHeight = "300px";
+
+    // Allow sidebar to expand if needed
+    document.querySelector(".sidebar").style.maxHeight = "none";
+}
+
+function addToWorksheet() {
+    const previewDiv = document.getElementById('box-preview');
+    const worksheetDiv = document.getElementById('worksheet-preview');
+    const worksheetPage = document.querySelector('.worksheet-page'); // Ensure box stays inside this
+    const boxContent = previewDiv.innerHTML;
+
+    if (boxContent.trim()) {
+        const box = document.createElement('div');
+        box.className = 'worksheet-box';
+        box.innerHTML = boxContent;
+
+        // Auto-adjust width and height based on content
+        box.style.width = 'auto';
+        box.style.height = 'auto';
+
+        // Top-right control div for drag and remove icons
+        const controlDiv = document.createElement('div');
+        controlDiv.className = 'box-controls';
+
+        // Drag Handle
+        const dragHandle = document.createElement('span');
+        dragHandle.className = 'drag-handle';
+        dragHandle.innerHTML = '⠿'; // Unicode for drag icon
+
+        // Remove Button (X)
+        const removeButton = document.createElement('span');
+        removeButton.textContent = '✖';
+        removeButton.className = 'remove-box';
+        removeButton.onclick = function () {
+            box.remove();
+        };
+
+        // Append icons to control div
+        controlDiv.appendChild(dragHandle);
+        controlDiv.appendChild(removeButton);
+        box.appendChild(controlDiv);
+
+        // Create a separate resize handle
+        const resizeHandle = document.createElement('div');
+        resizeHandle.className = 'resize-handle';
+        box.appendChild(resizeHandle);
+
+        // **Find next available position within the worksheet page**
+        let newX = 20; // Start position (left padding)
+        let newY = 160; // Start position (below the logo/title area)
+        const gridSize = 20; // Snap to grid
+
+        // Get all existing boxes within the page
+        const allBoxes = document.querySelectorAll('.worksheet-page .worksheet-box');
+        if (allBoxes.length > 0) {
+            let lastBox = allBoxes[allBoxes.length - 1]; // Get the last added box
+            let lastRect = lastBox.getBoundingClientRect();
+            let pageRect = worksheetPage.getBoundingClientRect();
+
+            // Calculate potential next position (horizontally first)
+            newX = lastRect.right - pageRect.left + gridSize; // Move right
+            newY = lastRect.top - pageRect.top; // Keep same row
+
+            // If the new position goes beyond the page width, move to the next row
+            if (newX + 200 > pageRect.width) { // Assuming 200px min box width
+                newX = 20; // Reset to left
+                newY += lastRect.height + gridSize; // Move to next row
+            }
+
+            // **Ensure it doesn't go into the protected title area**
+            if (newY < 160) {
+                newY = 160; // Force position below title/logo area
+            }
+
+            // Prevent boxes from going outside the worksheet page
+            if (newY + 100 > pageRect.height) { // Assuming 100px min box height
+                alert("No more space on the worksheet!");
+                return;
+            }
+        }
+
+        // Apply position with snapping
+        box.style.left = `${Math.round(newX / gridSize) * gridSize}px`;
+        box.style.top = `${Math.round(newY / gridSize) * gridSize}px`;
+
+        worksheetDiv.appendChild(box);
+
+        // Make the box draggable ONLY from the drag handle
+        $(box).draggable({
+            grid: [20, 20], // Snap to grid
+            containment: ".worksheet-page", // Ensure it stays inside the worksheet
+            handle: ".drag-handle", // Dragging is only allowed on the drag icon
+            cancel: ".resize-handle" // Prevent dragging while resizing
+        });
+
+        // Make the box resizable (ONLY on the resize handle)
+        $(box).resizable({
+            handles: { "se": ".resize-handle" }, // Only bottom-right corner resizable
+            minWidth: 150,
+            maxWidth: worksheetPage.clientWidth - 40, // Prevent overflowing width
+            minHeight: 50,
+            maxHeight: worksheetPage.clientHeight - 40, // Prevent overflowing height
+            grid: [20, 20], // Snap resizing to the same grid as dragging
+            start: function () {
+                $(this).draggable("disable"); // Disable dragging while resizing
+            },
+            stop: function () {
+                $(this).draggable("enable"); // Re-enable dragging after resizing
+            }
+        });
+
+        previewDiv.innerHTML = ''; // Clear preview
+    } else {
+        alert('Please generate a task first!');
+    }
+}
+
+
+
+
+function refreshWords() {
+    generateBox(); // Simply regenerate the box with new words
+}
+
+
+function downloadWorksheetPDF() {
+    const worksheet = document.querySelector('.worksheet-page');
+
+    if (!worksheet) {
+        alert("Worksheet not found!");
+        return;
+    }
+
+    // Get the vocab list name
+    let vocabListName = document.getElementById('worksheet-title').innerText.trim();
+    if (!vocabListName) vocabListName = "Worksheet"; // Fallback name
+
+    // Generate timestamp
+    const now = new Date();
+    const timestamp = now.toISOString().slice(0, 19).replace(/[-T:]/g, ""); // Format: YYYYMMDD_HHMMSS
+
+    // Construct the filename
+    const filename = `${vocabListName}_Worksheet_${timestamp}.pdf`;
+
+    // Clone the worksheet to avoid modifying the original
+    const clonedWorksheet = worksheet.cloneNode(true);
+    const tempContainer = document.createElement('div');
+    tempContainer.appendChild(clonedWorksheet);
+
+    // Remove UI controls (drag, resize, delete)
+    tempContainer.querySelectorAll('.remove-box, .drag-handle, .resize-handle').forEach(el => el.remove());
+
+    // Get all original worksheet boxes and their positions
+    const originalBoxes = worksheet.querySelectorAll('.worksheet-box');
+    const clonedBoxes = tempContainer.querySelectorAll('.worksheet-box');
+
+    originalBoxes.forEach((box, index) => {
+        const rect = box.getBoundingClientRect();
+        const pageRect = worksheet.getBoundingClientRect();
+        
+        // Apply exact position from original worksheet
+        clonedBoxes[index].style.position = 'absolute';
+        clonedBoxes[index].style.left = `${rect.left - pageRect.left}px`;
+        clonedBoxes[index].style.top = `${rect.top - pageRect.top}px`;
+        clonedBoxes[index].style.width = `${rect.width}px`;
+        clonedBoxes[index].style.height = `${rect.height}px`;
+        clonedBoxes[index].style.border = '1px solid black';
+        clonedBoxes[index].style.padding = '10px';
+        clonedBoxes[index].style.boxShadow = 'none';
+    });
+
+    // Ensure worksheet is centered and formatted properly
+    clonedWorksheet.style.backgroundImage = 'none';
+    clonedWorksheet.style.position = 'relative';
+    clonedWorksheet.style.margin = '0 auto';
+    clonedWorksheet.style.padding = '20px';
+    clonedWorksheet.style.width = '21cm';
+    clonedWorksheet.style.height = '29.7cm';
+    clonedWorksheet.style.overflow = 'hidden';
+
+    // Adjust worksheet title
+    const worksheetTitle = tempContainer.querySelector('#worksheet-title');
+    if (worksheetTitle) {
+        worksheetTitle.style.textAlign = 'center';
+        worksheetTitle.style.fontSize = '20px';
+        worksheetTitle.style.fontWeight = 'bold';
+        worksheetTitle.style.marginBottom = '15px';
+    }
+
+    // Adjust logo size and placement
+    const worksheetLogo = tempContainer.querySelector('.worksheet-logo');
+    if (worksheetLogo) {
+        worksheetLogo.style.display = 'block';
+        worksheetLogo.style.margin = '0 auto 10px';
+        worksheetLogo.style.maxWidth = '150px';
+    }
+
+    // Convert to PDF while keeping exact positions
+    html2pdf().set({
+        margin: [0, 0, 0, 0], // Remove margins for exact placement
+        filename: filename,  // Use dynamically generated filename
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    }).from(tempContainer).save();
+}
+
+// Get the premium status from the Django template
+const is_premium = {{ is_premium|yesno:"true,false" }}; // Converts Python True/False to JS true/false
+
+// Restrict features for basic users
+function restrictFeatures() {
+    if (!is_premium) {
+        document.getElementById("printBtn").disabled = true;
+        document.getElementById("downloadBtn").disabled = true;
+
+        // Add event listeners to show an upgrade message
+        document.getElementById("printBtn").addEventListener("click", function() {
+            alert("🔒 This feature is only available for Premium users. Upgrade to export worksheets!");
+        });
+
+        document.getElementById("downloadBtn").addEventListener("click", function() {
+            alert("🔒 This feature is only available for Premium users. Upgrade to export worksheets!");
+        });
+    }
+}
+
+// Run the restriction function when the page loads
+window.onload = function() {
+    restrictFeatures();
+};
+
+    </script>
+</body>
+</html>
