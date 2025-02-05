@@ -14,7 +14,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='user',
             name='country',
-            field=django_countries.fields.CountryField(default='India', max_length=2),
+            field=django_countries.fields.CountryField(default='India', max_length=50, blank=True, null=True),
             preserve_default=False,
         ),
         migrations.AlterField(
