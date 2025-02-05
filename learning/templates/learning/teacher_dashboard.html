@@ -316,6 +316,121 @@
       from { opacity: 0; transform: translateY(-20px); }
       to { opacity: 1; transform: translateY(0); }
     }
+
+ /* New: Logout & Account Buttons */
+    .nav-buttons {
+      display: flex;
+      justify-content: space-between;
+      width: 100%;
+      margin-top: 20px;
+    }
+    .btn-logout, .btn-account {
+      flex: 1;
+      text-align: center;
+      padding: 10px;
+      border-radius: 5px;
+      color: white;
+      cursor: pointer;
+      transition: 0.3s;
+      font-size: 14px;
+    }
+    .btn-logout {
+      background-color: #ff2c61;
+    }
+    .btn-logout:hover {
+      background-color: #d4204c;
+    }
+    .btn-account {
+      background-color: #ffd700;
+      color: #333;
+    }
+    .btn-account:hover {
+      background-color: #e6c200;
+    }
+/* Account Pane */
+    .account-pane {
+      display: none;
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 600px;
+      text-align: left;
+    }
+    .account-pane.active {
+      display: block;
+    }
+    .account-pane h2 {
+      text-align: center;
+      color: #0aa2ef;
+    }
+    .account-pane label {
+      font-weight: bold;
+      display: block;
+      margin-top: 10px;
+    }
+    .account-pane input {
+      width: 100%;
+      padding: 8px;
+      margin-top: 5px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+    }
+    .btn-save {
+      background-color: #0aa2ef;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+      margin-top: 10px;
+      width: 100%;
+    }
+    .btn-save:hover {
+      background-color: #086baf;
+    }
+
+    /* Premium Status */
+    .premium-status {
+      margin-top: 20px;
+      padding: 10px;
+      border-radius: 5px;
+      text-align: center;
+    }
+    .premium-active {
+      background-color: #c8e6c9;
+      color: #2e7d32;
+    }
+    .premium-inactive {
+      background-color: #ffcdd2;
+      color: #c62828;
+    }
+    .btn-upgrade, .btn-cancel {
+      display: block;
+      text-align: center;
+      padding: 10px;
+      border-radius: 5px;
+      color: white;
+      margin-top: 10px;
+      cursor: pointer;
+      transition: 0.3s;
+      font-size: 16px;
+    }
+    .btn-upgrade {
+      background-color: #ffd700;
+      color: #333;
+    }
+    .btn-upgrade:hover {
+      background-color: #e6c200;
+    }
+    .btn-cancel {
+      background-color: #ff2c61;
+    }
+    .btn-cancel:hover {
+      background-color: #d4204c;
+    }
   </style>
 </head>
 <body>
@@ -333,10 +448,13 @@
       {% if not request.user.is_premium %}
       <a href="{% url 'teacher_upgrade' %}" class="upgrade-prompt"><style="color: #FFFF00;">Upgrade to Premium</style></a>
       {% endif %}
-      <form method="post" action="{% url 'teacher_logout' %}" style="display:inline;">
+    <div class="nav-buttons">
+      <form method="post" action="{% url 'teacher_logout' %}">
         {% csrf_token %}
-        <button type="submit" class="btn">Logout</button>
+        <button type="submit" class="btn-logout">Logout</button>
       </form>
+      <button class="btn-account" onclick="showAccountPane()">Account</button>
+    </div>
     </nav>
   </div>
   
@@ -635,6 +753,38 @@
     </form>
 </div>
 
+  <!-- Main Content -->
+  <div class="main-content">
+    
+    <!-- Account Pane -->
+    <div class="account-pane" id="account-pane">
+      <h2>Account Settings</h2>
+      <form method="POST">
+        {% csrf_token %}
+        <label>Full Name:</label>
+        <input type="text" name="full_name" value="{{ request.user.full_name }}">
+
+        <label>Email:</label>
+        <input type="email" name="email" value="{{ request.user.email }}">
+
+        <label>Change Password:</label>
+        <input type="password" name="password">
+
+        <button type="submit" class="btn-save">Save Changes</button>
+      </form>
+
+      <!-- Premium Subscription Section -->
+      <div class="premium-status {% if request.user.is_premium %}premium-active{% else %}premium-inactive{% endif %}">
+        {% if request.user.is_premium %}
+          <p>Premium Member until {{ request.user.premium_expiration|date:"M d, Y" }}</p>
+          <a href="{% url 'teacher_cancel_subscription' %}" class="btn-cancel">Cancel Subscription</a>
+        {% else %}
+          <p>You are on the Basic plan.</p>
+          <a href="{% url 'teacher_upgrade' %}" class="btn-upgrade">Upgrade to Premium</a>
+        {% endif %}
+      </div>
+    </div>
+
 
   </div>
   
@@ -654,6 +804,10 @@
         }
       });
     });
+
+    function showAccountPane() {
+      document.getElementById("account-pane").classList.add("active");
+    }
     
     // Expand/Collapse Assignments in the Assignments Pane
     document.querySelectorAll(".toggle-assignments").forEach(button => {
