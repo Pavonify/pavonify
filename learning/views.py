@@ -674,19 +674,8 @@ def register_teacher(request):
         form = TeacherRegistrationForm()
 
     return render(request, "learning/register_teacher.html", {"form": form})
-            # ✅ If Basic account, just create the user
-            user.save()
-            login(request, user)  # Auto-login new teacher
-            messages.success(request, "Teacher registered successfully!")
-            return redirect("teacher_dashboard")  # Redirect to dashboard
 
-    else:
-        form = TeacherRegistrationForm()
 
-    return render(request, "learning/register_teacher.html", {
-        "form": form,
-        "STRIPE_PUBLIC_KEY": settings.STRIPE_PUBLIC_KEY,  # ✅ Pass to template
-    })
 
 def lead_teacher_login(request):
     # Placeholder for Lead Teacher Login
