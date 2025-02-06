@@ -1185,27 +1185,29 @@ def flashcard_mode_assignment(request, assignment_id):
 
 stripe.api_key = settings.STRIPE_SECRET_KEY  # Ensure this is set in settings.py
 
-@csrf_exempt
+@csrf_exempt  # Remove this later if CSRF protection is needed
 def create_checkout_session(request):
-    if request.method == "POST":
+    if request.method != "POST":
+        return JsonResponse({"error": "Invalid request, POST required"}, status=400)
+
+    try:
         session = stripe.checkout.Session.create(
             payment_method_types=["card"],
             line_items=[{
                 "price_data": {
                     "currency": "gbp",
-                    "product_data": {
-                        "name": "Pavonify Premium",
-                    },
-                    "unit_amount": 299,  # £2.99 in Stripe (amount in pence)
+                    "product_data": {"name": "Pavonify Premium"},
+                    "unit_amount": 299,  # Amount in pence (£2.99)
                 },
                 "quantity": 1,
             }],
             mode="subscription",
-            success_url = "https://randomid.ngrok.io/payment-success/",
-            cancel_url = "https://randomid.ngrok.io/register/",
+            success_url="https://www.pavonify.com/payment-success/",
+            cancel_url="https://www.pavonify.com/teacher-dashboard/",
         )
-        return JsonResponse({"sessionId": session.id})
-    return JsonResponse({"error": "Invalid request"}, status=400)
+        return JsonResponse({"sessionId": session.id})  # ✅ Returns Stripe session ID
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=400)
 
 @csrf_exempt
 def register_success(request):

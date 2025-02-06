@@ -930,7 +930,26 @@
     </form>
 </div>
 
+<script>
+document.getElementById("checkout-form").addEventListener("submit", async function(event) {
+    event.preventDefault();  // Prevent default form submission
 
+    const response = await fetch("{% url 'create_checkout_session' %}", {
+        method: "POST",
+        headers: {
+            "X-CSRFToken": document.querySelector("[name=csrfmiddlewaretoken]").value,
+            "Content-Type": "application/json"
+        },
+    });
+
+    const data = await response.json();
+    if (data.sessionId) {
+        window.location.href = `https://checkout.stripe.com/pay/${data.sessionId}`;
+    } else {
+        alert("Error: " + data.error);
+    }
+});
+</script>
 
 
   </div>
