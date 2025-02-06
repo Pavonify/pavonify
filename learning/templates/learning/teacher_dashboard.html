@@ -431,6 +431,56 @@
     .btn-cancel:hover {
       background-color: #d4204c;
     }
+
+/* Make the Account Pane behave like other panes */
+.account-pane {
+  display: none;
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  width: 100%;
+  max-width: 800px; /* Same as other panes */
+  text-align: left;
+}
+.account-pane.active {
+  display: block;
+}
+
+/* Space out the input fields */
+.input-box {
+  width: 100%;
+  padding: 10px;
+  margin-top: 5px;
+  margin-bottom: 15px; /* Increased spacing */
+  border: 1px solid #ddd;
+  border-radius: 5px;
+}
+
+/* Feature Comparison Table */
+.feature-table {
+  width: 100%;
+  margin-top: 20px;
+  border-collapse: collapse;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+.feature-table th {
+  background-color: #0aa2ef;
+  color: white;
+  padding: 12px;
+  text-align: center;
+}
+.feature-table td {
+  padding: 10px;
+  text-align: center;
+  border: 1px solid #ddd;
+}
+.feature-table tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
   </style>
 </head>
 <body>
@@ -753,42 +803,78 @@
     </form>
 </div>
 
-  <!-- Main Content -->
-  <div class="main-content">
-    
-    <!-- Account Pane -->
-    <div class="pane" id="account">
-      <h2>Account Settings</h2>
-<form method="POST">
+   <!-- Account Pane -->
+<div class="pane account-pane" id="account-pane">
+  <h2>Account Settings</h2>
+  <form method="POST">
     {% csrf_token %}
     
     <label>First Name:</label>
-    <input type="text" name="first_name" value="{{ request.user.first_name }}">
+    <input type="text" name="first_name" value="{{ request.user.first_name }}" class="input-box">
 
     <label>Last Name:</label>
-    <input type="text" name="last_name" value="{{ request.user.last_name }}">
+    <input type="text" name="last_name" value="{{ request.user.last_name }}" class="input-box">
 
     <label>Email:</label>
-    <input type="email" name="email" value="{{ request.user.email }}">
+    <input type="email" name="email" value="{{ request.user.email }}" class="input-box">
 
     <label>Change Password:</label>
-    <input type="password" name="password">
+    <input type="password" name="password" class="input-box">
 
     <button type="submit" class="btn-save">Save Changes</button>
-</form>
+  </form>
 
+  <!-- Premium Subscription Section -->
+  <div class="premium-status {% if request.user.is_premium %}premium-active{% else %}premium-inactive{% endif %}">
+    {% if request.user.is_premium %}
+      <p>Premium Member until {{ request.user.premium_expiration|date:"M d, Y" }}</p>
+      <a href="{% url 'teacher_cancel_subscription' %}" class="btn-cancel">Cancel Subscription</a>
+    {% else %}
+      <p>You are on the Basic plan.</p>
+      <a href="{% url 'teacher_upgrade' %}" class="btn-upgrade">Upgrade to Premium</a>
 
-      <!-- Premium Subscription Section -->
-      <div class="premium-status {% if request.user.is_premium %}premium-active{% else %}premium-inactive{% endif %}">
-        {% if request.user.is_premium %}
-          <p>Premium Member until {{ request.user.premium_expiration|date:"M d, Y" }}</p>
-          <a href="{% url 'teacher_cancel_subscription' %}" class="btn-cancel">Cancel Subscription</a>
-        {% else %}
-          <p>You are on the Basic plan.</p>
-          <a href="{% url 'teacher_upgrade' %}" class="btn-upgrade">Upgrade to Premium</a>
-        {% endif %}
-      </div>
-    </div>
+      <!-- Feature Comparison Table -->
+      <table class="feature-table">
+          <tr>
+              <th>Feature</th>
+              <th>Basic</th>
+              <th>Premium</th>
+          </tr>
+          <tr>
+              <td>Create Vocabulary Lists</td>
+              <td>5</td>
+              <td>✔</td>
+          </tr>
+          <tr>
+              <td>Create Classes</td>
+              <td>2</td>
+              <td>✔</td>
+          </tr>
+          <tr>
+              <td>Create Assignments</td>
+              <td>1</td>
+              <td>✔</td>
+          </tr>
+          <tr>
+              <td>Assignment Analytics</td>
+              <td>❌</td>
+              <td>✔</td>
+          </tr>
+          <tr>
+              <td>Unlimited Students</td>
+              <td>❌</td>
+              <td>✔</td>
+          </tr>
+          <tr>
+              <td>Worksheet Lab</td>
+              <td>❌</td>
+              <td>✔</td>
+          </tr>
+      </table>
+    {% endif %}
+  </div>
+</div>
+
 
 
   </div>
