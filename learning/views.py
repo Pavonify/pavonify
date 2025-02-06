@@ -1185,7 +1185,7 @@ def flashcard_mode_assignment(request, assignment_id):
 
 stripe.api_key = settings.STRIPE_SECRET_KEY  # Ensure this is set in settings.py
 
-@@csrf_exempt
+@csrf_exempt
 def create_checkout_session(request):
     if request.method != "POST":
         return JsonResponse({"error": "Invalid request, POST required"}, status=400)
