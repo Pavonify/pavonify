@@ -440,9 +440,10 @@
   border-radius: 10px;
   box-shadow: 0 4px 8px rgba(0,0,0,0.1);
   width: 100%;
-  max-width: 800px; /* Same as other panes */
-  text-align: left;
+  max-width: 800px; /* Make it same width as other panes */
+  text-align: center; /* Match other panes */
 }
+
 .account-pane.active {
   display: block;
 }
@@ -503,7 +504,7 @@
         {% csrf_token %}
         <button type="submit" class="btn-logout">Logout</button>
       </form>
-      <button class="btn-account" data-pane="account">Account</button>
+<button class="btn-account" data-pane="account-pane">Account</button>
     </div>
     </nav>
   </div>
@@ -880,28 +881,19 @@
   </div>
   
   <script>
-    // Sidebar Navigation: Switch content panes
-    const navLinks = document.querySelectorAll(".sidebar nav a");
-    const panes = document.querySelectorAll(".pane");
-    navLinks.forEach(link => {
-      link.addEventListener("click", e => {
-        e.preventDefault();
-        navLinks.forEach(l => l.classList.remove("active"));
-        panes.forEach(pane => pane.classList.remove("active"));
-        link.classList.add("active");
-        const targetPane = link.getAttribute("data-pane");
-        if (targetPane) {
-          document.getElementById(targetPane).classList.add("active");
-        }
-      });
-    });
+// Sidebar Navigation: Switch content panes
+const navLinks = document.querySelectorAll(".sidebar nav a, .btn-account");
+const panes = document.querySelectorAll(".pane");
 
-document.querySelectorAll(".sidebar nav a, .btn-account").forEach(link => {
+navLinks.forEach(link => {
     link.addEventListener("click", e => {
         e.preventDefault();
-        document.querySelectorAll(".pane").forEach(pane => pane.classList.remove("active"));
-        document.querySelectorAll(".sidebar nav a").forEach(l => l.classList.remove("active"));
+        
+        // Remove "active" from all links and panes
+        navLinks.forEach(l => l.classList.remove("active"));
+        panes.forEach(pane => pane.classList.remove("active"));
 
+        // Get target pane from data-pane attribute
         const targetPane = link.getAttribute("data-pane");
         if (targetPane) {
             document.getElementById(targetPane).classList.add("active");
@@ -909,6 +901,7 @@ document.querySelectorAll(".sidebar nav a, .btn-account").forEach(link => {
         }
     });
 });
+
 
     
     // Sort Students Table Columns
