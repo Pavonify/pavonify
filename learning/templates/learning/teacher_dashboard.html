@@ -45,7 +45,7 @@
     }
     .sidebar h2 {
       margin: 0 0 10px;
-      font-size: 24px;
+      font-size: 14px;
     }
     .sidebar nav {
       width: 100%;
@@ -453,7 +453,7 @@
         {% csrf_token %}
         <button type="submit" class="btn-logout">Logout</button>
       </form>
-      <button class="btn-account" onclick="showAccountPane()">Account</button>
+      <button class="btn-account" data-pane="account">Account</button>
     </div>
     </nav>
   </div>
@@ -757,21 +757,26 @@
   <div class="main-content">
     
     <!-- Account Pane -->
-    <div class="account-pane" id="account-pane">
+    <div class="pane" id="account">
       <h2>Account Settings</h2>
-      <form method="POST">
-        {% csrf_token %}
-        <label>Full Name:</label>
-        <input type="text" name="full_name" value="{{ request.user.full_name }}">
+<form method="POST">
+    {% csrf_token %}
+    
+    <label>First Name:</label>
+    <input type="text" name="first_name" value="{{ request.user.first_name }}">
 
-        <label>Email:</label>
-        <input type="email" name="email" value="{{ request.user.email }}">
+    <label>Last Name:</label>
+    <input type="text" name="last_name" value="{{ request.user.last_name }}">
 
-        <label>Change Password:</label>
-        <input type="password" name="password">
+    <label>Email:</label>
+    <input type="email" name="email" value="{{ request.user.email }}">
 
-        <button type="submit" class="btn-save">Save Changes</button>
-      </form>
+    <label>Change Password:</label>
+    <input type="password" name="password">
+
+    <button type="submit" class="btn-save">Save Changes</button>
+</form>
+
 
       <!-- Premium Subscription Section -->
       <div class="premium-status {% if request.user.is_premium %}premium-active{% else %}premium-inactive{% endif %}">
@@ -805,24 +810,20 @@
       });
     });
 
-    function showAccountPane() {
-      document.getElementById("account-pane").classList.add("active");
-    }
-    
-    // Expand/Collapse Assignments in the Assignments Pane
-    document.querySelectorAll(".toggle-assignments").forEach(button => {
-      button.addEventListener("click", () => {
-        const classId = button.dataset.classId;
-        const container = document.getElementById(`assignments-${classId}`);
-        if (container.style.display === "block") {
-          container.style.display = "none";
-          button.textContent = "Show Assignments";
-        } else {
-          container.style.display = "block";
-          button.textContent = "Hide Assignments";
+document.querySelectorAll(".sidebar nav a, .btn-account").forEach(link => {
+    link.addEventListener("click", e => {
+        e.preventDefault();
+        document.querySelectorAll(".pane").forEach(pane => pane.classList.remove("active"));
+        document.querySelectorAll(".sidebar nav a").forEach(l => l.classList.remove("active"));
+
+        const targetPane = link.getAttribute("data-pane");
+        if (targetPane) {
+            document.getElementById(targetPane).classList.add("active");
+            link.classList.add("active");
         }
-      });
     });
+});
+
     
     // Sort Students Table Columns
     const table = document.getElementById("students-table");

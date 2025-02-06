@@ -1365,3 +1365,19 @@ def listening_translation_assignment(request, assignment_id):
 
 def custom_404_view(request, exception):
     return render(request, '404.html', status=404)
+
+@login_required
+def teacher_account_settings(request):
+    if request.method == "POST":
+        request.user.first_name = request.POST.get("first_name", request.user.first_name)
+        request.user.last_name = request.POST.get("last_name", request.user.last_name)
+        request.user.email = request.POST.get("email", request.user.email)
+        
+        new_password = request.POST.get("password")
+        if new_password:
+            request.user.set_password(new_password)  # Securely update the password
+        
+        request.user.save()
+        return redirect("teacher_dashboard")  # Redirect to prevent resubmission
+
+    return render(request, "teacher_dashboard.html")
