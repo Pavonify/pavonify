@@ -298,6 +298,8 @@
   background: #bde0fe;
 }
 
+
+
   </style>
 </head>
 <body>
@@ -331,13 +333,20 @@
             <td><a href="#" class="btn disabled">Login</a></td>
             <td><a href="#" class="btn disabled">Sign Up</a></td>
           </tr>
-          <tr>
-            <td>Register</td>
-            <td>-</td>
-            <td><a href="{% url 'register_teacher' %}" class="btn">Register</a></td>
-            <td>-</td>
-            <td>-</td>
-          </tr>
+<tr>
+    <td>Register</td>
+    <td>-</td>
+    <td class="register-container">
+        <div class="register-wrapper">
+            <a href="{% url 'register_teacher' %}" class="btn register-btn">Register</a>
+        </div>
+    </td>
+    <td>-</td>
+    <td>-</td>
+</tr>
+
+
+
         </tbody>
       </table>
     </div>
@@ -429,6 +438,7 @@
           </tr>
         </tbody>
       </table>
+<center><a href="{% url 'register_teacher' %}" class="btn register-btn">Register</a> and try out Pavonify's features <font color="#ff9800"><strong>for free!</strong></font></center>
     </div>
 
     <!-- Feature Tiles -->
