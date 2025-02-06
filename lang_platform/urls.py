@@ -24,7 +24,7 @@ from django.urls import path
 from learning import views  # Import views from the learning app
 from learning.views import flashcard_mode
 from django.contrib.auth.decorators import login_required
-from learning.views import update_assignment_points, teacher_upgrade, create_checkout_session, worksheet_lab_view, custom_404_view
+from learning.views import update_assignment_points, teacher_upgrade, create_checkout_session, worksheet_lab_view, custom_404_view, teacher_account_settings
 from django.conf.urls import handler404
 
 handler404 = custom_404_view
