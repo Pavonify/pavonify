@@ -806,7 +806,7 @@
     </form>
 </div>
 
-   <!-- Account Pane -->
+<!-- Account Pane -->
 <div class="pane account-pane" id="account-pane">
   <h2>Account Settings</h2>
   <form method="POST">
@@ -830,11 +830,15 @@
   <!-- Premium Subscription Section -->
   <div class="premium-status {% if request.user.is_premium %}premium-active{% else %}premium-inactive{% endif %}">
     {% if request.user.is_premium %}
-      <p>Premium Member until {{ request.user.premium_expiration|date:"M d, Y" }}</p>
+      <p>Premium Member until <strong>{{ request.user.premium_expiration|date:"M d, Y" }}</strong></p>
       <a href="{% url 'teacher_cancel_subscription' %}" class="btn-cancel">Cancel Subscription</a>
     {% else %}
       <p>You are on the Basic plan.</p>
       <a href="#" data-pane="teacher-upgrade" class="upgrade-btn">Upgrade to Premium</a>
+    {% endif %}
+  </div>
+</div>
+
 
 
       <!-- Feature Comparison Table -->
@@ -882,7 +886,7 @@
 <div class="pane" id="teacher-upgrade">
     <h2>Upgrade to Premium</h2>
 
-    <p>Get full access to all features for just <strong>$2.99 per month</strong>.</p>
+    <p>Get full access to all features for just <strong>£2.99 per month</strong>.</p>
 
     <!-- Feature Comparison Table -->
     <table class="feature-table">
@@ -923,11 +927,9 @@
         </tr>
     </table>
 
-    <!-- Upgrade Button -->
-    <form method="POST" action="{% url 'create_stripe_checkout_session' %}">
+    <form method="POST" action="{% url 'create_checkout_session' %}">
         {% csrf_token %}
-<button class="btn-upgrade" data-pane="teacher-upgrade">Upgrade to Premium</button>
-
+        <button type="submit" class="btn-upgrade">Upgrade to Premium</button>
     </form>
 </div>
 

@@ -86,7 +86,6 @@ urlpatterns = [
     path("assignment/listening-dictation/<int:assignment_id>/", views.listening_dictation_assignment, name="listening_dictation_assignment"),
     path("assignment/listening-translation/<int:assignment_id>/", views.listening_translation_assignment, name="listening_translation_assignment"),
     path('update-assignment-points/', update_assignment_points, name='update_assignment_points'),
-    path('upgrade/', teacher_upgrade, name='teacher_upgrade'),
     path("create-checkout-session/", create_checkout_session, name="create-checkout-session"),
     path('worksheet_lab/', worksheet_lab_view, name='worksheet_lab'),
     path('listening-dictation/<int:vocab_list_id>/', views.listening_dictation_view, name='listening_dictation'),

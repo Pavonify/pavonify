@@ -681,9 +681,9 @@ def lead_teacher_login(request):
     # Placeholder for Lead Teacher Login
     return render(request, "learning/lead_teacher_login.html")
 
-def teacher_upgrade(request):
-    # Placeholder for Lead Teacher Login
-    return render(request, "learning/upgrade_teacher.html")
+ef teacher_upgrade(request):
+    """ Redirect to the upgrade tab inside the dashboard """
+    return redirect('/teacher-dashboard/#teacher-upgrade')
 
 
 def school_signup(request):
