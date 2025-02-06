@@ -497,7 +497,7 @@
       <a href="#" data-pane="students">Students</a>
       <a href="#" data-pane="worksheet-lab">✨Worksheet Lab✨</a>
       {% if not request.user.is_premium %}
-      <a href="{% url 'teacher_upgrade' %}" class="upgrade-prompt"><style="color: #FFFF00;">Upgrade to Premium</style></a>
+      <a href="#" data-pane="teacher-upgrade" class="btn-upgrade">Upgrade to Premium</a>
       {% endif %}
     <div class="nav-buttons">
       <form method="post" action="{% url 'teacher_logout' %}">
@@ -517,7 +517,7 @@
 <!-- Upgrade Message for Basic Users -->
 {% if not request.user.is_premium %}
   <p class="upgrade-message">You're currently on the Basic plan. Upgrade to Premium for more features!</p>
-  <a href="{% url 'teacher_upgrade' %}" class="upgrade-btn">Upgrade to Premium</a>
+  <a href="#" data-pane="teacher-upgrade" class="upgrade-btn">Upgrade to Premium</a>
 {% endif %}
       <!-- Statistics -->
       <div class="stats">
@@ -610,7 +610,8 @@
     <div class="pane" id="classes">
       <h2>Classes</h2>
       {% if not request.user.is_premium and classes|length >= 2 %}
-        <p class="upgrade-message">You can create a maximum of 2 classes as a Basic User. <a href="{% url 'teacher_upgrade' %}" class="upgrade-btn">Upgrade to Premium</a></p>
+        <p class="upgrade-message">You can create a maximum of 2 classes as a Basic User. <a href="#" data-pane="teacher-upgrade" class="upgrade-btn">Upgrade to Premium</a>
+</p>
       {% else %}
         <a href="{% url 'create_class' %}" class="btn">Add Class</a>
       {% endif %}
@@ -653,7 +654,8 @@
     <div class="pane" id="vocabulary">
       <h2>Vocabulary Lists</h2>
       {% if not request.user.is_premium and vocab_lists|length >= 3 %}
-        <p class="upgrade-message">You can create a maximum of 3 vocabulary lists as a Basic User. <a href="{% url 'teacher_upgrade' %}" class="upgrade-btn">Upgrade to Premium</a></p>
+        <p class="upgrade-message">You can create a maximum of 3 vocabulary lists as a Basic User. <a href="#" data-pane="teacher-upgrade" class="upgrade-btn">Upgrade to Premium</a>
+</p>
       {% else %}
         <a href="{% url 'add_vocabulary_list' %}" class="btn">Create List</a>
       {% endif %}
@@ -832,7 +834,8 @@
       <a href="{% url 'teacher_cancel_subscription' %}" class="btn-cancel">Cancel Subscription</a>
     {% else %}
       <p>You are on the Basic plan.</p>
-      <a href="{% url 'teacher_upgrade' %}" class="btn-upgrade">Upgrade to Premium</a>
+      <a href="#" data-pane="teacher-upgrade" class="upgrade-btn">Upgrade to Premium</a>
+
 
       <!-- Feature Comparison Table -->
       <table class="feature-table">
@@ -876,13 +879,67 @@
   </div>
 </div>
 
+<div class="pane" id="teacher-upgrade">
+    <h2>Upgrade to Premium</h2>
+
+    <p>Get full access to all features for just <strong>$2.99 per month</strong>.</p>
+
+    <!-- Feature Comparison Table -->
+    <table class="feature-table">
+        <tr>
+            <th>Feature</th>
+            <th>Basic</th>
+            <th>Premium</th>
+        </tr>
+        <tr>
+            <td>Create Vocabulary Lists</td>
+            <td>5</td>
+            <td>✔</td>
+        </tr>
+        <tr>
+            <td>Create Classes</td>
+            <td>2</td>
+            <td>✔</td>
+        </tr>
+        <tr>
+            <td>Create Assignments</td>
+            <td>1</td>
+            <td>✔</td>
+        </tr>
+        <tr>
+            <td>Assignment Analytics</td>
+            <td>❌</td>
+            <td>✔</td>
+        </tr>
+        <tr>
+            <td>Unlimited Students</td>
+            <td>❌</td>
+            <td>✔</td>
+        </tr>
+        <tr>
+            <td>Worksheet Lab</td>
+            <td>❌</td>
+            <td>✔</td>
+        </tr>
+    </table>
+
+    <!-- Upgrade Button -->
+    <form method="POST" action="{% url 'create_stripe_checkout_session' %}">
+        {% csrf_token %}
+<button class="btn-upgrade" data-pane="teacher-upgrade">Upgrade to Premium</button>
+
+    </form>
+</div>
+
+
 
 
   </div>
   
   <script>
 // Sidebar Navigation: Switch content panes
-const navLinks = document.querySelectorAll(".sidebar nav a, .btn-account");
+const navLinks = document.querySelectorAll(".sidebar nav a, .btn-account, .upgrade-btn, .btn-upgrade");
+
 const panes = document.querySelectorAll(".pane");
 
 navLinks.forEach(link => {
