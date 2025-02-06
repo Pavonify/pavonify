@@ -931,13 +931,15 @@
 </div>
 
 <script>
-document.getElementById("checkout-form").addEventListener("submit", async function(event) {
-    event.preventDefault();  // Prevent default form submission
+document.getElementById("upgrade-btn").addEventListener("click", async function(event) {
+    event.preventDefault(); // Prevent default form action
+
+    const csrftoken = document.querySelector("[name=csrfmiddlewaretoken]")?.value; // Get CSRF token
 
     const response = await fetch("{% url 'create_checkout_session' %}", {
         method: "POST",
         headers: {
-            "X-CSRFToken": document.querySelector("[name=csrfmiddlewaretoken]").value,
+            "X-CSRFToken": csrftoken, // CSRF protection
             "Content-Type": "application/json"
         },
     });

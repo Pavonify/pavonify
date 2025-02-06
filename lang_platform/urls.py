@@ -91,6 +91,7 @@ urlpatterns = [
     path('listening-dictation/<int:vocab_list_id>/', views.listening_dictation_view, name='listening_dictation'),
     path('listening-translation/<int:vocab_list_id>/', views.listening_translation_view, name='listening_translation'),
     path("teacher/account/", teacher_account_settings, name="teacher_account"),
+    path("payment-success/", views.payment_success, name="payment_success"),
 
 ]
 

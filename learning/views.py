@@ -1185,29 +1185,41 @@ def flashcard_mode_assignment(request, assignment_id):
 
 stripe.api_key = settings.STRIPE_SECRET_KEY  # Ensure this is set in settings.py
 
-@csrf_exempt  # Remove this later if CSRF protection is needed
+@csrf_exempt
 def create_checkout_session(request):
     if request.method != "POST":
         return JsonResponse({"error": "Invalid request, POST required"}, status=400)
 
     try:
+        # ✅ Define a RECURRING subscription price
         session = stripe.checkout.Session.create(
             payment_method_types=["card"],
             line_items=[{
                 "price_data": {
                     "currency": "gbp",
-                    "product_data": {"name": "Pavonify Premium"},
+                    "product_data": {
+                        "name": "Pavonify Premium Subscription",
+                    },
+                    "recurring": {  # ✅ This makes it a subscription
+                        "interval": "month"  # Monthly subscription
+                    },
                     "unit_amount": 299,  # Amount in pence (£2.99)
                 },
                 "quantity": 1,
             }],
-            mode="subscription",
+            mode="subscription",  # ✅ Ensure mode is "subscription"
             success_url="https://www.pavonify.com/payment-success/",
             cancel_url="https://www.pavonify.com/teacher-dashboard/",
         )
-        return JsonResponse({"sessionId": session.id})  # ✅ Returns Stripe session ID
-    except Exception as e:
+        return JsonResponse({"sessionId": session.id})
+    
+    except stripe.error.StripeError as e:
         return JsonResponse({"error": str(e)}, status=400)
+
+
+def payment_success(request):
+    return render(request, "learning/payment_success.html")
+
 
 @csrf_exempt
 def register_success(request):
