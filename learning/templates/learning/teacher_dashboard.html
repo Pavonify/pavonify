@@ -927,26 +927,27 @@
 <button id="upgrade-btn" class="btn-upgrade">Upgrade to Premium</button>
 
 <script>
-    document.getElementById("upgrade-btn").addEventListener("click", async function(event) {
-        event.preventDefault(); // Prevent default form submission
+document.querySelector(".btn-upgrade").addEventListener("click", async function(event) {
+    event.preventDefault();
 
-        const csrftoken = document.querySelector("[name=csrfmiddlewaretoken]")?.value; // Get CSRF token
+    const csrftoken = document.querySelector("[name=csrfmiddlewaretoken]").value;
 
-        const response = await fetch("{% url 'create_checkout_session' %}", {
-            method: "POST",
-            headers: {
-                "X-CSRFToken": csrftoken, // CSRF protection
-                "Content-Type": "application/json"
-            },
-        });
-
-        const data = await response.json();
-        if (data.sessionId) {
-            window.location.href = `https://checkout.stripe.com/pay/${data.sessionId}`;
-        } else {
-            alert("Error: " + data.error);
-        }
+    const response = await fetch("{% url 'create_checkout_session' %}", {
+        method: "POST",
+        headers: {
+            "X-CSRFToken": csrftoken,
+            "Content-Type": "application/json"
+        },
     });
+
+    const data = await response.json();
+    if (data.sessionId) {
+        window.location.href = `https://checkout.stripe.com/pay/${data.sessionId}`;
+    } else {
+        alert("Error: " + data.error);
+    }
+});
+
 </script>
 </div>
   </div>
