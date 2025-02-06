@@ -924,36 +924,31 @@
         </tr>
     </table>
 
-    <form method="POST" action="{% url 'create_checkout_session' %}">
-        {% csrf_token %}
-        <button type="submit" class="btn-upgrade">Upgrade to Premium</button>
-    </form>
-</div>
+<button id="upgrade-btn" class="btn-upgrade">Upgrade to Premium</button>
 
 <script>
-document.getElementById("upgrade-btn").addEventListener("click", async function(event) {
-    event.preventDefault(); // Prevent default form action
+    document.getElementById("upgrade-btn").addEventListener("click", async function(event) {
+        event.preventDefault(); // Prevent default form submission
 
-    const csrftoken = document.querySelector("[name=csrfmiddlewaretoken]")?.value; // Get CSRF token
+        const csrftoken = document.querySelector("[name=csrfmiddlewaretoken]")?.value; // Get CSRF token
 
-    const response = await fetch("{% url 'create_checkout_session' %}", {
-        method: "POST",
-        headers: {
-            "X-CSRFToken": csrftoken, // CSRF protection
-            "Content-Type": "application/json"
-        },
+        const response = await fetch("{% url 'create_checkout_session' %}", {
+            method: "POST",
+            headers: {
+                "X-CSRFToken": csrftoken, // CSRF protection
+                "Content-Type": "application/json"
+            },
+        });
+
+        const data = await response.json();
+        if (data.sessionId) {
+            window.location.href = `https://checkout.stripe.com/pay/${data.sessionId}`;
+        } else {
+            alert("Error: " + data.error);
+        }
     });
-
-    const data = await response.json();
-    if (data.sessionId) {
-        window.location.href = `https://checkout.stripe.com/pay/${data.sessionId}`;
-    } else {
-        alert("Error: " + data.error);
-    }
-});
 </script>
-
-
+</div>
   </div>
   
   <script>
