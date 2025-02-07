@@ -452,6 +452,7 @@
                         <option value="multiple_choice">Multiple Choice Translation</option>
                         <option value="faulty_translation">Faulty Translation</option>
                         <option value="unscramble">Unscramble the Letters</option>
+   			<option value="wordsearch">Wordsearch Puzzle</option>
                     </select>
 
                     <label for="question-count">Number of Questions:</label>
@@ -511,6 +512,10 @@
 
         const words = JSON.parse('{{ words_json|escapejs }}');
 
+// Global variables for Wordsearch
+var currentTaskType = "";
+var wordsearchSelectedWords = [];
+
 function printWorksheet() {
     const worksheet = document.querySelector('.worksheet-page');
     const originalContents = document.body.innerHTML;
@@ -536,6 +541,7 @@ function printWorksheet() {
 
 function generateBox() {
     const taskType = document.getElementById('task-type').value;
+    currentTaskType = taskType; // Save the current task type globally.
     const questionCount = parseInt(document.getElementById('question-count').value, 10);
     const previewDiv = document.getElementById('box-preview');
 
@@ -619,6 +625,16 @@ function generateBox() {
                 content += `${index + 1}. ${scrambled} ➝ _______ (${word.word})<br>`; // Add source word in brackets
             });
             break;
+        case 'wordsearch':
+            // For wordsearch, save the selected words and show a preview list.
+            wordsearchSelectedWords = shuffledWords;
+            content += 'Wordsearch Preview</strong><br>';
+            content += 'The following words will be hidden in the puzzle:<br><ul>';
+            shuffledWords.forEach((word) => {
+                content += `<li>${word.word.toUpperCase()}</li>`;
+            });
+            content += '</ul>';
+            break;
     }
 
     previewDiv.innerHTML = content;
@@ -633,11 +649,124 @@ function generateBox() {
     document.querySelector(".sidebar").style.maxHeight = "none";
 }
 
+function generateWordsearchPuzzle(selectedWords) {
+    // Create lists of target words (uppercase) and clues.
+    var wordList = selectedWords.map(function(w) { return w.word.toUpperCase(); });
+    var clueList = selectedWords.map(function(w) { return w.translation; });
+
+    // Determine grid size: at least 15, or large enough for the longest word.
+    var maxWordLength = Math.max.apply(null, wordList.map(function(w) { return w.length; }));
+    var gridSize = Math.max(15, maxWordLength + 2);
+
+    // Create an empty grid (2D array).
+    var grid = [];
+    for (var r = 0; r < gridSize; r++) {
+        grid[r] = [];
+        for (var c = 0; c < gridSize; c++) {
+            grid[r][c] = "";
+        }
+    }
+
+    // Define the eight possible directions.
+    var directions = [
+        {dx: 0, dy: 1},    // down
+        {dx: 1, dy: 0},    // right
+        {dx: 0, dy: -1},   // up
+        {dx: -1, dy: 0},   // left
+        {dx: 1, dy: 1},    // diagonal down-right
+        {dx: -1, dy: -1},  // diagonal up-left
+        {dx: -1, dy: 1},   // diagonal down-left
+        {dx: 1, dy: -1}    // diagonal up-right
+    ];
+
+    // Helper function: check if a word fits starting at (x, y) in direction (dx, dy).
+    function canPlaceWord(word, x, y, dx, dy) {
+        for (var i = 0; i < word.length; i++) {
+            var newX = x + dx * i;
+            var newY = y + dy * i;
+            if (newX < 0 || newY < 0 || newX >= gridSize || newY >= gridSize)
+                return false;
+            if (grid[newY][newX] !== "" && grid[newY][newX] !== word[i])
+                return false;
+        }
+        return true;
+    }
+
+    // Helper function: place a word in the grid.
+    function placeWord(word) {
+        var placed = false;
+        var attempts = 0;
+        while (!placed && attempts < 100) {
+            attempts++;
+            var dir = directions[Math.floor(Math.random() * directions.length)];
+            var startX = Math.floor(Math.random() * gridSize);
+            var startY = Math.floor(Math.random() * gridSize);
+            if (canPlaceWord(word, startX, startY, dir.dx, dir.dy)) {
+                for (var i = 0; i < word.length; i++) {
+                    grid[startY + dir.dy * i][startX + dir.dx * i] = word[i];
+                }
+                placed = true;
+            }
+        }
+        if (!placed) {
+            console.log("Could not place word: " + word);
+        }
+    }
+
+    // Place each word.
+    wordList.forEach(function(word) {
+        placeWord(word);
+    });
+
+    // Fill in any empty cells with random letters.
+    for (var r = 0; r < gridSize; r++) {
+        for (var c = 0; c < gridSize; c++) {
+            if (grid[r][c] === "") {
+                grid[r][c] = String.fromCharCode(65 + Math.floor(Math.random() * 26));
+            }
+        }
+    }
+
+    // Build the HTML table for the grid.
+    var gridHtml = "<table style='border-collapse: collapse;'>";
+    for (var r = 0; r < gridSize; r++) {
+        gridHtml += "<tr>";
+        for (var c = 0; c < gridSize; c++) {
+            gridHtml += `<td style="border: 1px solid #000; width: 20px; height: 20px; text-align: center; font-family: monospace; padding: 2px;">${grid[r][c]}</td>`;
+        }
+        gridHtml += "</tr>";
+    }
+    gridHtml += "</table>";
+
+    // Build the clues list (using the translations).
+    var cluesHtml = "<ul style='list-style: none; padding: 0;'>";
+    clueList.forEach(function(clue, index) {
+        cluesHtml += `<li>${index + 1}. ${clue}</li>`;
+    });
+    cluesHtml += "</ul>";
+
+    // Combine the grid and clues into final content.
+    var content = "<strong>Wordsearch Puzzle</strong><br><br>";
+    content += "Find the hidden words in the grid below. Use the clues (translations) to help you.<br><br>";
+    content += gridHtml;
+    content += "<br>Clues:<br>" + cluesHtml;
+    return content;
+}
+
+
 function addToWorksheet() {
     const previewDiv = document.getElementById('box-preview');
     const worksheetDiv = document.getElementById('worksheet-preview');
     const worksheetPage = document.querySelector('.worksheet-page'); // Ensure box stays inside this
     const boxContent = previewDiv.innerHTML;
+
+
+    // If the task type is wordsearch, generate the full puzzle content.
+    if (document.getElementById('task-type').value === 'wordsearch') {
+        boxContent = generateWordsearchPuzzle(wordsearchSelectedWords);
+    } else {
+        boxContent = previewDiv.innerHTML;
+    }
 
     if (boxContent.trim()) {
         const box = document.createElement('div');
