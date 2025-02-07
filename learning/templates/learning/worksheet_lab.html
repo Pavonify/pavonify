@@ -985,7 +985,7 @@ function generateCryptogramPuzzle(selectedWords) {
         return { encoded: encoded, clue: wordObj.word };
     });
 
-    // Build HTML for the puzzle.
+    // Build HTML for the cryptogram puzzle.
     let content = "<strong>Cryptogram Puzzle</strong><br><br>";
     content += "Decode the following encoded words. Use the source language clues to help you.<br><br>";
     content += "<ul style='list-style: none; padding: 0;'>";
@@ -993,8 +993,31 @@ function generateCryptogramPuzzle(selectedWords) {
         content += `<li><strong>${index+1}.</strong> ${item.encoded} (Clue: ${item.clue})</li>`;
     });
     content += "</ul>";
+
+    // Build the substitution key grid.
+    // First row: Letters A-Z
+    let alphaGrid = "<br><br><strong>Substitution Key:</strong><br>";
+    alphaGrid += "<table style='border-collapse: collapse; margin-top: 10px;'>";
+    alphaGrid += "<tr>";
+    for (let i = 65; i <= 90; i++) {
+         let letter = String.fromCharCode(i);
+         alphaGrid += `<td style="border: 1px solid #000; width: 25px; height: 25px; text-align: center;">${letter}</td>`;
+    }
+    alphaGrid += "</tr>";
+    // Second row: Empty cells for student entries.
+    alphaGrid += "<tr>";
+    for (let i = 65; i <= 90; i++) {
+         alphaGrid += `<td style="border: 1px solid #000; width: 25px; height: 25px; text-align: center;">&nbsp;</td>`;
+    }
+    alphaGrid += "</tr>";
+    alphaGrid += "</table>";
+
+    // Append the substitution key grid to the puzzle content.
+    content += alphaGrid;
+
     return content;
 }
+
 
 
 function addToWorksheet() {
