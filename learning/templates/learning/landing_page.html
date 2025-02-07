@@ -101,9 +101,16 @@
       color: #333;
     }
 
+    /* Table Responsive Wrapper */
+    .table-responsive {
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      margin: 20px auto;
+    }
+
     /* Table Styling */
     table {
-      margin: 20px auto;
       border-collapse: collapse;
       width: 100%;
       max-width: 600px;
@@ -111,6 +118,7 @@
       border-radius: 10px;
       overflow: hidden;
       box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      margin: 0 auto;
     }
 
     table th {
@@ -379,33 +387,35 @@
     <div class="pane">
       <h1>Welcome to Pavonify</h1>
       <p>Choose your role to begin:</p>
-      <table>
-        <thead>
-          <tr>
-            <th>I am a…</th>
-            <th><i class="fas fa-user role-icon"></i> Student</th>
-            <th><i class="fas fa-chalkboard-teacher role-icon"></i> Teacher</th>
-            <th><i class="fas fa-user-tie role-icon"></i> Lead Teacher</th>
-            <th><i class="fas fa-school role-icon"></i> School</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>Login</td>
-            <td><a href="{% url 'student_login' %}" class="btn">Login</a></td>
-            <td><a href="{% url 'login' %}" class="btn">Login</a></td>
-            <td><a href="#" class="btn disabled">Login</a></td>
-            <td><a href="#" class="btn disabled">Sign Up</a></td>
-          </tr>
-          <tr>
-            <td>Register</td>
-            <td>-</td>
-            <td><a href="{% url 'register_teacher' %}" class="btn">Register</a></td>
-            <td>-</td>
-            <td>-</td>
-          </tr>
-        </tbody>
-      </table>
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>I am a…</th>
+              <th><i class="fas fa-user role-icon"></i> Student</th>
+              <th><i class="fas fa-chalkboard-teacher role-icon"></i> Teacher</th>
+              <th><i class="fas fa-user-tie role-icon"></i> Lead Teacher</th>
+              <th><i class="fas fa-school role-icon"></i> School</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Login</td>
+              <td><a href="{% url 'student_login' %}" class="btn">Login</a></td>
+              <td><a href="{% url 'login' %}" class="btn">Login</a></td>
+              <td><a href="#" class="btn disabled">Login</a></td>
+              <td><a href="#" class="btn disabled">Sign Up</a></td>
+            </tr>
+            <tr>
+              <td>Register</td>
+              <td>-</td>
+              <td><a href="{% url 'register_teacher' %}" class="btn">Register</a></td>
+              <td>-</td>
+              <td>-</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <!-- About Pavonify -->
@@ -419,82 +429,84 @@
     <div class="about-section">
       <h2>Features Comparison</h2>
       <p>See how Pavonify stacks up against other leading language platforms for teachers:</p>
-      <table>
-        <thead>
-          <tr>
-            <th>Feature</th>
-            <th><span style="color: #FFFF00;">Pavonify</span></th>
-            <th>Quizlet</th>
-            <th>Memrise</th>
-            <th>Duolingo for Schools</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>Interactive Games</td>
-            <td>✔️</td>
-            <td>✔️</td>
-            <td>✔️</td>
-            <td>✔️</td>
-          </tr>
-          <tr>
-            <td>Vocabulary Building</td>
-            <td>✔️</td>
-            <td>✔️</td>
-            <td>✔️</td>
-            <td>✔️</td>
-          </tr>
-          <tr>
-            <td>Progress Tracking</td>
-            <td>✔️</td>
-            <td>〰️</td>
-            <td>〰️</td>
-            <td>✔️</td>
-          </tr>
-          <tr>
-            <td>Class Leaderboards</td>
-            <td>✔️</td>
-            <td>❌</td>
-            <td>❌</td>
-            <td>❌</td>
-          </tr>
-          <tr>
-            <td>Teacher Dashboard</td>
-            <td>✔️</td>
-            <td>✔️</td>
-            <td>❌</td>
-            <td>✔️</td>
-          </tr>
-          <tr>
-            <td>Student Management</td>
-            <td>✔️</td>
-            <td>❌</td>
-            <td>❌</td>
-            <td>❌</td>
-          </tr>
-          <tr>
-            <td>Custom Content Creation</td>
-            <td>✔️</td>
-            <td>✔️</td>
-            <td>✔️</td>
-            <td>❌</td>
-          </tr>
-          <tr>
-            <td>Worksheet Maker</td>
-            <td>✔️</td>
-            <td>❌</td>
-            <td>❌</td>
-            <td>❌</td>
-          </tr>
-          <tr>
-            <td>Cost for Teachers</td>
-            <td>£2.99/month</td>
-            <td>$35.99/year</td>
-            <td>$8.99/month</td>
-            <td>Free</td>
-          </tr>
-        </tbody>
-      </table>
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>Feature</th>
+              <th><span style="color: #FFFF00;">Pavonify</span></th>
+              <th>Quizlet</th>
+              <th>Memrise</th>
+              <th>Duolingo for Schools</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Interactive Games</td>
+              <td>✔️</td>
+              <td>✔️</td>
+              <td>✔️</td>
+              <td>✔️</td>
+            </tr>
+            <tr>
+              <td>Vocabulary Building</td>
+              <td>✔️</td>
+              <td>✔️</td>
+              <td>✔️</td>
+              <td>✔️</td>
+            </tr>
+            <tr>
+              <td>Progress Tracking</td>
+              <td>✔️</td>
+              <td>〰️</td>
+              <td>〰️</td>
+              <td>✔️</td>
+            </tr>
+            <tr>
+              <td>Class Leaderboards</td>
+              <td>✔️</td>
+              <td>❌</td>
+              <td>❌</td>
+              <td>❌</td>
+            </tr>
+            <tr>
+              <td>Teacher Dashboard</td>
+              <td>✔️</td>
+              <td>✔️</td>
+              <td>❌</td>
+              <td>✔️</td>
+            </tr>
+            <tr>
+              <td>Student Management</td>
+              <td>✔️</td>
+              <td>❌</td>
+              <td>❌</td>
+              <td>❌</td>
+            </tr>
+            <tr>
+              <td>Custom Content Creation</td>
+              <td>✔️</td>
+              <td>✔️</td>
+              <td>✔️</td>
+              <td>❌</td>
+            </tr>
+            <tr>
+              <td>Worksheet Maker</td>
+              <td>✔️</td>
+              <td>❌</td>
+              <td>❌</td>
+              <td>❌</td>
+            </tr>
+            <tr>
+              <td>Cost for Teachers</td>
+              <td>£2.99/month</td>
+              <td>$35.99/year</td>
+              <td>$8.99/month</td>
+              <td>Free</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
       <center><a href="{% url 'register_teacher' %}" class="btn register-btn">Register</a> and try out Pavonify's features <font color="#ff9800"><strong>for free!</strong></font></center>
     </div>
 
