@@ -8,7 +8,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Stripe Keys
 STRIPE_PUBLIC_KEY = os.getenv("pk_live_51QoMKjJYDgv8Jx3VXa5Vl07vwlhb0xMnrK0Jm9pO4T2YxGX9Wb3WN48LWWEAkGnXguh9Z6hC5kAygaqncQchbzJe00huvjYgCH", "")
 STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY")
-STRIPE_PRICE_ID = os.getenv("price_1QpQcMJYDgv8Jx3VdIdRmwsL", "")
+STRIPE_PRICE_ID = os.getenv("STRIPE_PRICE_ID", "price_1QpQcMJYDgv8Jx3VdIdRmwsL")
 STRIPE_WEBHOOK_SECRET = os.getenv("whsec_wT7g2urYrVwg96Tqv9AvBLwfqejaqQhS", "")
 
 

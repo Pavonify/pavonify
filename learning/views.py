@@ -1191,14 +1191,22 @@ def create_checkout_session(request):
         return JsonResponse({"error": "Invalid request, POST required"}, status=400)
 
     try:
-        # ✅ Use your actual Stripe Price ID instead of defining the price manually
         session = stripe.checkout.Session.create(
             payment_method_types=["card"],
             line_items=[{
-                "price": "price_1QpQcMJYDgv8Jx3VdIdRmwsL",  # ✅ Replace with your actual Price ID from Stripe
+                "price_data": {
+                    "currency": "gbp",
+                    "product_data": {
+                        "name": "Pavonify Premium",
+                    },
+                    "unit_amount": 299,  # 299 pence = £2.99
+                    "recurring": {
+                        "interval": "month"  # Specify the recurring interval
+                    },
+                },
                 "quantity": 1,
             }],
-            mode="subscription",  # ✅ Ensures it's a recurring subscription
+            mode="subscription",  # This tells Stripe to create a subscription
             success_url="https://www.pavonify.com/payment-success/",
             cancel_url="https://www.pavonify.com/teacher-dashboard/",
         )
@@ -1206,6 +1214,7 @@ def create_checkout_session(request):
     
     except stripe.error.StripeError as e:
         return JsonResponse({"error": str(e)}, status=400)
+
 
 
 
