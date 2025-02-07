@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -103,7 +104,7 @@
         <div>
           {{ vocab_list.name }} ({{ vocab_list.source_language }} → {{ vocab_list.target_language }})
         </div>
-        <!-- Explicitly set the form action URL to the current view with the class id -->
+        <!-- The form's action uses the view_attached_vocab URL with the class ID -->
         <form method="POST" action="{% url 'view_attached_vocab' class_instance.id %}">
           {% csrf_token %}
           <input type="hidden" name="vocab_list_id" value="{{ vocab_list.id }}">
