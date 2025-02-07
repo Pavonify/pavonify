@@ -11,6 +11,11 @@ STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY")
 STRIPE_PRICE_ID = os.getenv("STRIPE_PRICE_ID", "price_1QpQcMJYDgv8Jx3VdIdRmwsL")
 STRIPE_WEBHOOK_SECRET = os.getenv("whsec_wT7g2urYrVwg96Tqv9AvBLwfqejaqQhS", "")
 
+# settings.py
+RECAPTCHA_SITE_KEY = '6LdJxM8qAAAAAC555hXQk9g-8iOdjVEiEKaXJlkb'
+RECAPTCHA_SECRET_KEY = '6LdJxM8qAAAAAG2Ka6EnvXHSHkEAHdECk1cztWp8'
+
+
 
 
 # Security Settings

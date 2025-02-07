@@ -26,6 +26,7 @@ from django.http import JsonResponse
 import stripe
 from django.conf import settings
 from django.views import View
+import requests
 
 
 User = get_user_model()
@@ -553,47 +554,31 @@ def view_vocabulary(request, vocab_list_id):
     vocab_list = get_object_or_404(VocabularyList, id=vocab_list_id)
     return render(request, 'learning/view_vocabulary.html', {'vocab_list': vocab_list})
 
-@login_required
 def view_attached_vocab(request, class_id):
     # Retrieve the class instance by its id.
     class_instance = get_object_or_404(Class, id=class_id)
 
-    print(f"DEBUG: view_attached_vocab called; request.method = {request.method}")
-
     if request.method == "POST":
         vocab_list_id = request.POST.get("vocab_list_id")
-        print(f"DEBUG: POST received; vocab_list_id = {vocab_list_id}")
-
         if vocab_list_id:
+            # Retrieve the vocabulary list (using the many-to-many relation)
             vocab_list = get_object_or_404(VocabularyList, id=vocab_list_id)
-
-            # **Explicitly checking if the vocabulary list is attached before removing**
-            if class_instance.vocabulary_lists.filter(id=vocab_list.id).exists():
-                print(f"DEBUG: Vocabulary list {vocab_list.id} is attached. Removing now.")
-                class_instance.vocabulary_lists.remove(vocab_list)
-
-                # **Manually saving the class_instance**
-                class_instance.save()
-
-                messages.success(request, f"Vocabulary list '{vocab_list.name}' has been disassociated.")
-            else:
-                print(f"DEBUG: Vocabulary list {vocab_list.id} was NOT attached. No action taken.")
-                messages.warning(request, "This vocabulary list was not attached to this class.")
-
+            # Remove the vocabulary list from the class's vocabulary_lists field.
+            class_instance.vocabulary_lists.remove(vocab_list)
+            messages.success(request, f"Vocabulary list '{vocab_list.name}' has been disassociated.")
+            return redirect("view_attached_vocab", class_id=class_id)
         else:
             messages.error(request, "No vocabulary list ID provided.")
 
-        return redirect("view_attached_vocab", class_id=class_instance.id)
-
-    # **Using a ManyToMany relationship correctly**
+    # Retrieve the vocabulary lists attached via the field on the class instance.
     attached_vocab_lists = class_instance.vocabulary_lists.all()
+    # Debug print to check the count.
     print(f"DEBUG: Class {class_instance.id} now has {attached_vocab_lists.count()} vocabulary list(s) attached.")
 
     return render(request, "learning/view_attached_vocab.html", {
         "class_instance": class_instance,
         "attached_vocab_lists": attached_vocab_lists,
     })
-
 
 
 @student_login_required
@@ -695,11 +680,28 @@ def lead_teacher_dashboard(request):
 
 def register_teacher(request):
     if request.method == "POST":
+        # Initialize the form with POST data.
         form = TeacherRegistrationForm(request.POST)
+        
+        # Get the reCAPTCHA response token from the form.
+        recaptcha_response = request.POST.get('g-recaptcha-response')
+        recaptcha_data = {
+            'secret': settings.RECAPTCHA_SECRET_KEY,
+            'response': recaptcha_response,
+        }
+        # Verify the reCAPTCHA response with Google.
+        r = requests.post('https://www.google.com/recaptcha/api/siteverify', data=recaptcha_data)
+        result = r.json()
+        if not result.get('success'):
+            messages.error(request, "Invalid reCAPTCHA. Please try again.")
+            return render(request, "learning/register_teacher.html", {"form": form})
+        
+        # If the reCAPTCHA passes, validate the registration form.
         if form.is_valid():
-            # Save the form without committing to allow further modifications.
+            # Save the form without committing to allow modifications.
             user = form.save(commit=False)
-            # Assign the default school if the user doesn't have one.
+            
+            # Assign the default school ("Default School") if the user does not have one.
             if not user.school:
                 try:
                     default_school = School.objects.get(name="Default School")
@@ -707,10 +709,11 @@ def register_teacher(request):
                 except School.DoesNotExist:
                     messages.error(request, "Default School not found. Please contact support.")
                     return redirect("register_teacher")
-            user.save()  # Now save the user with the default school assigned.
-            login(request, user)  # Auto-login new teacher
+            
+            user.save()  # Save the user now that the default school is assigned.
+            login(request, user)  # Auto-login the new teacher.
             messages.success(request, "Your account has been created successfully!")
-            return redirect("teacher_dashboard")  # Redirect to dashboard
+            return redirect("teacher_dashboard")
         else:
             messages.error(request, "There were errors in the form. Please correct them.")
     else:
