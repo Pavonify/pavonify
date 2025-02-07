@@ -92,7 +92,8 @@
         <div>
           {{ vocab_list.name }} ({{ vocab_list.source_language }} → {{ vocab_list.target_language }})
         </div>
-        <form method="POST" action="">
+        <!-- Set the form's action to post back to this same view -->
+        <form method="POST" action="{% url 'view_attached_vocab' class_instance.id %}">
           {% csrf_token %}
           <input type="hidden" name="vocab_list_id" value="{{ vocab_list.id }}">
           <button type="submit">Disassociate</button>

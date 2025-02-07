@@ -4,75 +4,97 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register as a Teacher</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            height: 100vh;
-            background: #e3f2fd;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register as a Teacher</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      height: 100vh;
+      background: #e3f2fd;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
 
-        .container {
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            max-width: 400px;
-            width: 100%;
-            text-align: center;
-        }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      max-width: 400px;
+      width: 100%;
+      text-align: center;
+    }
 
-        h1 {
-            color: #0aa2ef;
-            font-size: 24px;
-        }
+    /* Constrain the logo size */
+    .logo {
+      max-width: 150px;
+      max-height: 100px;
+      width: auto;
+      height: auto;
+      margin-bottom: 20px;
+    }
 
-        p {
-            font-size: 14px;
-            color: #555;
-        }
+    h1 {
+      color: #0aa2ef;
+      font-size: 24px;
+      margin-bottom: 10px;
+    }
 
-        form input, form select {
-            width: 100%;
-            padding: 10px;
-            margin-bottom: 15px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            font-size: 16px;
-        }
+    p {
+      font-size: 14px;
+      color: #555;
+      margin-bottom: 20px;
+    }
 
-        form button {
-            background-color: #0aa2ef;
-            color: white;
-            border: none;
-            padding: 10px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
-        }
+    form input,
+    form select {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 15px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      font-size: 16px;
+    }
 
-        form button:hover {
-            background-color: #007bb5;
-        }
-    </style>
+    form button {
+      background-color: #0aa2ef;
+      color: white;
+      border: none;
+      padding: 10px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+
+    form button:hover {
+      background-color: #007bb5;
+    }
+
+    /* Optional: Style for the reCAPTCHA container if needed */
+    .g-recaptcha {
+      margin-bottom: 15px;
+      display: inline-block;
+    }
+  </style>
+  <!-- Load Google reCAPTCHA API -->
+  <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 </head>
 <body>
-    <div class="container">
-    <centre><img src="{% static 'learning/pavonify_logo.png' %}" alt="Pavonify Logo"></centre>
-        <h1>Register as a Teacher</h1>
-        <p>Sign up for a <strong>free teacher account<strong>. Upgrade anytime from your dashboard to access premium features.</p>
-        
-        <form method="POST">
-            {% csrf_token %}
-            {{ form.as_p }}
-            <button type="submit">Register</button>
-        </form>
-    </div>
+  <div class="container">
+    <img class="logo" src="{% static 'learning/pavonify_logo.png' %}" alt="Pavonify Logo">
+    <h1>Register as a Teacher</h1>
+    <p>Sign up for a <strong>free teacher account</strong>. Upgrade anytime from your dashboard to access premium features.</p>
+    
+    <form method="POST">
+      {% csrf_token %}
+      {{ form.as_p }}
+      <!-- Google reCAPTCHA widget (replace YOUR_RECAPTCHA_SITE_KEY_HERE with your actual site key) -->
+      <div class="g-recaptcha" data-sitekey="6LdJxM8qAAAAAC555hXQk9g-8iOdjVEiEKaXJlkb"></div>
+      <button type="submit">Register</button>
+    </form>
+  </div>
 </body>
 </html>

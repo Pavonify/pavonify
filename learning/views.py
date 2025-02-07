@@ -554,32 +554,37 @@ def view_vocabulary(request, vocab_list_id):
     vocab_list = get_object_or_404(VocabularyList, id=vocab_list_id)
     return render(request, 'learning/view_vocabulary.html', {'vocab_list': vocab_list})
 
+@login_required
 def view_attached_vocab(request, class_id):
     # Retrieve the class instance by its id.
     class_instance = get_object_or_404(Class, id=class_id)
 
     if request.method == "POST":
         vocab_list_id = request.POST.get("vocab_list_id")
-        if vocab_list_id:
-            # Retrieve the vocabulary list (using the many-to-many relation)
-            vocab_list = get_object_or_404(VocabularyList, id=vocab_list_id)
-            # Remove the vocabulary list from the class's vocabulary_lists field.
-            class_instance.vocabulary_lists.remove(vocab_list)
-            messages.success(request, f"Vocabulary list '{vocab_list.name}' has been disassociated.")
-            return redirect("view_attached_vocab", class_id=class_id)
-        else:
+        if not vocab_list_id:
             messages.error(request, "No vocabulary list ID provided.")
+            return redirect("view_attached_vocab", class_id=class_id)
+        
+        # Get the vocabulary list or return 404 if not found.
+        vocab_list = get_object_or_404(VocabularyList, id=vocab_list_id)
+        
+        # Check if the vocabulary list is attached to the class.
+        if vocab_list in class_instance.vocabulary_lists.all():
+            class_instance.vocabulary_lists.remove(vocab_list)
+            # (Optionally, you can force a save on the class instance—but many-to-many removals update immediately.)
+            messages.success(request, f"Vocabulary list '{vocab_list.name}' has been disassociated.")
+        else:
+            messages.error(request, "That vocabulary list was not attached to this class.")
+        return redirect("view_attached_vocab", class_id=class_id)
 
-    # Retrieve the vocabulary lists attached via the field on the class instance.
+    # Get the attached vocabulary lists from the class’s many-to-many field.
     attached_vocab_lists = class_instance.vocabulary_lists.all()
-    # Debug print to check the count.
     print(f"DEBUG: Class {class_instance.id} now has {attached_vocab_lists.count()} vocabulary list(s) attached.")
-
+    
     return render(request, "learning/view_attached_vocab.html", {
         "class_instance": class_instance,
         "attached_vocab_lists": attached_vocab_lists,
     })
-
 
 @student_login_required
 def flashcard_mode(request, vocab_list_id):
