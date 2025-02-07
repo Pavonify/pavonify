@@ -558,31 +558,42 @@ def view_attached_vocab(request, class_id):
     # Retrieve the class instance by its id.
     class_instance = get_object_or_404(Class, id=class_id)
 
-    # Debug: Print the request method so you know if a POST came in.
     print(f"DEBUG: view_attached_vocab called; request.method = {request.method}")
 
     if request.method == "POST":
         vocab_list_id = request.POST.get("vocab_list_id")
         print(f"DEBUG: POST received; vocab_list_id = {vocab_list_id}")
+
         if vocab_list_id:
-            # Get the vocabulary list or 404 if not found.
             vocab_list = get_object_or_404(VocabularyList, id=vocab_list_id)
-            # Remove the vocabulary list from the class's many-to-many field.
-            class_instance.vocabulary_lists.remove(vocab_list)
-            messages.success(request, f"Vocabulary list '{vocab_list.name}' has been disassociated from class '{class_instance.name}'.")
-            return redirect("view_attached_vocab", class_id=class_instance.id)
+
+            # **Explicitly checking if the vocabulary list is attached before removing**
+            if class_instance.vocabulary_lists.filter(id=vocab_list.id).exists():
+                print(f"DEBUG: Vocabulary list {vocab_list.id} is attached. Removing now.")
+                class_instance.vocabulary_lists.remove(vocab_list)
+
+                # **Manually saving the class_instance**
+                class_instance.save()
+
+                messages.success(request, f"Vocabulary list '{vocab_list.name}' has been disassociated.")
+            else:
+                print(f"DEBUG: Vocabulary list {vocab_list.id} was NOT attached. No action taken.")
+                messages.warning(request, "This vocabulary list was not attached to this class.")
+
         else:
             messages.error(request, "No vocabulary list ID provided.")
 
-    # Retrieve vocabulary lists attached to this class.
-    # You can use either the field or the reverse accessor; here we use the field.
+        return redirect("view_attached_vocab", class_id=class_instance.id)
+
+    # **Using a ManyToMany relationship correctly**
     attached_vocab_lists = class_instance.vocabulary_lists.all()
     print(f"DEBUG: Class {class_instance.id} now has {attached_vocab_lists.count()} vocabulary list(s) attached.")
-    
+
     return render(request, "learning/view_attached_vocab.html", {
         "class_instance": class_instance,
         "attached_vocab_lists": attached_vocab_lists,
     })
+
 
 
 @student_login_required

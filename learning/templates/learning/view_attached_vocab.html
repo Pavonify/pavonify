@@ -6,11 +6,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Attached Vocabulary Lists</title>
   <style>
-    /* Global Box-Sizing */
-    *, *::before, *::after {
-      box-sizing: border-box;
-    }
-    /* Base Styles */
     body {
       font-family: Arial, sans-serif;
       background: #e3f2fd;
@@ -93,7 +88,6 @@
         <div>
           {{ vocab_list.name }} ({{ vocab_list.source_language }} → {{ vocab_list.target_language }})
         </div>
-        <!-- Set the form's action to the same URL for this class -->
         <form method="POST" action="{% url 'view_attached_vocab' class_instance.id %}">
           {% csrf_token %}
           <input type="hidden" name="vocab_list_id" value="{{ vocab_list.id }}">
