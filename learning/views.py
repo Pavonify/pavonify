@@ -526,19 +526,40 @@ def student_logout(request):
     logout(request)
     return HttpResponseRedirect('/')
 
+
 @login_required
-def attach_vocab_list(request, vocab_list_id):
-    """Attach a vocabulary list to a class."""
-    vocab_list = get_object_or_404(VocabularyList, id=vocab_list_id, teacher=request.user)
+def attach_vocab_list(request, class_id):
+    # Retrieve the class instance by its id.
+    class_instance = get_object_or_404(Class, id=class_id)
 
     if request.method == "POST":
-        class_id = request.POST.get("class_id")
-        if class_id:
-            class_instance = get_object_or_404(Class, id=class_id, teachers=request.user)
-            vocab_list.classes.add(class_instance)  # Attach the vocabulary list to the class
-            messages.success(request, f"'{vocab_list.name}' has been successfully attached to '{class_instance.name}'.")
+        vocab_list_id = request.POST.get("vocab_list_id")
+        if not vocab_list_id:
+            messages.error(request, "No vocabulary list ID provided.")
+            return redirect("attach_vocab_list", class_id=class_id)
+        
+        # Get the vocabulary list or return 404 if not found.
+        vocab_list = get_object_or_404(VocabularyList, id=vocab_list_id)
 
-    return redirect("teacher_dashboard")
+        # Check if the vocabulary list is already attached to the class.
+        if vocab_list not in class_instance.vocabulary_lists.all():
+            # Add the vocabulary list to the class.
+            class_instance.vocabulary_lists.add(vocab_list)
+            # Add the class to the vocabulary list.
+            vocab_list.classes.add(class_instance)
+            messages.success(request, f"Vocabulary list '{vocab_list.name}' has been attached to the class.")
+        else:
+            messages.warning(request, "That vocabulary list is already attached to this class.")
+        
+        return redirect("view_attached_vocab", class_id=class_id)
+
+    # Fetch all vocabulary lists that are not already attached to the class.
+    available_vocab_lists = VocabularyList.objects.exclude(id__in=class_instance.vocabulary_lists.all())
+    
+    return render(request, "learning/attach_vocab_list.html", {
+        "class_instance": class_instance,
+        "available_vocab_lists": available_vocab_lists,
+    })
 
 @login_required
 def view_class(request, class_id):
@@ -554,38 +575,36 @@ def view_vocabulary(request, vocab_list_id):
     vocab_list = get_object_or_404(VocabularyList, id=vocab_list_id)
     return render(request, 'learning/view_vocabulary.html', {'vocab_list': vocab_list})
 
+
 @login_required
 def view_attached_vocab(request, class_id):
-    # Retrieve the class instance by its id.
+    # Get the class instance by its id.
     class_instance = get_object_or_404(Class, id=class_id)
-
+    
     if request.method == "POST":
+        # Get the vocabulary list id from the form.
         vocab_list_id = request.POST.get("vocab_list_id")
-        if not vocab_list_id:
-            messages.error(request, "No vocabulary list ID provided.")
-            return redirect("view_attached_vocab", class_id=class_id)
-        
-        # Get the vocabulary list or return 404 if not found.
-        vocab_list = get_object_or_404(VocabularyList, id=vocab_list_id)
-        
-        # Check if the vocabulary list is attached to the class.
-        if vocab_list in class_instance.vocabulary_lists.all():
+        if vocab_list_id:
+            # Retrieve the vocabulary list.
+            vocab_list = get_object_or_404(VocabularyList, id=vocab_list_id)
+            # Remove the association from both sides.
             class_instance.vocabulary_lists.remove(vocab_list)
-            # (Optionally, you can force a save on the class instance—but many-to-many removals update immediately.)
-            messages.success(request, f"Vocabulary list '{vocab_list.name}' has been disassociated.")
+            vocab_list.classes.remove(class_instance)
+            messages.success(request, f"Vocabulary list '{vocab_list.name}' has been disassociated from class '{class_instance.name}'.")
         else:
-            messages.error(request, "That vocabulary list was not attached to this class.")
+            messages.error(request, "No vocabulary list selected.")
         return redirect("view_attached_vocab", class_id=class_id)
-
-    # Get the attached vocabulary lists from the class’s many-to-many field.
+    
+    # Retrieve all vocabulary lists attached to this class.
     attached_vocab_lists = class_instance.vocabulary_lists.all()
+    
+    # Debug output:
     print(f"DEBUG: Class {class_instance.id} now has {attached_vocab_lists.count()} vocabulary list(s) attached.")
     
     return render(request, "learning/view_attached_vocab.html", {
         "class_instance": class_instance,
         "attached_vocab_lists": attached_vocab_lists,
     })
-
 @student_login_required
 def flashcard_mode(request, vocab_list_id):
     # Debugging session and user data

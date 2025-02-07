@@ -6,10 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Attached Vocabulary Lists</title>
   <style>
-    /* Global styles – adjust as needed */
-    *, *::before, *::after {
-      box-sizing: border-box;
-    }
+    /* (Your styles can remain mostly the same) */
     body {
       font-family: Arial, sans-serif;
       background: #e3f2fd;
@@ -26,7 +23,7 @@
       border-radius: 10px;
       max-width: 800px;
       width: 100%;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
       text-align: center;
     }
     h1 {
@@ -50,6 +47,7 @@
     }
     ul li > div {
       font-size: 16px;
+      margin-bottom: 10px;
     }
     ul li form {
       margin-top: 10px;
@@ -92,8 +90,7 @@
         <div>
           {{ vocab_list.name }} ({{ vocab_list.source_language }} → {{ vocab_list.target_language }})
         </div>
-        <!-- Set the form's action to post back to this same view -->
-        <form method="POST" action="{% url 'view_attached_vocab' class_instance.id %}">
+        <form method="POST" action="">
           {% csrf_token %}
           <input type="hidden" name="vocab_list_id" value="{{ vocab_list.id }}">
           <button type="submit">Disassociate</button>
