@@ -453,6 +453,7 @@
                         <option value="faulty_translation">Faulty Translation</option>
                         <option value="unscramble">Unscramble the Letters</option>
    			<option value="wordsearch">Wordsearch Puzzle</option>
+			<option value="crossword">Crossword Puzzle</option>
                     </select>
 
                     <label for="question-count">Number of Questions:</label>
@@ -635,6 +636,16 @@ function generateBox() {
             });
             content += '</ul>';
             break;
+	case 'crossword':
+            // For crossword, use the target language as the answer and source as clue.
+            puzzleSelectedWords = shuffledWords; // Save globally.
+            content += 'Crossword Preview</strong><br>';
+            content += 'The following target language words will be hidden in the puzzle:<br><ul>';
+            shuffledWords.forEach((word) => {
+                content += `<li>${word.translation.toUpperCase()}</li>`;
+            });
+            content += '</ul>';
+            break;
     }
 
     previewDiv.innerHTML = content;
@@ -753,6 +764,184 @@ function generateWordsearchPuzzle(selectedWords) {
     return content;
 }
 
+function generateCrosswordPuzzle(selectedWords) {
+    // We'll use a fixed grid size.
+    const gridSize = 15;
+    // Create a grid (2D array) of nulls.
+    let grid = Array.from({ length: gridSize }, () => Array(gridSize).fill(null));
+    // This array will hold details of each successfully placed word.
+    let placedWords = [];
+
+    // --- Place the first word in the center (horizontally) ---
+    let first = selectedWords[0];
+    let answer = first.translation.toUpperCase(); // Target language answer.
+    let clueText = first.word; // Source language clue.
+    let startRow = Math.floor(gridSize / 2);
+    let startCol = Math.floor((gridSize - answer.length) / 2);
+    for (let i = 0; i < answer.length; i++) {
+        grid[startRow][startCol + i] = answer[i];
+    }
+    placedWords.push({ answer, clue: clueText, row: startRow, col: startCol, direction: "across" });
+
+    // --- Try to place the remaining words by intersecting with placed words ---
+    for (let idx = 1; idx < selectedWords.length; idx++) {
+        let current = selectedWords[idx];
+        answer = current.translation.toUpperCase();
+        clueText = current.word;
+        let placed = false;
+        
+        // Attempt to intersect with any already placed word.
+        for (let pword of placedWords) {
+            for (let i = 0; i < pword.answer.length; i++) {
+                let letter = pword.answer[i];
+                for (let j = 0; j < answer.length; j++) {
+                    if (answer[j] === letter) {
+                        // If pword is placed horizontally, try placing current vertically.
+                        if (pword.direction === "across") {
+                            let intersectRow = pword.row;
+                            let intersectCol = pword.col + i;
+                            let candidateRow = intersectRow - j;
+                            let candidateCol = intersectCol;
+                            if (candidateRow >= 0 && candidateRow + answer.length <= gridSize) {
+                                let conflict = false;
+                                for (let k = 0; k < answer.length; k++) {
+                                    let r = candidateRow + k;
+                                    let c = candidateCol;
+                                    if (grid[r][c] !== null && grid[r][c] !== answer[k]) {
+                                        conflict = true;
+                                        break;
+                                    }
+                                }
+                                if (!conflict) {
+                                    for (let k = 0; k < answer.length; k++) {
+                                        grid[candidateRow + k][candidateCol] = answer[k];
+                                    }
+                                    placedWords.push({ answer, clue: clueText, row: candidateRow, col: candidateCol, direction: "down" });
+                                    placed = true;
+                                    break;
+                                }
+                            }
+                        }
+                        // If pword is vertical, try placing current horizontally.
+                        else if (pword.direction === "down") {
+                            let intersectRow = pword.row + i;
+                            let intersectCol = pword.col;
+                            let candidateRow = intersectRow;
+                            let candidateCol = intersectCol - j;
+                            if (candidateCol >= 0 && candidateCol + answer.length <= gridSize) {
+                                let conflict = false;
+                                for (let k = 0; k < answer.length; k++) {
+                                    let r = candidateRow;
+                                    let c = candidateCol + k;
+                                    if (grid[r][c] !== null && grid[r][c] !== answer[k]) {
+                                        conflict = true;
+                                        break;
+                                    }
+                                }
+                                if (!conflict) {
+                                    for (let k = 0; k < answer.length; k++) {
+                                        grid[candidateRow][candidateCol + k] = answer[k];
+                                    }
+                                    placedWords.push({ answer, clue: clueText, row: candidateRow, col: candidateCol, direction: "across" });
+                                    placed = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+                if (placed) break;
+            }
+            if (placed) break;
+        }
+        // If no intersection was found, attempt to place it randomly horizontally.
+        if (!placed) {
+            let tries = 0;
+            while (!placed && tries < 100) {
+                tries++;
+                let candidateRow = Math.floor(Math.random() * gridSize);
+                let candidateCol = Math.floor(Math.random() * (gridSize - answer.length + 1));
+                let conflict = false;
+                for (let k = 0; k < answer.length; k++) {
+                    if (grid[candidateRow][candidateCol + k] !== null && grid[candidateRow][candidateCol + k] !== answer[k]) {
+                        conflict = true;
+                        break;
+                    }
+                }
+                if (!conflict) {
+                    for (let k = 0; k < answer.length; k++) {
+                        grid[candidateRow][candidateCol + k] = answer[k];
+                    }
+                    placedWords.push({ answer, clue: clueText, row: candidateRow, col: candidateCol, direction: "across" });
+                    placed = true;
+                }
+            }
+        }
+    }
+
+    // --- Assign clue numbers ---
+    let numbers = Array.from({ length: gridSize }, () => Array(gridSize).fill(0));
+    let clueNumber = 1;
+    for (let r = 0; r < gridSize; r++) {
+        for (let c = 0; c < gridSize; c++) {
+            if (grid[r][c] !== null) {
+                let startAcross = (c === 0 || grid[r][c - 1] === null) && (c + 1 < gridSize && grid[r][c + 1] !== null);
+                let startDown = (r === 0 || grid[r - 1][c] === null) && (r + 1 < gridSize && grid[r + 1][c] !== null);
+                if (startAcross || startDown) {
+                    numbers[r][c] = clueNumber;
+                    clueNumber++;
+                }
+            }
+        }
+    }
+    placedWords.forEach(function(pword) {
+        pword.number = numbers[pword.row][pword.col];
+    });
+
+    // Separate clues by direction and sort by clue number.
+    let acrossClues = placedWords.filter(w => w.direction === "across").sort((a, b) => a.number - b.number);
+    let downClues = placedWords.filter(w => w.direction === "down").sort((a, b) => a.number - b.number);
+
+    // --- Build the HTML for the grid ---
+    let gridHtml = "<table style='border-collapse: collapse;'>";
+    for (let r = 0; r < gridSize; r++) {
+        gridHtml += "<tr>";
+        for (let c = 0; c < gridSize; c++) {
+            if (grid[r][c] !== null) {
+                let num = numbers[r][c];
+                gridHtml += `<td style="border: 1px solid #000; width: 25px; height: 25px; position: relative;">`;
+                if (num > 0) {
+                    gridHtml += `<div style="position: absolute; top: 0; left: 0; font-size: 8px;">${num}</div>`;
+                }
+                // Leave the cell blank so the solver can fill it in.
+                gridHtml += `</td>`;
+            } else {
+                gridHtml += `<td style="border: 1px solid #000; width: 25px; height: 25px; background-color: #000;"></td>`;
+            }
+        }
+        gridHtml += "</tr>";
+    }
+    gridHtml += "</table>";
+
+    // --- Build the clues HTML ---
+    let cluesHtml = "<div style='display: flex; justify-content: space-around;'><div><strong>Across</strong><br><ul style='list-style: none; padding: 0;'>";
+    acrossClues.forEach(function(clue) {
+        cluesHtml += `<li>${clue.number}. ${clue.clue}</li>`;
+    });
+    cluesHtml += "</ul></div>";
+    cluesHtml += "<div><strong>Down</strong><br><ul style='list-style: none; padding: 0;'>";
+    downClues.forEach(function(clue) {
+        cluesHtml += `<li>${clue.number}. ${clue.clue}</li>`;
+    });
+    cluesHtml += "</ul></div></div>";
+
+    let content = "<strong>Crossword Puzzle</strong><br><br>";
+    content += gridHtml;
+    content += "<br>Clues:<br>" + cluesHtml;
+    return content;
+}
+
+
 
 function addToWorksheet() {
     const previewDiv = document.getElementById('box-preview');
@@ -761,12 +950,13 @@ function addToWorksheet() {
     let boxContent = "";
 
 
-    // Check if the current task type is wordsearch.
-    if (document.getElementById('task-type').value === 'wordsearch') {
-        boxContent = generateWordsearchPuzzle(wordsearchSelectedWords);
-    } else {
-        boxContent = previewDiv.innerHTML;
-    }
+if (document.getElementById('task-type').value === 'wordsearch') {
+    boxContent = generateWordsearchPuzzle(wordsearchSelectedWords);
+} else if (document.getElementById('task-type').value === 'crossword') {
+    boxContent = generateCrosswordPuzzle(puzzleSelectedWords);
+} else {
+    boxContent = previewDiv.innerHTML;
+}
 
     if (boxContent.trim()) {
         const box = document.createElement('div');
