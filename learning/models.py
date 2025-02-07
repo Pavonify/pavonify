@@ -36,6 +36,9 @@ class User(AbstractUser):
     # NEW FIELD: Store the Stripe subscription ID
     subscription_id = models.CharField(max_length=255, blank=True, null=True)
 
+    # New field to mark if the subscription has been canceled (but remains active until period end)
+    subscription_cancelled = models.BooleanField(default=False)
+
     @property
     def is_premium(self):
         """Return True if the teacher's premium subscription is active."""

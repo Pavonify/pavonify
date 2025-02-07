@@ -884,12 +884,20 @@
     
       <!-- Premium Subscription Section -->
       <div class="premium-status {% if request.user.is_premium %}premium-active{% else %}premium-inactive{% endif %}">
-        {% if request.user.is_premium %}
-          <p>Premium Member until <strong>{{ request.user.premium_expiration|date:"M d, Y" }}</strong></p>
-          <a href="{% url 'teacher_cancel_subscription' %}" class="btn-cancel">Cancel Subscription</a>
-        {% else %}
-          <p>You are on the Basic plan.</p>
-          <a href="#" data-pane="teacher-upgrade" class="upgrade-btn">Upgrade to Premium</a>
+{% if request.user.is_premium %}
+  <p>Premium Member until <strong>{{ request.user.premium_expiration|date:"M d, Y" }}</strong></p>
+  {% if request.user.subscription_cancelled %}
+    <p style="color: #c62828;">You have cancelled your subscription and your premium benefits will end on <strong>{{ request.user.premium_expiration|date:"M d, Y" }}</strong>.</p>
+  {% else %}
+    <a href="{% url 'teacher_cancel_subscription' %}" class="btn-cancel" 
+       onclick="return confirm('Are you sure you want to cancel your subscription? You will retain premium access until the end of the current period.');">
+      Cancel Subscription
+    </a>
+  {% endif %}
+{% else %}
+  <p>You are on the Basic plan.</p>
+  <a href="#" data-pane="teacher-upgrade" class="upgrade-btn">Upgrade to Premium</a>
+  <!-- Feature Comparison Table -->
           <!-- Feature Comparison Table -->
           <table class="feature-table">
             <tr>

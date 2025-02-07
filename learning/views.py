@@ -1412,23 +1412,23 @@ def teacher_account_settings(request):
 
 @login_required
 def teacher_cancel_subscription(request):
-    if not request.user.is_teacher or not request.user.is_premium:
-        messages.error(request, "You do not have an active subscription to cancel.")
-        return redirect("teacher_dashboard")
-    
     teacher = request.user
-    stripe_subscription_id = teacher.subscription_id
-    
-    if stripe_subscription_id:
+    if teacher.subscription_id:
         try:
+            # Set the subscription to cancel at the end of the current period
             stripe.Subscription.modify(
-                stripe_subscription_id,
+                teacher.subscription_id,
                 cancel_at_period_end=True
             )
-            messages.success(request, "Your subscription has been scheduled for cancellation at the end of your current billing period.")
+            # Mark the subscription as canceled in the database.
+            teacher.subscription_cancelled = True
+            teacher.save()
+            messages.success(
+                request,
+                f"Your subscription is set to cancel at the end of the current period. Your premium benefits will end on {teacher.premium_expiration.strftime('%B %d, %Y')}."
+            )
         except stripe.error.StripeError as e:
-            messages.error(request, f"An error occurred while cancelling your subscription: {str(e)}")
+            messages.error(request, f"An error occurred while canceling your subscription: {e.user_message}")
     else:
-        messages.error(request, "No subscription information was found on your account.")
-    
+        messages.error(request, "No active subscription was found.")
     return redirect("teacher_dashboard")
