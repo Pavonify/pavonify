@@ -93,6 +93,7 @@ urlpatterns = [
     path("teacher/account/", teacher_account_settings, name="teacher_account"),
     path("payment-success/", views.payment_success, name="payment_success"),
     path("stripe/webhook/", stripe_webhook, name="stripe_webhook"),
+    path("teacher-cancel-subscription/", views.teacher_cancel_subscription, name="teacher_cancel_subscription"),
 
 ]
 

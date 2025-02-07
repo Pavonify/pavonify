@@ -1,50 +1,54 @@
-from django.db import models
-from django.contrib.auth.models import AbstractUser
-import uuid
-import random
-import string
+import stripe
+import logging
+from django.http import HttpResponse
+from django.views.decorators.csrf import csrf_exempt
+from learning.models import User
 from django.utils.timezone import now
-from datetime import datetime, timedelta
-from django_countries.fields import CountryField
+from datetime import timedelta
 
+logger = logging.getLogger(__name__)
 
-def generate_school_key():
-    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
+@csrf_exempt
+def stripe_webhook(request):
+    payload = request.body
+    sig_header = request.META.get("HTTP_STRIPE_SIGNATURE")
+    endpoint_secret = "whsec_wT7g2urYrVwg96Tqv9AvBLwfqejaqQhS"  # In production, pull from settings
 
-class School(models.Model):
-    name = models.CharField(max_length=255)
-    location = models.CharField(max_length=255, blank=True, null=True)
-    key = models.CharField(max_length=10, unique=True, default=generate_school_key)
-    created_at = models.DateTimeField(auto_now_add=True)
+    try:
+        event = stripe.Webhook.construct_event(payload, sig_header, endpoint_secret)
+    except ValueError:
+        logger.error("Invalid payload")
+        return HttpResponse(status=400)
+    except stripe.error.SignatureVerificationError:
+        logger.error("Invalid signature")
+        return HttpResponse(status=400)
 
-    def __str__(self):
-        return self.name
-
-class User(AbstractUser):
-    is_student = models.BooleanField(default=False)
-    is_teacher = models.BooleanField(default=False)
-    is_lead_teacher = models.BooleanField(default=False)
-    school = models.ForeignKey("School", on_delete=models.SET_NULL, null=True, blank=True)
-
-    first_name = models.CharField(max_length=50, blank=False)
-    last_name = models.CharField(max_length=50, blank=False)
-    email = models.EmailField(unique=True)  # ✅ Ensures email is unique
-    country = CountryField(blank_label="Select a country")  # ✅ Dropdown for countries
-
-    # Default premium_expiration to "expired" so they start as Basic
-    premium_expiration = models.DateTimeField(default=now)
-
-    @property
-    def is_premium(self):
-        """Return True if the teacher's premium subscription is active."""
-        return self.premium_expiration > now()
-
-    def upgrade_to_premium(self, days=30):
-        """Extend premium expiration by a given number of days.
-           If already premium, extend from the current expiration; otherwise, extend from now."""
-        current_expiration = self.premium_expiration if self.premium_expiration > now() else now()
-        self.premium_expiration = current_expiration + timedelta(days=days)
-        self.save()
+    if event.get("type") == "invoice.payment_succeeded":
+        invoice = event.get("data", {}).get("object", {})
+        # Try to get teacher_id from the invoice metadata
+        teacher_id = invoice.get("metadata", {}).get("teacher_id")
+        if not teacher_id and invoice.get("subscription"):
+            try:
+                subscription = stripe.Subscription.retrieve(invoice.get("subscription"))
+                teacher_id = subscription.metadata.get("teacher_id")
+            except Exception as e:
+                logger.error(f"Error retrieving subscription: {e}")
+                return HttpResponse(status=400)
+        logger.info(f"Webhook received for teacher_id: {teacher_id}")
+        if teacher_id:
+            try:
+                teacher = User.objects.get(id=teacher_id)
+                before_exp = teacher.premium_expiration
+                teacher.upgrade_to_premium(30)  # Add one month
+                # Also store the Stripe subscription ID for future use
+                teacher.subscription_id = invoice.get("subscription") or subscription.id
+                teacher.save()
+                teacher.refresh_from_db()
+                after_exp = teacher.premium_expiration
+                logger.info(f"Upgraded teacher {teacher_id}: before={before_exp}, after={after_exp}, subscription_id={teacher.subscription_id}")
+            except User.DoesNotExist:
+                logger.error(f"Teacher with id {teacher_id} does not exist")
+    return HttpResponse(status=200)
 
 class Class(models.Model):
     school = models.ForeignKey(School, on_delete=models.CASCADE)
