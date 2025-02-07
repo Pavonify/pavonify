@@ -301,8 +301,13 @@ def add_students(request, class_id):
             messages.error(request, "No student data provided.")
             return redirect("add_students", class_id=class_id)
 
+        # Determine the school to assign:
+        # Use the current class's school if it exists; otherwise, fallback to the teacher's school.
+        school_to_assign = current_class.school if current_class.school else request.user.school
+
         for line in bulk_data.splitlines():
             try:
+                # Expect each line to contain: first_name, last_name, year_group, dob
                 first_name, last_name, year_group, dob = line.split(",")
                 username = generate_student_username(first_name, last_name, dob)
                 password = generate_random_password()
@@ -312,9 +317,10 @@ def add_students(request, class_id):
                     defaults={
                         "first_name": first_name.strip(),
                         "last_name": last_name.strip(),
-                        "year_group": year_group.strip(),
-                        "date_of_birth": datetime.strptime(dob.strip(), "%d/%m/%Y").date(),  # Updated field name
+                        "year_group": int(year_group.strip()),
+                        "date_of_birth": datetime.strptime(dob.strip(), "%d/%m/%Y").date(),
                         "password": password,
+                        "school": school_to_assign,
                     },
                 )
                 current_class.students.add(student)
@@ -326,7 +332,6 @@ def add_students(request, class_id):
         return redirect("teacher_dashboard")
 
     return render(request, "learning/add_students.html", {"class_instance": current_class})
-
 def generate_student_username(first_name, last_name, dob):
     """
     Generates a username using first name, first two letters of the last name, and date of birth.
