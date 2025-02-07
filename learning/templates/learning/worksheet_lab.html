@@ -879,21 +879,23 @@ function generateCrosswordPuzzle(selectedWords) {
         }
     }
 
-    // --- Assign clue numbers ---
-    let numbers = Array.from({ length: gridSize }, () => Array(gridSize).fill(0));
-    let clueNumber = 1;
-    for (let r = 0; r < gridSize; r++) {
-        for (let c = 0; c < gridSize; c++) {
-            if (grid[r][c] !== null) {
-                let startAcross = (c === 0 || grid[r][c - 1] === null) && (c + 1 < gridSize && grid[r][c + 1] !== null);
-                let startDown = (r === 0 || grid[r - 1][c] === null) && (r + 1 < gridSize && grid[r + 1][c] !== null);
-                if (startAcross || startDown) {
-                    numbers[r][c] = clueNumber;
-                    clueNumber++;
-                }
+// --- Assign clue numbers using the OR rule ---
+let numbers = Array.from({ length: gridSize }, () => Array(gridSize).fill(0));
+let clueNumber = 1;
+for (let r = 0; r < gridSize; r++) {
+    for (let c = 0; c < gridSize; c++) {
+        if (grid[r][c] !== null) {
+            // If the cell is at the left edge OR the cell to its left is empty
+            // OR it's at the top edge OR the cell above is empty,
+            // assign a new clue number.
+            if ((c === 0 || grid[r][c - 1] === null) || (r === 0 || grid[r - 1][c] === null)) {
+                numbers[r][c] = clueNumber;
+                clueNumber++;
             }
         }
     }
+}
+
     placedWords.forEach(function(pword) {
         pword.number = numbers[pword.row][pword.col];
     });
