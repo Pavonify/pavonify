@@ -1073,5 +1073,34 @@
       sidebar.classList.toggle('active');
     }
   </script>
+
+<script src="https://js.stripe.com/v3/"></script>
+
+<script>
+  // Initialize Stripe with your publishable key
+  var stripe = Stripe("pk_live_51QoMKjJYDgv8Jx3VXa5Vl07vwlhb0xMnrK0Jm9pO4T2YxGX9Wb3WN48LWWEAkGnXguh9Z6hC5kAygaqncQchbzJe00huvjYgCH");
+  
+  document.querySelector(".btn-upgrade").addEventListener("click", async function(event) {
+      event.preventDefault();
+      const csrftoken = document.querySelector("[name=csrfmiddlewaretoken]").value;
+      
+      const response = await fetch("{% url 'create_checkout_session' %}", {
+          method: "POST",
+          headers: {
+              "X-CSRFToken": csrftoken,
+              "Content-Type": "application/json"
+          },
+      });
+      
+      const data = await response.json();
+      if (data.sessionId) {
+          // Use Stripe's redirectToCheckout method
+          stripe.redirectToCheckout({ sessionId: data.sessionId });
+      } else {
+          alert("Error: " + data.error);
+      }
+  });
+</script>
+
 </body>
 </html>
