@@ -149,6 +149,24 @@
       from { opacity: 0; transform: translateY(-20px); }
       to { opacity: 1; transform: translateY(0); }
     }
+
+    /* Mobile Responsive Styles */
+    @media (max-width: 768px) {
+      body {
+        flex-direction: column;
+      }
+      .sidebar {
+        position: relative;
+        width: 100%;
+        height: auto;
+        box-shadow: none;
+        padding: 15px;
+      }
+      .main-content {
+        margin-left: 0;
+        padding: 20px;
+      }
+    }
   </style>
 </head>
 <body>

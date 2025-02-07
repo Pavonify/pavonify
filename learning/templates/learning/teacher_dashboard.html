@@ -37,6 +37,7 @@
       left: 0;
       top: 0;
       height: 100vh;
+      transition: transform 0.3s ease-in-out;
     }
     .sidebar img {
       width: 80%;
@@ -317,7 +318,7 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
- /* New: Logout & Account Buttons */
+    /* New: Logout & Account Buttons */
     .nav-buttons {
       display: flex;
       justify-content: space-between;
@@ -347,7 +348,7 @@
     .btn-account:hover {
       background-color: #e6c200;
     }
-/* Account Pane */
+    /* Account Pane */
     .account-pane {
       display: none;
       background: white;
@@ -432,56 +433,97 @@
       background-color: #d4204c;
     }
 
-/* Make the Account Pane behave like other panes */
-.account-pane {
-  display: none;
-  background: white;
-  padding: 20px;
-  border-radius: 10px;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-  width: 100%;
-  max-width: 800px; /* Make it same width as other panes */
-  text-align: center; /* Match other panes */
-}
+    /* Make the Account Pane behave like other panes */
+    .account-pane {
+      display: none;
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 800px;
+      text-align: center;
+    }
 
-.account-pane.active {
-  display: block;
-}
+    .account-pane.active {
+      display: block;
+    }
 
-/* Space out the input fields */
-.input-box {
-  width: 100%;
-  padding: 10px;
-  margin-top: 5px;
-  margin-bottom: 15px; /* Increased spacing */
-  border: 1px solid #ddd;
-  border-radius: 5px;
-}
+    /* Space out the input fields */
+    .input-box {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      margin-bottom: 15px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+    }
 
-/* Feature Comparison Table */
-.feature-table {
-  width: 100%;
-  margin-top: 20px;
-  border-collapse: collapse;
-  border-radius: 10px;
-  overflow: hidden;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-}
-.feature-table th {
-  background-color: #0aa2ef;
-  color: white;
-  padding: 12px;
-  text-align: center;
-}
-.feature-table td {
-  padding: 10px;
-  text-align: center;
-  border: 1px solid #ddd;
-}
-.feature-table tr:nth-child(even) {
-  background-color: #f9f9f9;
-}
+    /* Feature Comparison Table */
+    .feature-table {
+      width: 100%;
+      margin-top: 20px;
+      border-collapse: collapse;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    .feature-table th {
+      background-color: #0aa2ef;
+      color: white;
+      padding: 12px;
+      text-align: center;
+    }
+    .feature-table td {
+      padding: 10px;
+      text-align: center;
+      border: 1px solid #ddd;
+    }
+    .feature-table tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
 
+    /* Mobile Responsive Styles */
+    @media (max-width: 768px) {
+      /* Sidebar adjustments */
+      .sidebar {
+        position: fixed;
+        left: 0;
+        top: 0;
+        height: 100vh;
+        width: 250px;
+        transform: translateX(-100%);
+        z-index: 1000;
+      }
+      .sidebar.active {
+        transform: translateX(0);
+      }
+      /* Sidebar toggle button */
+      .sidebar-toggle {
+        display: block;
+        position: fixed;
+        top: 10px;
+        left: 10px;
+        font-size: 24px;
+        background: #0aa2ef;
+        color: white;
+        padding: 10px;
+        border-radius: 5px;
+        z-index: 1100;
+        cursor: pointer;
+      }
+      /* Adjust main content */
+      .main-content {
+        margin-left: 0;
+        padding: 20px;
+      }
+      /* Make tables responsive */
+      table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+      }
+    }
   </style>
 </head>
 
@@ -496,6 +538,9 @@
 </script>
 
 <body>
+  <!-- Mobile Sidebar Toggle -->
+  <div class="sidebar-toggle" onclick="toggleSidebar()">&#9776;</div>
+  
   <!-- Sidebar -->
   <div class="sidebar">
     <img src="{% static 'learning/pavonify_logo.png' %}" alt="Pavonify Logo">
@@ -510,13 +555,13 @@
       {% if not request.user.is_premium %}
       <a href="#" data-pane="teacher-upgrade" class="btn-upgrade">Upgrade to Premium</a>
       {% endif %}
-    <div class="nav-buttons">
-      <form method="post" action="{% url 'teacher_logout' %}">
-        {% csrf_token %}
-        <button type="submit" class="btn-logout">Logout</button>
-      </form>
-<button class="btn-account" data-pane="account-pane">Account</button>
-    </div>
+      <div class="nav-buttons">
+        <form method="post" action="{% url 'teacher_logout' %}">
+          {% csrf_token %}
+          <button type="submit" class="btn-logout">Logout</button>
+        </form>
+        <button class="btn-account" data-pane="account-pane">Account</button>
+      </div>
     </nav>
   </div>
   
@@ -525,11 +570,11 @@
     <!-- Overview Pane -->
     <div class="pane active" id="overview">
       <h2>Overview</h2>
-<!-- Upgrade Message for Basic Users -->
-{% if not request.user.is_premium %}
-  <p class="upgrade-message">You're currently on the Basic plan. Upgrade to Premium for more features!</p>
-  <a href="#" data-pane="teacher-upgrade" class="upgrade-btn">Upgrade to Premium</a>
-{% endif %}
+      <!-- Upgrade Message for Basic Users -->
+      {% if not request.user.is_premium %}
+      <p class="upgrade-message">You're currently on the Basic plan. Upgrade to Premium for more features!</p>
+      <a href="#" data-pane="teacher-upgrade" class="upgrade-btn">Upgrade to Premium</a>
+      {% endif %}
       <!-- Statistics -->
       <div class="stats">
         <ul>
@@ -621,10 +666,9 @@
     <div class="pane" id="classes">
       <h2>Classes</h2>
       {% if not request.user.is_premium and classes|length >= 2 %}
-        <p class="upgrade-message">You can create a maximum of 2 classes as a Basic User. <a href="#" data-pane="teacher-upgrade" class="upgrade-btn">Upgrade to Premium</a>
-</p>
+      <p class="upgrade-message">You can create a maximum of 2 classes as a Basic User. <a href="#" data-pane="teacher-upgrade" class="upgrade-btn">Upgrade to Premium</a></p>
       {% else %}
-        <a href="{% url 'create_class' %}" class="btn">Add Class</a>
+      <a href="{% url 'create_class' %}" class="btn">Add Class</a>
       {% endif %}
       <table>
         <thead>
@@ -665,10 +709,9 @@
     <div class="pane" id="vocabulary">
       <h2>Vocabulary Lists</h2>
       {% if not request.user.is_premium and vocab_lists|length >= 3 %}
-        <p class="upgrade-message">You can create a maximum of 3 vocabulary lists as a Basic User. <a href="#" data-pane="teacher-upgrade" class="upgrade-btn">Upgrade to Premium</a>
-</p>
+      <p class="upgrade-message">You can create a maximum of 3 vocabulary lists as a Basic User. <a href="#" data-pane="teacher-upgrade" class="upgrade-btn">Upgrade to Premium</a></p>
       {% else %}
-        <a href="{% url 'add_vocabulary_list' %}" class="btn">Create List</a>
+      <a href="{% url 'add_vocabulary_list' %}" class="btn">Create List</a>
       {% endif %}
       <table>
         <thead>
@@ -802,191 +845,185 @@
       </div>
     </div>
 
-<!-- Worksheet Lab Pane -->
-<div class="pane" id="worksheet-lab">
-    <h2>Worksheet Lab</h2>
-    <form method="GET" action="{% url 'worksheet_lab' %}">
+    <!-- Worksheet Lab Pane -->
+    <div class="pane" id="worksheet-lab">
+      <h2>Worksheet Lab</h2>
+      <form method="GET" action="{% url 'worksheet_lab' %}">
         <label for="vocab-list">Select Vocabulary List:</label>
         <select name="vocab_list" id="vocab-list" required>
-            <option value="">-- Select a List --</option>
-            {% for vocab_list in vocab_lists %}
-            <option value="{{ vocab_list.id }}">{{ vocab_list.name }}</option>
-            {% endfor %}
+          <option value="">-- Select a List --</option>
+          {% for vocab_list in vocab_lists %}
+          <option value="{{ vocab_list.id }}">{{ vocab_list.name }}</option>
+          {% endfor %}
         </select>
         <button type="submit" class="btn">Create 🪄</button>
-    </form>
-</div>
-
-<!-- Account Pane -->
-<div class="pane account-pane" id="account-pane">
-  <h2>Account Settings</h2>
-  <form method="POST">
-    {% csrf_token %}
+      </form>
+    </div>
     
-    <label>First Name:</label>
-    <input type="text" name="first_name" value="{{ request.user.first_name }}" class="input-box">
-
-    <label>Last Name:</label>
-    <input type="text" name="last_name" value="{{ request.user.last_name }}" class="input-box">
-
-    <label>Email:</label>
-    <input type="email" name="email" value="{{ request.user.email }}" class="input-box">
-
-    <label>Change Password:</label>
-    <input type="password" name="password" class="input-box">
-
-    <button type="submit" class="btn-save">Save Changes</button>
-  </form>
-
-  <!-- Premium Subscription Section -->
-  <div class="premium-status {% if request.user.is_premium %}premium-active{% else %}premium-inactive{% endif %}">
-    {% if request.user.is_premium %}
-      <p>Premium Member until <strong>{{ request.user.premium_expiration|date:"M d, Y" }}</strong></p>
-      <a href="{% url 'teacher_cancel_subscription' %}" class="btn-cancel">Cancel Subscription</a>
-    {% else %}
-      <p>You are on the Basic plan.</p>
-      <a href="#" data-pane="teacher-upgrade" class="upgrade-btn">Upgrade to Premium</a>
-      <!-- Feature Comparison Table -->
-      <table class="feature-table">
-          <tr>
+    <!-- Account Pane -->
+    <div class="pane account-pane" id="account-pane">
+      <h2>Account Settings</h2>
+      <form method="POST">
+        {% csrf_token %}
+        
+        <label>First Name:</label>
+        <input type="text" name="first_name" value="{{ request.user.first_name }}" class="input-box">
+    
+        <label>Last Name:</label>
+        <input type="text" name="last_name" value="{{ request.user.last_name }}" class="input-box">
+    
+        <label>Email:</label>
+        <input type="email" name="email" value="{{ request.user.email }}" class="input-box">
+    
+        <label>Change Password:</label>
+        <input type="password" name="password" class="input-box">
+    
+        <button type="submit" class="btn-save">Save Changes</button>
+      </form>
+    
+      <!-- Premium Subscription Section -->
+      <div class="premium-status {% if request.user.is_premium %}premium-active{% else %}premium-inactive{% endif %}">
+        {% if request.user.is_premium %}
+          <p>Premium Member until <strong>{{ request.user.premium_expiration|date:"M d, Y" }}</strong></p>
+          <a href="{% url 'teacher_cancel_subscription' %}" class="btn-cancel">Cancel Subscription</a>
+        {% else %}
+          <p>You are on the Basic plan.</p>
+          <a href="#" data-pane="teacher-upgrade" class="upgrade-btn">Upgrade to Premium</a>
+          <!-- Feature Comparison Table -->
+          <table class="feature-table">
+            <tr>
               <th>Feature</th>
               <th>Basic</th>
               <th>Premium</th>
-          </tr>
-          <tr>
+            </tr>
+            <tr>
               <td>Create Vocabulary Lists</td>
               <td>5</td>
               <td>✔</td>
-          </tr>
-          <tr>
+            </tr>
+            <tr>
               <td>Create Classes</td>
               <td>2</td>
               <td>✔</td>
-          </tr>
-          <tr>
+            </tr>
+            <tr>
               <td>Create Assignments</td>
               <td>1</td>
               <td>✔</td>
-          </tr>
-          <tr>
+            </tr>
+            <tr>
               <td>Assignment Analytics</td>
               <td>❌</td>
               <td>✔</td>
-          </tr>
-          <tr>
+            </tr>
+            <tr>
               <td>Unlimited Students</td>
               <td>❌</td>
               <td>✔</td>
-          </tr>
-          <tr>
+            </tr>
+            <tr>
               <td>Worksheet Lab</td>
               <td>❌</td>
               <td>✔</td>
-          </tr>
+            </tr>
+          </table>
+        {% endif %}
+      </div>
+    </div>
+    
+    <div class="pane" id="teacher-upgrade">
+      <h2>Upgrade to Premium</h2>
+    
+      <p>Get full access to all features for just <strong>£2.99 per month</strong>.</p>
+    
+      <!-- Feature Comparison Table -->
+      <table class="feature-table">
+        <tr>
+          <th>Feature</th>
+          <th>Basic</th>
+          <th>Premium</th>
+        </tr>
+        <tr>
+          <td>Create Vocabulary Lists</td>
+          <td>5</td>
+          <td>✔</td>
+        </tr>
+        <tr>
+          <td>Create Classes</td>
+          <td>2</td>
+          <td>✔</td>
+        </tr>
+        <tr>
+          <td>Create Assignments</td>
+          <td>1</td>
+          <td>✔</td>
+        </tr>
+        <tr>
+          <td>Assignment Analytics</td>
+          <td>❌</td>
+          <td>✔</td>
+        </tr>
+        <tr>
+          <td>Unlimited Students</td>
+          <td>❌</td>
+          <td>✔</td>
+        </tr>
+        <tr>
+          <td>Worksheet Lab</td>
+          <td>❌</td>
+          <td>✔</td>
+        </tr>
       </table>
-    {% endif %}
-  </div>
-</div>
-
-
-
-
-<div class="pane" id="teacher-upgrade">
-    <h2>Upgrade to Premium</h2>
-
-    <p>Get full access to all features for just <strong>£2.99 per month</strong>.</p>
-
-    <!-- Feature Comparison Table -->
-    <table class="feature-table">
-        <tr>
-            <th>Feature</th>
-            <th>Basic</th>
-            <th>Premium</th>
-        </tr>
-        <tr>
-            <td>Create Vocabulary Lists</td>
-            <td>5</td>
-            <td>✔</td>
-        </tr>
-        <tr>
-            <td>Create Classes</td>
-            <td>2</td>
-            <td>✔</td>
-        </tr>
-        <tr>
-            <td>Create Assignments</td>
-            <td>1</td>
-            <td>✔</td>
-        </tr>
-        <tr>
-            <td>Assignment Analytics</td>
-            <td>❌</td>
-            <td>✔</td>
-        </tr>
-        <tr>
-            <td>Unlimited Students</td>
-            <td>❌</td>
-            <td>✔</td>
-        </tr>
-        <tr>
-            <td>Worksheet Lab</td>
-            <td>❌</td>
-            <td>✔</td>
-        </tr>
-    </table>
-
-<button id="upgrade-btn" class="btn-upgrade">Upgrade to Premium</button>
-
-<script>
-document.querySelector(".btn-upgrade").addEventListener("click", async function(event) {
-    event.preventDefault();
-
-    const csrftoken = document.querySelector("[name=csrfmiddlewaretoken]").value;
-
-    const response = await fetch("{% url 'create_checkout_session' %}", {
-        method: "POST",
-        headers: {
-            "X-CSRFToken": csrftoken,
-            "Content-Type": "application/json"
-        },
-    });
-
-    const data = await response.json();
-    if (data.sessionId) {
-        window.location.href = `https://checkout.stripe.com/pay/${data.sessionId}`;
-    } else {
-        alert("Error: " + data.error);
-    }
-});
-
-</script>
-</div>
+    
+      <button id="upgrade-btn" class="btn-upgrade">Upgrade to Premium</button>
+    
+      <script>
+      document.querySelector(".btn-upgrade").addEventListener("click", async function(event) {
+          event.preventDefault();
+      
+          const csrftoken = document.querySelector("[name=csrfmiddlewaretoken]").value;
+      
+          const response = await fetch("{% url 'create_checkout_session' %}", {
+              method: "POST",
+              headers: {
+                  "X-CSRFToken": csrftoken,
+                  "Content-Type": "application/json"
+              },
+          });
+      
+          const data = await response.json();
+          if (data.sessionId) {
+              window.location.href = `https://checkout.stripe.com/pay/${data.sessionId}`;
+          } else {
+              alert("Error: " + data.error);
+          }
+      });
+      
+      </script>
+    </div>
   </div>
   
   <script>
-// Sidebar Navigation: Switch content panes
-const navLinks = document.querySelectorAll(".sidebar nav a, .btn-account, .upgrade-btn, .btn-upgrade");
-
-const panes = document.querySelectorAll(".pane");
-
-navLinks.forEach(link => {
-    link.addEventListener("click", e => {
-        e.preventDefault();
-        
-        // Remove "active" from all links and panes
-        navLinks.forEach(l => l.classList.remove("active"));
-        panes.forEach(pane => pane.classList.remove("active"));
-
-        // Get target pane from data-pane attribute
-        const targetPane = link.getAttribute("data-pane");
-        if (targetPane) {
-            document.getElementById(targetPane).classList.add("active");
-            link.classList.add("active");
-        }
+    // Sidebar Navigation: Switch content panes
+    const navLinks = document.querySelectorAll(".sidebar nav a, .btn-account, .upgrade-btn, .btn-upgrade");
+    const panes = document.querySelectorAll(".pane");
+    
+    navLinks.forEach(link => {
+        link.addEventListener("click", e => {
+            e.preventDefault();
+            
+            // Remove "active" from all links and panes
+            navLinks.forEach(l => l.classList.remove("active"));
+            panes.forEach(pane => pane.classList.remove("active"));
+    
+            // Get target pane from data-pane attribute
+            const targetPane = link.getAttribute("data-pane");
+            if (targetPane) {
+                document.getElementById(targetPane).classList.add("active");
+                link.classList.add("active");
+            }
+        });
     });
-});
-
-
     
     // Sort Students Table Columns
     const table = document.getElementById("students-table");
@@ -1013,6 +1050,28 @@ navLinks.forEach(link => {
         header.setAttribute("data-order", order === "asc" ? "desc" : "asc");
       });
     });
+    
+    // Toggle Assignments for Classes
+    const toggleButtons = document.querySelectorAll(".toggle-assignments");
+    toggleButtons.forEach(button => {
+      button.addEventListener("click", () => {
+        const classId = button.getAttribute("data-class-id");
+        const container = document.getElementById(`assignments-${classId}`);
+        if (container.style.display === "block") {
+          container.style.display = "none";
+          button.textContent = "Show Assignments";
+        } else {
+          container.style.display = "block";
+          button.textContent = "Hide Assignments";
+        }
+      });
+    });
+    
+    // Sidebar Toggle for Mobile
+    function toggleSidebar() {
+      const sidebar = document.querySelector('.sidebar');
+      sidebar.classList.toggle('active');
+    }
   </script>
 </body>
 </html>
