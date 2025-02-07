@@ -863,23 +863,24 @@
     <!-- Account Pane -->
     <div class="pane account-pane" id="account-pane">
       <h2>Account Settings</h2>
-      <form method="POST">
-        {% csrf_token %}
-        
-        <label>First Name:</label>
-        <input type="text" name="first_name" value="{{ request.user.first_name }}" class="input-box">
+<form method="POST" action="{% url 'teacher_account' %}">
+    {% csrf_token %}
     
-        <label>Last Name:</label>
-        <input type="text" name="last_name" value="{{ request.user.last_name }}" class="input-box">
+    <label>First Name:</label>
+    <input type="text" name="first_name" value="{{ request.user.first_name }}" class="input-box">
     
-        <label>Email:</label>
-        <input type="email" name="email" value="{{ request.user.email }}" class="input-box">
+    <label>Last Name:</label>
+    <input type="text" name="last_name" value="{{ request.user.last_name }}" class="input-box">
     
-        <label>Change Password:</label>
-        <input type="password" name="password" class="input-box">
+    <label>Email:</label>
+    <input type="email" name="email" value="{{ request.user.email }}" class="input-box">
     
-        <button type="submit" class="btn-save">Save Changes</button>
-      </form>
+    <label>Change Password:</label>
+    <input type="password" name="password" class="input-box">
+    
+    <button type="submit" class="btn-save">Save Changes</button>
+</form>
+
     
       <!-- Premium Subscription Section -->
       <div class="premium-status {% if request.user.is_premium %}premium-active{% else %}premium-inactive{% endif %}">
