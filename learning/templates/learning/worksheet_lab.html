@@ -631,7 +631,7 @@ function generateBox() {
             content += 'Wordsearch Preview</strong><br>';
             content += 'The following words will be hidden in the puzzle:<br><ul>';
             shuffledWords.forEach((word) => {
-                content += `<li>${word.word.toUpperCase()}</li>`;
+                content += `<li>${word.translation.toUpperCase()}</li>`;
             });
             content += '</ul>';
             break;
@@ -651,8 +651,8 @@ function generateBox() {
 
 function generateWordsearchPuzzle(selectedWords) {
     // Create lists of target words (uppercase) and clues.
-    var wordList = selectedWords.map(function(w) { return w.word.toUpperCase(); });
-    var clueList = selectedWords.map(function(w) { return w.translation; });
+    var wordList = selectedWords.map(function(w) { return w.translation.toUpperCase(); });
+    var clueList = selectedWords.map(function(w) { return w.word; });
 
     // Determine grid size: at least 15, or large enough for the longest word.
     var maxWordLength = Math.max.apply(null, wordList.map(function(w) { return w.length; }));
@@ -758,10 +758,10 @@ function addToWorksheet() {
     const previewDiv = document.getElementById('box-preview');
     const worksheetDiv = document.getElementById('worksheet-preview');
     const worksheetPage = document.querySelector('.worksheet-page'); // Ensure box stays inside this
-    const boxContent = previewDiv.innerHTML;
+    let boxContent = "";
 
 
-    // If the task type is wordsearch, generate the full puzzle content.
+    // Check if the current task type is wordsearch.
     if (document.getElementById('task-type').value === 'wordsearch') {
         boxContent = generateWordsearchPuzzle(wordsearchSelectedWords);
     } else {
