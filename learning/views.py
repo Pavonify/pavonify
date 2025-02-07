@@ -528,38 +528,19 @@ def student_logout(request):
 
 
 @login_required
-def attach_vocab_list(request, class_id):
-    # Retrieve the class instance by its id.
-    class_instance = get_object_or_404(Class, id=class_id)
+def attach_vocab_list(request, vocab_list_id):
+    """Attach a vocabulary list to a class."""
+    vocab_list = get_object_or_404(VocabularyList, id=vocab_list_id, teacher=request.user)
 
     if request.method == "POST":
-        vocab_list_id = request.POST.get("vocab_list_id")
-        if not vocab_list_id:
-            messages.error(request, "No vocabulary list ID provided.")
-            return redirect("attach_vocab_list", class_id=class_id)
-        
-        # Get the vocabulary list or return 404 if not found.
-        vocab_list = get_object_or_404(VocabularyList, id=vocab_list_id)
-
-        # Check if the vocabulary list is already attached to the class.
-        if vocab_list not in class_instance.vocabulary_lists.all():
-            # Add the vocabulary list to the class.
+        class_id = request.POST.get("class_id")
+        if class_id:
+            class_instance = get_object_or_404(Class, id=class_id, teachers=request.user)
+            vocab_list.classes.add(class_instance)  # Attach the vocabulary list to the class
             class_instance.vocabulary_lists.add(vocab_list)
-            # Add the class to the vocabulary list.
-            vocab_list.classes.add(class_instance)
-            messages.success(request, f"Vocabulary list '{vocab_list.name}' has been attached to the class.")
-        else:
-            messages.warning(request, "That vocabulary list is already attached to this class.")
-        
-        return redirect("view_attached_vocab", class_id=class_id)
+            messages.success(request, f"'{vocab_list.name}' has been successfully attached to '{class_instance.name}'.")
 
-    # Fetch all vocabulary lists that are not already attached to the class.
-    available_vocab_lists = VocabularyList.objects.exclude(id__in=class_instance.vocabulary_lists.all())
-    
-    return render(request, "learning/attach_vocab_list.html", {
-        "class_instance": class_instance,
-        "available_vocab_lists": available_vocab_lists,
-    })
+    return redirect("teacher_dashboard")
 
 @login_required
 def view_class(request, class_id):
