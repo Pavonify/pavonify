@@ -454,6 +454,7 @@
                         <option value="unscramble">Unscramble the Letters</option>
    			<option value="wordsearch">Wordsearch Puzzle</option>
 			<option value="crossword">Crossword Puzzle</option>
+			<option value="cryptogram">Cryptogram Puzzle</option>
                     </select>
 
                     <label for="question-count">Number of Questions:</label>
@@ -646,6 +647,16 @@ function generateBox() {
             });
             content += '</ul>';
             break;
+	case 'cryptogram':
+   	 // Save the selected words in a global variable (we reuse puzzleSelectedWords).
+    		puzzleSelectedWords = shuffledWords;
+    content += 'Cryptogram Preview</strong><br>';
+    content += 'The following target language words will be encoded in the puzzle:<br><ul>';
+    shuffledWords.forEach((word) => {
+        content += `<li>${word.translation.toUpperCase()}</li>`;
+    });
+    content += '</ul>';
+    break;
     }
 
     previewDiv.innerHTML = content;
@@ -879,22 +890,30 @@ function generateCrosswordPuzzle(selectedWords) {
         }
     }
 
-// --- Assign clue numbers using the OR rule ---
+// --- Revised Clue Numbering (treating "" as blank) ---
 let numbers = Array.from({ length: gridSize }, () => Array(gridSize).fill(0));
 let clueNumber = 1;
 for (let r = 0; r < gridSize; r++) {
     for (let c = 0; c < gridSize; c++) {
-        if (grid[r][c] !== null) {
-            // If the cell is at the left edge OR the cell to its left is empty
-            // OR it's at the top edge OR the cell above is empty,
-            // assign a new clue number.
-            if ((c === 0 || grid[r][c - 1] === null) || (r === 0 || grid[r - 1][c] === null)) {
+        // Only consider cells that contain a letter (non-blank)
+        if (grid[r][c] !== "") {
+            // A cell gets a new number if either:
+            // - It is at the left edge OR the cell immediately to its left is blank ("")
+            // OR
+            // - It is at the top edge OR the cell immediately above is blank ("")
+            if ((c === 0 || grid[r][c - 1] === "") || (r === 0 || grid[r - 1][c] === "")) {
                 numbers[r][c] = clueNumber;
                 clueNumber++;
             }
         }
     }
 }
+
+// Now assign these numbers to the placed words.
+placedWords.forEach(function(pword) {
+    pword.number = numbers[pword.row][pword.col];
+});
+
 
     placedWords.forEach(function(pword) {
         pword.number = numbers[pword.row][pword.col];
@@ -943,6 +962,39 @@ for (let r = 0; r < gridSize; r++) {
     return content;
 }
 
+function generateCryptogramPuzzle(selectedWords) {
+    // Create a random substitution cipher for A-Z.
+    const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+    const shuffled = alphabet.slice().sort(() => Math.random() - 0.5);
+    let cipher = {};
+    for (let i = 0; i < alphabet.length; i++) {
+        cipher[alphabet[i]] = shuffled[i];
+    }
+
+    // For each selected word, encode the target word using the cipher.
+    let encodedItems = selectedWords.map(function(wordObj) {
+        let answer = wordObj.translation.toUpperCase();
+        let encoded = "";
+        for (let char of answer) {
+            if (/[A-Z]/.test(char)) {
+                encoded += cipher[char];
+            } else {
+                encoded += char;
+            }
+        }
+        return { encoded: encoded, clue: wordObj.word };
+    });
+
+    // Build HTML for the puzzle.
+    let content = "<strong>Cryptogram Puzzle</strong><br><br>";
+    content += "Decode the following encoded words. Use the source language clues to help you.<br><br>";
+    content += "<ul style='list-style: none; padding: 0;'>";
+    encodedItems.forEach(function(item, index) {
+        content += `<li><strong>${index+1}.</strong> ${item.encoded} (Clue: ${item.clue})</li>`;
+    });
+    content += "</ul>";
+    return content;
+}
 
 
 function addToWorksheet() {
@@ -952,13 +1004,16 @@ function addToWorksheet() {
     let boxContent = "";
 
 
-if (document.getElementById('task-type').value === 'wordsearch') {
-    boxContent = generateWordsearchPuzzle(wordsearchSelectedWords);
-} else if (document.getElementById('task-type').value === 'crossword') {
-    boxContent = generateCrosswordPuzzle(puzzleSelectedWords);
-} else {
-    boxContent = previewDiv.innerHTML;
-}
+    const taskTypeValue = document.getElementById('task-type').value;
+    if (taskTypeValue === 'wordsearch') {
+        boxContent = generateWordsearchPuzzle(wordsearchSelectedWords);
+    } else if (taskTypeValue === 'crossword') {
+        boxContent = generateCrosswordPuzzle(puzzleSelectedWords);
+    } else if (taskTypeValue === 'cryptogram') {
+        boxContent = generateCryptogramPuzzle(puzzleSelectedWords);
+    } else {
+        boxContent = previewDiv.innerHTML;
+    }
 
     if (boxContent.trim()) {
         const box = document.createElement('div');
