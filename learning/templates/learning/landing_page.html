@@ -12,10 +12,10 @@
       font-family: Arial, sans-serif;
       margin: 0;
       min-height: 100vh;
-      background: #e3f2fd; /* Light blue/grey background */
+      background: #e3f2fd;
       display: flex;
-  overflow-x: hidden;
-  width: 100%;
+      flex-direction: column;
+      overflow-x: hidden;
     }
 
     /* Sidebar */
@@ -33,6 +33,8 @@
       left: 0;
       top: 0;
       height: 100vh;
+      z-index: 1000;
+      transition: transform 0.3s ease-in-out;
     }
 
     .sidebar img {
@@ -51,6 +53,18 @@
       line-height: 1.5;
     }
 
+    /* Mobile Sidebar Toggle */
+    .sidebar-toggle {
+      display: none;
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      font-size: 24px;
+      color: #0aa2ef;
+      cursor: pointer;
+      z-index: 1001;
+    }
+
     /* Main Content */
     .main-content {
       flex-grow: 1;
@@ -60,8 +74,10 @@
       display: flex;
       flex-direction: column;
       align-items: center;
+      transition: margin-left 0.3s ease-in-out;
     }
 
+    /* Pane Styling */
     .pane {
       background-color: white;
       border-radius: 10px;
@@ -114,13 +130,11 @@
       color: #333;
     }
 
-    /* Highlight the Pavonify column in table body only */
     table tbody td:nth-child(2) {
       background-color: #e0f7fa;
       font-weight: bold;
     }
 
-    /* Zebra Striping for Body Rows */
     table tbody tr:nth-child(even) {
       background-color: #f9f9f9;
     }
@@ -234,72 +248,107 @@
       color: #555;
     }
 
+    /* Developer Timeline */
+    .developer-timeline {
+      width: 100%;
+      max-width: 900px;
+      margin: 40px auto;
+      text-align: center;
+      padding: 20px;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .developer-timeline h2 {
+      color: #0aa2ef;
+      margin-bottom: 15px;
+      font-size: 24px;
+    }
+
+    .timeline-container {
+      display: flex;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      gap: 20px;
+      padding: 10px 0;
+      scrollbar-width: thin;
+      scrollbar-color: #0aa2ef #f0f0f0;
+    }
+
+    .timeline-item {
+      background: #e3f2fd;
+      padding: 15px;
+      border-radius: 10px;
+      min-width: 180px;
+      text-align: center;
+      transition: transform 0.3s ease-in-out;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .timeline-container::-webkit-scrollbar {
+      display: none;
+    }
+
+    .timeline-item h3 {
+      font-size: 16px;
+      color: #0aa2ef;
+      margin-bottom: 5px;
+    }
+
+    .timeline-item p {
+      font-size: 14px;
+      color: #333;
+    }
+
+    .timeline-item:hover {
+      transform: scale(1.05);
+      background: #bde0fe;
+    }
+
     /* Animations */
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(-20px); }
       to { opacity: 1; transform: translateY(0); }
     }
 
-/* Developer Timeline */
-.developer-timeline {
-  width: 100%;
-  max-width: 900px;
-  margin: 40px auto;
-  text-align: center;
-  padding: 20px;
-  background: white;
-  border-radius: 10px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
+    /* Mobile Responsive Styles */
+    @media (max-width: 768px) {
+      .sidebar {
+        transform: translateX(-100%);
+      }
 
-.developer-timeline h2 {
-  color: #0aa2ef;
-  margin-bottom: 15px;
-  font-size: 24px;
-}
+      .sidebar.active {
+        transform: translateX(0);
+      }
 
-.timeline-container {
-  display: flex;
-  flex-wrap: nowrap;
-  overflow-x: auto;
-  gap: 20px;
-  padding: 10px 0;
-  scrollbar-width: thin;
-  scrollbar-color: #0aa2ef #f0f0f0;
-}
+      .main-content {
+        margin-left: 0;
+        padding: 20px;
+      }
 
-.timeline-item {
-  background: #e3f2fd;
-  padding: 15px;
-  border-radius: 10px;
-  min-width: 180px;
-  text-align: center;
-  transition: transform 0.3s ease-in-out;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
+      .sidebar-toggle {
+        display: block;
+      }
 
-.timeline-container::-webkit-scrollbar {
-  display: none; /* Hides the scrollbar */
-}
+      .pane, .about-section, .developer-timeline {
+        width: 100%;
+        padding: 15px;
+      }
 
-.timeline-item h3 {
-  font-size: 16px;
-  color: #0aa2ef;
-  margin-bottom: 5px;
-}
+      table {
+        font-size: 12px;
+      }
 
-.timeline-item p {
-  font-size: 14px;
-  color: #333;
-}
+      .features {
+        flex-direction: column;
+        align-items: center;
+      }
 
-.timeline-item:hover {
-  transform: scale(1.05);
-  background: #bde0fe;
-}
-
-
-
+      .feature-box {
+        width: 100%;
+      }
+    }
   </style>
 </head>
 
@@ -309,12 +358,15 @@
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
-
   gtag('config', 'G-GK2W6LN7Z5');
 </script>
 
 <body>
-  <div class="sidebar">
+  <!-- Sidebar Toggle for Mobile -->
+  <div class="sidebar-toggle" onclick="toggleSidebar()">&#9776;</div>
+
+  <!-- Sidebar -->
+  <div class="sidebar" id="sidebar">
     <img src="{% static 'learning/pavonify_logo.png' %}" alt="Pavonify Logo">
     <h2></h2>
     <p>🌍 Your <strong>ultimate interactive language learning platform!</strong><br>
@@ -322,6 +374,7 @@
        🚀 Join as a <strong>student or teacher</strong> and start learning today!</p>
   </div>
 
+  <!-- Main Content -->
   <div class="main-content">
     <div class="pane">
       <h1>Welcome to Pavonify</h1>
@@ -344,20 +397,13 @@
             <td><a href="#" class="btn disabled">Login</a></td>
             <td><a href="#" class="btn disabled">Sign Up</a></td>
           </tr>
-<tr>
-    <td>Register</td>
-    <td>-</td>
-    <td class="register-container">
-        <div class="register-wrapper">
-            <a href="{% url 'register_teacher' %}" class="btn register-btn">Register</a>
-        </div>
-    </td>
-    <td>-</td>
-    <td>-</td>
-</tr>
-
-
-
+          <tr>
+            <td>Register</td>
+            <td>-</td>
+            <td><a href="{% url 'register_teacher' %}" class="btn">Register</a></td>
+            <td>-</td>
+            <td>-</td>
+          </tr>
         </tbody>
       </table>
     </div>
@@ -449,7 +495,7 @@
           </tr>
         </tbody>
       </table>
-<center><a href="{% url 'register_teacher' %}" class="btn register-btn">Register</a> and try out Pavonify's features <font color="#ff9800"><strong>for free!</strong></font></center>
+      <center><a href="{% url 'register_teacher' %}" class="btn register-btn">Register</a> and try out Pavonify's features <font color="#ff9800"><strong>for free!</strong></font></center>
     </div>
 
     <!-- Feature Tiles -->
@@ -471,34 +517,41 @@
       </div>
     </div>
 
-<!-- Developer Timeline Section -->
-<div class="developer-timeline">
-  <h2>🚀 Pavonify Roadmap</h2>
-  <div class="timeline-container">
-    <div class="timeline-item">
-      <h3>🎮 More Game Modes</h3>
-      <p>Listening games and phonics-based challenges.</p>
+    <!-- Developer Timeline Section -->
+    <div class="developer-timeline">
+      <h2>🚀 Pavonify Roadmap</h2>
+      <div class="timeline-container">
+        <div class="timeline-item">
+          <h3>🎮 More Game Modes</h3>
+          <p>Listening games and phonics-based challenges.</p>
+        </div>
+        <div class="timeline-item">
+          <h3>🏆 Live Competitions</h3>
+          <p>Real-time student competitions with leaderboards.</p>
+        </div>
+        <div class="timeline-item">
+          <h3>🎖️ More Student Awards</h3>
+          <p>Unlockable badges and achievement tracking.</p>
+        </div>
+        <div class="timeline-item">
+          <h3>📜 Teacher Worksheet Maker</h3>
+          <p>Generate custom worksheets based on vocab lists.</p>
+        </div>
+        <div class="timeline-item">
+          <h3>🤖 AI Functionality</h3>
+          <p>Personalized AI-powered language learning tools.</p>
+        </div>
+      </div>
     </div>
-    <div class="timeline-item">
-      <h3>🏆 Live Competitions</h3>
-      <p>Real-time student competitions with leaderboards.</p>
-    </div>
-    <div class="timeline-item">
-      <h3>🎖️ More Student Awards</h3>
-      <p>Unlockable badges and achievement tracking.</p>
-    </div>
-    <div class="timeline-item">
-      <h3>📜 Teacher Worksheet Maker</h3>
-      <p>Generate custom worksheets based on vocab lists.</p>
-    </div>
-    <div class="timeline-item">
-      <h3>🤖 AI Functionality</h3>
-      <p>Personalized AI-powered language learning tools.</p>
-    </div>
-  </div>
-</div>
 
     <p>Contact Us</p>
   </div>
+
+  <script>
+    function toggleSidebar() {
+      const sidebar = document.getElementById('sidebar');
+      sidebar.classList.toggle('active');
+    }
+  </script>
 </body>
 </html>
