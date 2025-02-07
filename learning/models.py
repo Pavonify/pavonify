@@ -32,23 +32,19 @@ class User(AbstractUser):
     country = CountryField(blank_label="Select a country")  # ✅ Dropdown for countries
 
     # Default premium_expiration to "expired" so they start as Basic
-premium_expiration = models.DateTimeField(default=now)
+    premium_expiration = models.DateTimeField(default=now)
 
     @property
     def is_premium(self):
-        """Return True if the teacher’s premium subscription is still active."""
+        """Return True if the teacher's premium subscription is active."""
         return self.premium_expiration > now()
 
     def upgrade_to_premium(self, days=30):
         """Extend premium expiration by a given number of days.
-           If already premium, extend from the current expiration date.
-           Otherwise, extend from now."""
-        current_exp = self.premium_expiration if self.premium_expiration > now() else now()
-        self.premium_expiration = current_exp + timedelta(days=days)
+           If already premium, extend from the current expiration; otherwise, extend from now."""
+        current_expiration = self.premium_expiration if self.premium_expiration > now() else now()
+        self.premium_expiration = current_expiration + timedelta(days=days)
         self.save()
-
-    def __str__(self):
-        return self.username
 
 class Class(models.Model):
     school = models.ForeignKey(School, on_delete=models.CASCADE)

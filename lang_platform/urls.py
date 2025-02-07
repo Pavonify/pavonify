@@ -26,7 +26,7 @@ from learning.views import flashcard_mode
 from django.contrib.auth.decorators import login_required
 from learning.views import update_assignment_points, teacher_upgrade, create_checkout_session, worksheet_lab_view, custom_404_view, teacher_account_settings
 from django.conf.urls import handler404
-
+from learning.webhooks import stripe_webhook
 handler404 = custom_404_view
 
 urlpatterns = [
@@ -92,7 +92,7 @@ urlpatterns = [
     path('listening-translation/<int:vocab_list_id>/', views.listening_translation_view, name='listening_translation'),
     path("teacher/account/", teacher_account_settings, name="teacher_account"),
     path("payment-success/", views.payment_success, name="payment_success"),
-    path("stripe/webhook/", views.stripe_webhook, name="stripe_webhook"),
+    path("stripe/webhook/", stripe_webhook, name="stripe_webhook"),
 
 ]
 
