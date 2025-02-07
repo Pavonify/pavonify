@@ -2,7 +2,7 @@ import stripe
 import logging
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
-from learning.models import User
+from django.contrib.auth import get_user_model
 from django.utils.timezone import now
 from datetime import timedelta
 
