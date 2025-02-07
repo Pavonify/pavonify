@@ -664,10 +664,20 @@ def register_teacher(request):
     if request.method == "POST":
         form = TeacherRegistrationForm(request.POST)
         if form.is_valid():
-            user = form.save(commit=True)  # ✅ Ensures saving with `is_premium = False`
-            login(request, user)  # ✅ Auto-login new teacher
+            # Save the form without committing to allow further modifications.
+            user = form.save(commit=False)
+            # Assign the default school if the user doesn't have one.
+            if not user.school:
+                try:
+                    default_school = School.objects.get(name="Default School")
+                    user.school = default_school
+                except School.DoesNotExist:
+                    messages.error(request, "Default School not found. Please contact support.")
+                    return redirect("register_teacher")
+            user.save()  # Now save the user with the default school assigned.
+            login(request, user)  # Auto-login new teacher
             messages.success(request, "Your account has been created successfully!")
-            return redirect("teacher_dashboard")  # ✅ Redirect to dashboard
+            return redirect("teacher_dashboard")  # Redirect to dashboard
         else:
             messages.error(request, "There were errors in the form. Please correct them.")
     else:
