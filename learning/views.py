@@ -1201,25 +1201,75 @@ def create_checkout_session(request):
                     },
                     "unit_amount": 299,  # 299 pence = £2.99
                     "recurring": {
-                        "interval": "month"  # Specify the recurring interval
+                        "interval": "month",  # This price is recurring monthly
                     },
                 },
                 "quantity": 1,
             }],
-            mode="subscription",  # This tells Stripe to create a subscription
+            mode="subscription",  # Create a subscription
             success_url="https://www.pavonify.com/payment-success/",
             cancel_url="https://www.pavonify.com/teacher-dashboard/",
+            client_reference_id=str(request.user.id),  # Pass the teacher’s id
+            subscription_data={
+                "metadata": {
+                    "teacher_id": str(request.user.id)
+                }
+            },
         )
         return JsonResponse({"sessionId": session.id})
     
     except stripe.error.StripeError as e:
         return JsonResponse({"error": str(e)}, status=400)
 
-
-
+    
+    except stripe.error.StripeError as e:
+        return JsonResponse({"error": str(e)}, status=400)
 
 def payment_success(request):
     return render(request, "learning/payment_success.html")
+
+
+@csrf_exempt
+def stripe_webhook(request):
+    payload = request.body
+    sig_header = request.META.get("HTTP_STRIPE_SIGNATURE")
+    # Use the provided signing secret; ideally, store this in settings.
+    endpoint_secret = "whsec_wT7g2urYrVwg96Tqv9AvBLwfqejaqQhS"
+    
+    try:
+        event = stripe.Webhook.construct_event(payload, sig_header, endpoint_secret)
+    except ValueError as e:
+        # Invalid payload
+        return HttpResponse(status=400)
+    except stripe.error.SignatureVerificationError as e:
+        # Invalid signature
+        return HttpResponse(status=400)
+
+    # Process the recurring payment event
+    if event["type"] == "invoice.payment_succeeded":
+        invoice = event["data"]["object"]
+        # Retrieve the subscription ID from the invoice
+        subscription_id = invoice.get("subscription")
+        teacher_id = None
+
+        # Try to get teacher_id from invoice metadata
+        if "metadata" in invoice and "teacher_id" in invoice["metadata"]:
+            teacher_id = invoice["metadata"]["teacher_id"]
+        # If not found, retrieve the subscription to get metadata
+        if not teacher_id and subscription_id:
+            subscription = stripe.Subscription.retrieve(subscription_id)
+            teacher_id = subscription.metadata.get("teacher_id")
+        
+        if teacher_id:
+            try:
+                teacher = User.objects.get(id=teacher_id)
+                teacher.upgrade_to_premium(30)  # Add one month
+            except User.DoesNotExist:
+                # Optionally, log this error
+                pass
+
+    # You can handle other event types if needed.
+    return HttpResponse(status=200)
 
 
 @csrf_exempt
