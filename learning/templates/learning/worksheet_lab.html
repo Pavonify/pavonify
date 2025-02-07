@@ -331,7 +331,7 @@
     min-height: 50px;
     /* max-height: 300px; /* Prevent excessive height */
     text-align: left;
-    overflow: visible;
+    overflow: auto;
     cursor: default; /* No drag cursor on the whole box */
     display: inline-block; /* Ensure width adjusts to text */
     white-space: normal; /* Allow text to wrap */
@@ -419,8 +419,8 @@
         <div class="toolbar">
 <!-- Print Button (Disabled for Basic Users) -->
 {% if request.user.is_premium %}
-    <button id="printBtn" onclick="downloadWorksheetPDF()">Print Worksheet 🖨️</button>
-    <button id="downloadBtn" onclick="downloadPDF()">Download as PDF 📄</button>
+    <button id="printBtn" onclick="printWorksheet()">Print Worksheet 🖨️</button>
+    <button id="downloadBtn" onclick="downloadWorksheetPDF()">Download as PDF 📄</button>
 {% else %}
 <div class="premium-restriction">
     <p class="upgrade-message">
