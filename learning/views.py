@@ -548,20 +548,33 @@ def view_class(request, class_id):
         "vocab_lists": vocab_lists,
     })
 
-
+@login_required
 def view_vocabulary(request, vocab_list_id):
     vocab_list = get_object_or_404(VocabularyList, id=vocab_list_id)
     return render(request, 'learning/view_vocabulary.html', {'vocab_list': vocab_list})
 
+@login_required
 def view_attached_vocab(request, class_id):
+    # Retrieve the class instance by its id.
     class_instance = get_object_or_404(Class, id=class_id)
+
+    # If the request is POST, assume the teacher is disassociating a vocab list.
     if request.method == "POST":
         vocab_list_id = request.POST.get("vocab_list_id")
+        # Get the vocabulary list or raise a 404 if not found.
         vocab_list = get_object_or_404(VocabularyList, id=vocab_list_id)
+        # Remove the vocabulary list from the class’s vocabulary_lists relationship.
         class_instance.vocabulary_lists.remove(vocab_list)
+        messages.success(request, f"Vocabulary list '{vocab_list.name}' has been disassociated.")
         return redirect("view_attached_vocab", class_id=class_id)
 
-    attached_vocab_lists = class_instance.vocabulary_lists.all()
+    # Retrieve the vocabulary lists attached to this class.
+    # (This is equivalent to: class_instance.vocabulary_lists.all())
+    attached_vocab_lists = VocabularyList.objects.filter(classes=class_instance)
+
+    # Debug print: check the number of vocabulary lists attached.
+    print(f"DEBUG: Class {class_instance.id} has {attached_vocab_lists.count()} vocabulary list(s) attached.")
+
     return render(request, "learning/view_attached_vocab.html", {
         "class_instance": class_instance,
         "attached_vocab_lists": attached_vocab_lists,
