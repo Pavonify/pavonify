@@ -11,27 +11,28 @@
         .hidden { display: none; }
     </style>
     <script>
-        // Load topics dynamically when exam board is selected
-        function updateTopics() {
-            const examBoard = document.getElementById("exam_board").value;
-            const topicSelect = document.getElementById("topic");
-            topicSelect.innerHTML = ""; // Clear existing options
+// Load topics dynamically when an exam board is selected
+function updateTopics() {
+    const examBoard = document.getElementById("exam_board").value;
+    const topicSelect = document.getElementById("topic");
+    topicSelect.innerHTML = ""; // Clear existing options
 
-            // Fetch topics from JSON script
-            const topics = JSON.parse(document.getElementById("exam_board_topics").textContent);
-            
-            if (topics[examBoard]) {
-                topics[examBoard].forEach(topic => {
-                    const option = document.createElement("option");
-                    option.value = topic;
-                    option.textContent = topic;
-                    topicSelect.appendChild(option);
-                });
-                document.getElementById("topic_group").classList.remove("hidden");
-            } else {
-                document.getElementById("topic_group").classList.add("hidden");
-            }
-        }
+    // Fetch topics from JSON script correctly
+    const topics = JSON.parse(document.getElementById("exam_board_topics").textContent);
+    
+    if (topics[examBoard]) {
+        topics[examBoard].forEach(topic => {
+            const option = document.createElement("option");
+            option.value = topic;
+            option.textContent = topic;
+            topicSelect.appendChild(option);
+        });
+        document.getElementById("topic_group").classList.remove("hidden");
+    } else {
+        document.getElementById("topic_group").classList.add("hidden");
+    }
+}
+
 
         // Load words dynamically when a vocabulary list is selected
         function updateWordSelection() {
@@ -69,10 +70,9 @@
 <body>
     <h1>Reading Lab</h1>
     
-    <!-- Store exam board topics as JSON script -->
-    <script id="exam_board_topics" type="application/json">
-        {{ exam_boards|tojson }}
-    </script>
+<script id="exam_board_topics" type="application/json">
+    {{ exam_boards|json_script:"exam_board_topics" }}
+</script>
 
     <form method="post">
         {% csrf_token %}
