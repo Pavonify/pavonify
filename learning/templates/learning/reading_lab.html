@@ -11,39 +11,54 @@
         .hidden { display: none; }
     </style>
     <script>
+        // Load topics dynamically when exam board is selected
         function updateTopics() {
             const examBoard = document.getElementById("exam_board").value;
             const topicSelect = document.getElementById("topic");
             topicSelect.innerHTML = ""; // Clear existing options
 
-            if (examBoard) {
-                const topics = {{ exam_boards|json_script:"exam_board_topics" }};
+            // Fetch topics from JSON script
+            const topics = JSON.parse(document.getElementById("exam_board_topics").textContent);
+            
+            if (topics[examBoard]) {
                 topics[examBoard].forEach(topic => {
                     const option = document.createElement("option");
                     option.value = topic;
                     option.textContent = topic;
                     topicSelect.appendChild(option);
                 });
-                topicSelect.parentElement.classList.remove("hidden");
+                document.getElementById("topic_group").classList.remove("hidden");
             } else {
-                topicSelect.parentElement.classList.add("hidden");
+                document.getElementById("topic_group").classList.add("hidden");
             }
         }
 
+        // Load words dynamically when a vocabulary list is selected
         function updateWordSelection() {
             const vocabularyListId = document.getElementById("vocabulary_list").value;
             const wordSelectionDiv = document.getElementById("word_selection");
+            wordSelectionDiv.innerHTML = ""; // Clear previous selection
+            
             if (vocabularyListId) {
                 fetch(`/get-words/?vocabulary_list_id=${vocabularyListId}`)
                     .then(response => response.json())
                     .then(data => {
-                        wordSelectionDiv.innerHTML = data.words.map(word => `
-                            <label>
-                                <input type="checkbox" name="selected_words" value="${word.id}">
-                                ${word.word}
-                            </label>
-                        `).join("");
-                        wordSelectionDiv.classList.remove("hidden");
+                        if (data.words.length > 0) {
+                            data.words.forEach(word => {
+                                const label = document.createElement("label");
+                                const checkbox = document.createElement("input");
+                                checkbox.type = "checkbox";
+                                checkbox.name = "selected_words";
+                                checkbox.value = word.id;
+                                label.appendChild(checkbox);
+                                label.append(` ${word.word}`);
+                                wordSelectionDiv.appendChild(label);
+                                wordSelectionDiv.appendChild(document.createElement("br"));
+                            });
+                            wordSelectionDiv.classList.remove("hidden");
+                        } else {
+                            wordSelectionDiv.classList.add("hidden");
+                        }
                     });
             } else {
                 wordSelectionDiv.classList.add("hidden");
@@ -53,36 +68,47 @@
 </head>
 <body>
     <h1>Reading Lab</h1>
+    
+    <!-- Store exam board topics as JSON script -->
+    <script id="exam_board_topics" type="application/json">
+        {{ exam_boards|tojson }}
+    </script>
+
     <form method="post">
         {% csrf_token %}
+        
         <div class="form-group">
             <label for="vocabulary_list">Vocabulary List</label>
             <select id="vocabulary_list" name="vocabulary_list" onchange="updateWordSelection()" required>
-                <option value="">Select a vocabulary list</option>
+                <option value="">-- Select a vocabulary list --</option>
                 {% for list in vocabulary_lists %}
                     <option value="{{ list.id }}">{{ list.name }}</option>
                 {% endfor %}
             </select>
         </div>
+
         <div class="form-group hidden" id="word_selection">
             <label>Select Words</label>
-            <!-- Words will be populated here dynamically -->
+            <!-- Words will be dynamically inserted here -->
         </div>
+
         <div class="form-group">
             <label for="exam_board">Exam Board</label>
             <select id="exam_board" name="exam_board" onchange="updateTopics()" required>
-                <option value="">Select an exam board</option>
+                <option value="">-- Select an exam board --</option>
                 {% for board in exam_boards %}
                     <option value="{{ board }}">{{ board }}</option>
                 {% endfor %}
             </select>
         </div>
+
         <div class="form-group hidden" id="topic_group">
             <label for="topic">Topic</label>
             <select id="topic" name="topic" required>
-                <!-- Topics will be populated here dynamically -->
+                <!-- Topics will be dynamically populated -->
             </select>
         </div>
+
         <div class="form-group">
             <label for="level">Level</label>
             <select id="level" name="level" required>
@@ -94,10 +120,12 @@
                 <option value="C2">C2</option>
             </select>
         </div>
+
         <div class="form-group">
-            <label for="word_count">Word Count</label>
-            <input type="number" id="word_count" name="word_count" min="50" max="1000" required>
+            <label for="word_count">Word Count (max 200)</label>
+            <input type="number" id="word_count" name="word_count" min="50" max="200" required>
         </div>
+
         <button type="submit">Generate Text</button>
     </form>
 </body>
