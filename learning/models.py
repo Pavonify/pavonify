@@ -19,6 +19,13 @@ class School(models.Model):
     def __str__(self):
         return self.name
 
+from django.utils.timezone import now
+from datetime import timedelta
+from django.contrib.auth.models import AbstractUser
+from django.db import models
+from django_countries.fields import CountryField
+
+
 class User(AbstractUser):
     is_student = models.BooleanField(default=False)
     is_teacher = models.BooleanField(default=False)
@@ -33,11 +40,12 @@ class User(AbstractUser):
     # Default premium_expiration to now (which means expired if compared later)
     premium_expiration = models.DateTimeField(default=now)
 
-    # NEW FIELD: Store the Stripe subscription ID
+    # Stripe subscription fields
     subscription_id = models.CharField(max_length=255, blank=True, null=True)
-
-    # New field to mark if the subscription has been canceled (but remains active until period end)
     subscription_cancelled = models.BooleanField(default=False)
+
+    # New field: AI request credits (default 5 for premium teachers)
+    ai_credits = models.IntegerField(default=5)
 
     @property
     def is_premium(self):
@@ -51,8 +59,22 @@ class User(AbstractUser):
         self.premium_expiration = current_expiration + timedelta(days=days)
         self.save()
 
+    def deduct_credit(self):
+        """Deduct 1 AI credit if available."""
+        if self.ai_credits > 0:
+            self.ai_credits -= 1
+            self.save()
+            return True
+        return False  # Not enough credits
+
+    def add_credits(self, amount):
+        """Add AI credits (e.g., for purchases or bonuses)."""
+        self.ai_credits += amount
+        self.save()
+
     def __str__(self):
         return self.username
+
 
 class Class(models.Model):
     school = models.ForeignKey(School, on_delete=models.CASCADE)
@@ -237,4 +259,20 @@ class Announcement(models.Model):
 
     def __str__(self):
         return self.title
+
+class ReadingLabText(models.Model):
+    teacher = models.ForeignKey(User, on_delete=models.CASCADE)
+    source_language = models.CharField(max_length=50)
+    target_language = models.CharField(max_length=50)
+    exam_board = models.CharField(max_length=100)
+    topic = models.CharField(max_length=100)
+    level = models.CharField(max_length=10)  # A1-C2
+    word_count = models.IntegerField()
+    selected_vocab = models.TextField()  # Store selected words as a JSON string
+    generated_text_source = models.TextField()
+    generated_text_target = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"ReadingLab ({self.teacher.username} - {self.topic})"
 

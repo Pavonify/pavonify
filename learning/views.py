@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import login, logout, get_user_model
 from django.db.models import Sum
-from .models import Progress, VocabularyWord, VocabularyList, User, Class, Student, School, Assignment, AssignmentProgress, Trophy, StudentTrophy
+from .models import Progress, VocabularyWord, VocabularyList, User, Class, Student, School, Assignment, AssignmentProgress, Trophy, StudentTrophy,ReadingLabText
 from .forms import VocabularyListForm, CustomUserCreationForm, BulkAddWordsForm, ClassForm, ShareClassForm, TeacherRegistrationForm
 from django.contrib import messages
 from django.http import HttpResponseRedirect
@@ -1489,3 +1489,81 @@ def teacher_cancel_subscription(request):
     else:
         messages.error(request, "No active subscription was found.")
     return redirect("teacher_dashboard")
+
+@login_required
+def reading_lab(request):
+    """Display the Reading Lab interface for teachers."""
+    return render(request, "learning/reading_lab.html")
+
+@login_required
+def generate_reading_text(request):
+    """Generate the AI-based parallel text using selected options."""
+    if request.method == "POST":
+        teacher = request.user
+        source_language = request.POST.get("source_language")
+        target_language = request.POST.get("target_language")
+        exam_board = request.POST.get("exam_board")
+        topic = request.POST.get("topic")
+        level = request.POST.get("level")
+        word_count = int(request.POST.get("word_count"))
+        selected_vocab = json.loads(request.POST.get("selected_vocab", "[]"))  # Vocab words
+
+        if teacher.ai_credits <= 0:
+            messages.error(request, "You have no AI credits left! Purchase more to generate texts.")
+            return redirect("reading_lab")
+
+        # Create the prompt for Gemini AI
+        prompt = f"""
+        Create a {word_count}-word text suitable for a {level} level student in {source_language}.
+        The text should be about {topic} (exam board: {exam_board}).
+        The following vocabulary words must be included: {", ".join(selected_vocab)}.
+        Provide the text in {source_language}, and a translation in {target_language}.
+        """
+
+        # Call Gemini API
+        gemini_api_key = settings.GEMINI_API_KEY
+        url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateText"
+        headers = {"Content-Type": "application/json"}
+        payload = {
+            "prompt": {"text": prompt},
+            "temperature": 0.7,
+            "maxOutputTokens": 400
+        }
+        response = requests.post(f"{url}?key={gemini_api_key}", json=payload, headers=headers)
+
+        # Handle API response
+        if response.status_code == 200:
+            response_data = response.json()
+            generated_text = response_data["candidates"][0]["output"].strip().split("\n\n")  # Split into source/target
+
+            if len(generated_text) < 2:
+                messages.error(request, "AI response did not return a parallel text.")
+                return redirect("reading_lab")
+
+            source_text, target_text = generated_text[0], generated_text[1]
+
+            # Save to DB
+            ReadingLabText.objects.create(
+                teacher=teacher,
+                source_language=source_language,
+                target_language=target_language,
+                exam_board=exam_board,
+                topic=topic,
+                level=level,
+                word_count=word_count,
+                selected_vocab=json.dumps(selected_vocab),
+                generated_text_source=source_text,
+                generated_text_target=target_text
+            )
+
+            # Deduct one AI credit
+            teacher.ai_credits -= 1
+            teacher.save()
+
+            messages.success(request, "Parallel text successfully generated!")
+        else:
+            messages.error(request, "AI generation failed. Please try again later.")
+
+        return redirect("reading_lab")
+
+    return redirect("reading_lab")

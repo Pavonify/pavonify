@@ -1,0 +1,58 @@
+
+<h2>Reading Lab</h2>
+<p>Select your options and generate a parallel text.</p>
+
+<form id="reading-form" method="POST" action="{% url 'generate_reading' %}">
+    {% csrf_token %}
+
+    <label for="source_language">Source Language:</label>
+    <select name="source_language" required>
+        <option value="English">English</option>
+        <option value="French">French</option>
+        <option value="Spanish">Spanish</option>
+        <option value="German">German</option>
+    </select>
+
+    <label for="target_language">Target Language:</label>
+    <select name="target_language" required>
+        <option value="English">English</option>
+        <option value="French">French</option>
+        <option value="Spanish">Spanish</option>
+        <option value="German">German</option>
+    </select>
+
+    <label for="exam_board">Exam Board:</label>
+    <select name="exam_board" required>
+        <option value="GCSE Edexcel">GCSE Edexcel</option>
+        <option value="GCSE AQA">GCSE AQA</option>
+        <option value="iGCSE Cambridge">iGCSE Cambridge</option>
+        <option value="IB DP">IB DP</option>
+        <option value="A Level Edexcel">A Level Edexcel</option>
+        <option value="A Level AQA">A Level AQA</option>
+    </select>
+
+    <label for="topic">Topic:</label>
+    <input type="text" name="topic" required>
+
+    <label for="level">Language Level:</label>
+    <select name="level">
+        <option value="A1">A1 (Beginner)</option>
+        <option value="A2">A2 (Elementary)</option>
+        <option value="B1">B1 (Intermediate)</option>
+        <option value="B2">B2 (Upper-Intermediate)</option>
+        <option value="C1">C1 (Advanced)</option>
+        <option value="C2">C2 (Proficient)</option>
+    </select>
+
+    <label for="word_count">Word Count (Max 200):</label>
+    <input type="number" name="word_count" min="50" max="200" required>
+
+    <label>Select Vocabulary:</label>
+    <ul>
+        {% for word in vocab_words %}
+        <li><input type="checkbox" name="selected_vocab" value="{{ word }}"> {{ word }}</li>
+        {% endfor %}
+    </ul>
+
+    <button type="submit">Generate</button>
+</form>

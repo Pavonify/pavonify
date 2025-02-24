@@ -15,6 +15,8 @@ STRIPE_WEBHOOK_SECRET = os.getenv("whsec_wT7g2urYrVwg96Tqv9AvBLwfqejaqQhS", "")
 RECAPTCHA_SITE_KEY = '6Lf2tuAqAAAAAJQf5hVLPgoyF-38eAybdJVRBA_W'
 RECAPTCHA_SECRET_KEY = '6Lf2tuAqAAAAACNaUMmTeo34l3CtbM6fy5QwK3TE'
 
+GEMINI_API_KEY = 'AIzaSyAhBjjphW7nVHETfDtewuy_qiFXspa1yO4'
+
 
 
 # Security Settings
