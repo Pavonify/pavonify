@@ -28,11 +28,8 @@
       text-align: center;
     }
 
-    /* Constrain the logo size */
     .logo {
       max-width: 150px;
-      max-height: 100px;
-      width: auto;
       height: auto;
       margin-bottom: 20px;
     }
@@ -41,6 +38,11 @@
       color: #0aa2ef;
       font-size: 24px;
       margin-bottom: 10px;
+    }
+
+    .error-message {
+      color: red;
+      font-size: 14px;
     }
 
     p {
@@ -74,13 +76,16 @@
     }
   </style>
   <!-- Load Google reCAPTCHA API v3 -->
-  <script src="https://www.google.com/recaptcha/api.js?render=6Lf2tuAqAAAAAJQf5hVLPgoyF-38eAybdJVRBA_W"></script>
+  <script src="https://www.google.com/recaptcha/api.js?render={{ recaptcha_site_key }}"></script>
   <script>
-    function onSubmit(token) {
-      // Set the reCAPTCHA token in the hidden input field
-      document.getElementById('g-recaptcha-response').value = token;
-      // Submit the form
-      document.getElementById('registration-form').submit();
+    function onSubmit(event) {
+        event.preventDefault();
+        grecaptcha.ready(function() {
+            grecaptcha.execute("{{ recaptcha_site_key }}", { action: "register" }).then(function(token) {
+                document.getElementById('g-recaptcha-response').value = token;
+                document.getElementById('registration-form').submit();
+            });
+        });
     }
   </script>
 </head>
@@ -89,14 +94,25 @@
     <img class="logo" src="{% static 'learning/pavonify_logo.png' %}" alt="Pavonify Logo">
     <h1>Register as a Teacher</h1>
     <p>Sign up for a <strong>free teacher account</strong>. Upgrade anytime from your dashboard to access premium features.</p>
+
+    {% if messages %}
+      {% for message in messages %}
+        <p class="error-message">{{ message }}</p>
+      {% endfor %}
+    {% endif %}
     
-    <form id="registration-form" method="POST">
+    <form id="registration-form" method="POST" onsubmit="onSubmit(event)">
       {% csrf_token %}
-      {{ form.as_p }}
-      <!-- Hidden input to store the reCAPTCHA token -->
+      {{ form.full_name.label_tag }} {{ form.full_name }}
+      {{ form.email.label_tag }} {{ form.email }}
+      {{ form.username.label_tag }} {{ form.username }}
+      {{ form.password1.label_tag }} {{ form.password1 }}
+      {{ form.password2.label_tag }} {{ form.password2 }}
+      {{ form.country.label_tag }} {{ form.country }}
+      
       <input type="hidden" id="g-recaptcha-response" name="g-recaptcha-response">
-      <!-- Submit button with reCAPTCHA v3 integration -->
-      <button class="g-recaptcha" data-sitekey="6Lf2tuAqAAAAAJQf5hVLPgoyF-38eAybdJVRBA_W" data-callback="onSubmit" data-action="submit">Register</button>
+      
+      <button type="submit">Register</button>
     </form>
   </div>
 </body>

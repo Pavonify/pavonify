@@ -701,12 +701,15 @@ def register_teacher(request):
 
         # Get the reCAPTCHA response token
         recaptcha_response = request.POST.get("g-recaptcha-response")
+        if not recaptcha_response:
+            messages.error(request, "reCAPTCHA validation failed. Please try again.")
+            return render(request, "learning/register_teacher.html", {"form": form})
+
+        # Verify reCAPTCHA with Google
         recaptcha_data = {
             "secret": settings.RECAPTCHA_SECRET_KEY,
             "response": recaptcha_response,
         }
-        
-        # Verify reCAPTCHA with Google
         r = requests.post("https://www.google.com/recaptcha/api/siteverify", data=recaptcha_data)
         result = r.json()
 
@@ -714,7 +717,7 @@ def register_teacher(request):
             messages.error(request, "Failed reCAPTCHA verification. Please try again.")
             return render(request, "learning/register_teacher.html", {"form": form})
         
-        # If reCAPTCHA is valid, process the form
+        # Check if form is valid
         if form.is_valid():
             user = form.save(commit=False)  # Save user instance without committing
             
@@ -726,13 +729,18 @@ def register_teacher(request):
             
             messages.success(request, "Your account has been created successfully!")
             return redirect("teacher_dashboard")
+
         else:
             messages.error(request, "There were errors in the form. Please correct them.")
+            print(form.errors)  # 🔴 Debugging: Print form errors to the terminal
 
     else:
         form = TeacherRegistrationForm()
 
-    return render(request, "learning/register_teacher.html", {"form": form, "recaptcha_site_key": settings.RECAPTCHA_SITE_KEY})
+    return render(request, "learning/register_teacher.html", {
+        "form": form,
+        "recaptcha_site_key": settings.RECAPTCHA_SITE_KEY
+    })
 
 
 
