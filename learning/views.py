@@ -1560,7 +1560,7 @@ def reading_lab(request):
     vocabulary_lists = VocabularyList.objects.filter(teacher=request.user)
     return render(request, "learning/reading_lab.html", {
         "vocabulary_lists": vocabulary_lists,
-        "exam_boards": EXAM_BOARD_TOPICS.keys(),
+        "exam_boards": list(EXAM_BOARD_TOPICS.keys())
     })
 
 @login_required
