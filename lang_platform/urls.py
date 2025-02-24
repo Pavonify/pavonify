@@ -95,7 +95,6 @@ urlpatterns = [
     path("stripe/webhook/", stripe_webhook, name="stripe_webhook"),
     path("teacher-cancel-subscription/", views.teacher_cancel_subscription, name="teacher_cancel_subscription"),
     path('reading-lab/', views.reading_lab, name='reading_lab'),
-    path('generate-reading/', views.generate_reading_text, name='generate_reading'),
 
 ]
 
