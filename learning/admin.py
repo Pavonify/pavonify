@@ -6,7 +6,7 @@ from datetime import timedelta
 from django.utils.html import format_html
 from .models import (
     School, User, Class, Student, VocabularyList, VocabularyWord,
-    Progress, Assignment, AssignmentProgress, Trophy, StudentTrophy
+    Progress, Assignment, AssignmentProgress, Trophy, StudentTrophy, Announcement
 
 )
 
@@ -22,6 +22,11 @@ class TrophyAdmin(admin.ModelAdmin):
         return "No Icon"
     
     display_icon.short_description = "Icon"
+
+@admin.register(Announcement)
+class AnnouncementAdmin(admin.ModelAdmin):
+    list_display = ('title', 'created_at')
+    search_fields = ('title', 'text_body')
 
 @admin.register(StudentTrophy)
 class StudentTrophyAdmin(admin.ModelAdmin):

@@ -655,11 +655,40 @@
         {% endfor %}
       </div>
       
-      <!-- Recent Activity -->
-      <div class="recent-activity">
-        <h3>Recent Activity</h3>
-        <p>Placeholder for your recent activity feed...</p>
-      </div>
+<div class="recent-activity">
+    <h3>Latest Updates</h3>
+
+    {% for post in announcements %}
+    <div class="announcement">
+        <h4>{{ post.title }}</h4>
+        <p>{{ post.text_body|truncatewords:40 }}</p>
+        
+        {% if post.image %}
+        <img src="{{ post.image.url }}" alt="{{ post.title }}" class="announcement-image">
+        {% endif %}
+
+        <p><small>Posted on {{ post.created_at|date:"F d, Y" }}</small></p>
+    </div>
+    {% empty %}
+    <p>No announcements yet.</p>
+    {% endfor %}
+
+    <!-- Pagination Controls -->
+    <div class="pagination">
+        {% if announcements.has_previous %}
+            <a href="?page=1">&laquo; First</a>
+            <a href="?page={{ announcements.previous_page_number }}">Previous</a>
+        {% endif %}
+
+        <span>Page {{ announcements.number }} of {{ announcements.paginator.num_pages }}</span>
+
+        {% if announcements.has_next %}
+            <a href="?page={{ announcements.next_page_number }}">Next</a>
+            <a href="?page={{ announcements.paginator.num_pages }}">Last &raquo;</a>
+        {% endif %}
+    </div>
+</div>
+
     </div>
     
     <!-- Classes Pane -->

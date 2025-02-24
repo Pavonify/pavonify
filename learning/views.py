@@ -27,6 +27,8 @@ import stripe
 from django.conf import settings
 from django.views import View
 import requests
+from .models import Announcement
+from django.core.paginator import Paginator
 
 
 User = get_user_model()
@@ -74,6 +76,13 @@ def teacher_dashboard(request):
             id__in=vocab_list.classes.values_list("id", flat=True)
         )
 
+    """ Renders teacher dashboard with the latest announcements """
+    announcements_list = Announcement.objects.all()
+    paginator = Paginator(announcements_list, 3)  # Show 3 posts per page
+
+    page_number = request.GET.get("page")
+    announcements = paginator.get_page(page_number)
+
 
 
     return render(request, "learning/teacher_dashboard.html", {
@@ -81,6 +90,7 @@ def teacher_dashboard(request):
         "vocab_lists": vocab_lists,
         "classes": classes,
         "students": students,
+        "announcements": announcements,
     })
 
 
