@@ -17,7 +17,6 @@ RECAPTCHA_SECRET_KEY = '6Lf2tuAqAAAAACNaUMmTeo34l3CtbM6fy5QwK3TE'
 
 
 
-
 # Security Settings
 SECRET_KEY = os.getenv("SECRET_KEY", "django-insecure-key")
 DEBUG = True

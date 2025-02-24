@@ -72,15 +72,17 @@
     form button:hover {
       background-color: #007bb5;
     }
-
-    /* Optional: Style for the reCAPTCHA container if needed */
-    .g-recaptcha {
-      margin-bottom: 15px;
-      display: inline-block;
-    }
   </style>
-  <!-- Load Google reCAPTCHA API -->
-  <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+  <!-- Load Google reCAPTCHA API v3 -->
+  <script src="https://www.google.com/recaptcha/api.js?render=6Lf2tuAqAAAAAJQf5hVLPgoyF-38eAybdJVRBA_W"></script>
+  <script>
+    function onSubmit(token) {
+      // Set the reCAPTCHA token in the hidden input field
+      document.getElementById('g-recaptcha-response').value = token;
+      // Submit the form
+      document.getElementById('registration-form').submit();
+    }
+  </script>
 </head>
 <body>
   <div class="container">
@@ -88,12 +90,13 @@
     <h1>Register as a Teacher</h1>
     <p>Sign up for a <strong>free teacher account</strong>. Upgrade anytime from your dashboard to access premium features.</p>
     
-    <form method="POST">
+    <form id="registration-form" method="POST">
       {% csrf_token %}
       {{ form.as_p }}
-      <!-- Google reCAPTCHA widget (replace YOUR_RECAPTCHA_SITE_KEY_HERE with your actual site key) -->
-      <div class="g-recaptcha" data-sitekey="6Lf2tuAqAAAAAJQf5hVLPgoyF-38eAybdJVRBA_W"></div>
-      <button type="submit">Register</button>
+      <!-- Hidden input to store the reCAPTCHA token -->
+      <input type="hidden" id="g-recaptcha-response" name="g-recaptcha-response">
+      <!-- Submit button with reCAPTCHA v3 integration -->
+      <button class="g-recaptcha" data-sitekey="6Lf2tuAqAAAAAJQf5hVLPgoyF-38eAybdJVRBA_W" data-callback="onSubmit" data-action="submit">Register</button>
     </form>
   </div>
 </body>

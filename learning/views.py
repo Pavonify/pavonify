@@ -676,6 +676,7 @@ def gap_fill_mode(request, vocab_list_id):
         "words": json.dumps(words),  # Serialize as JSON
     })
 
+
 @login_required
 def lead_teacher_dashboard(request):
     if not request.user.is_lead_teacher:
@@ -693,48 +694,45 @@ def lead_teacher_dashboard(request):
         "vocab_lists": vocab_lists,
     })
 
+
 def register_teacher(request):
     if request.method == "POST":
-        # Initialize the form with POST data.
         form = TeacherRegistrationForm(request.POST)
-        
-        # Get the reCAPTCHA response token from the form.
-        recaptcha_response = request.POST.get('g-recaptcha-response')
+
+        # Get the reCAPTCHA response token
+        recaptcha_response = request.POST.get("g-recaptcha-response")
         recaptcha_data = {
-            'secret': settings.RECAPTCHA_SECRET_KEY,
-            'response': recaptcha_response,
+            "secret": settings.RECAPTCHA_SECRET_KEY,
+            "response": recaptcha_response,
         }
-        # Verify the reCAPTCHA response with Google.
-        r = requests.post('https://www.google.com/recaptcha/api/siteverify', data=recaptcha_data)
+        
+        # Verify reCAPTCHA with Google
+        r = requests.post("https://www.google.com/recaptcha/api/siteverify", data=recaptcha_data)
         result = r.json()
-        if not result.get('success'):
-            messages.error(request, "Invalid reCAPTCHA. Please try again.")
+
+        if not result.get("success") or result.get("score", 0) < 0.5:
+            messages.error(request, "Failed reCAPTCHA verification. Please try again.")
             return render(request, "learning/register_teacher.html", {"form": form})
         
-        # If the reCAPTCHA passes, validate the registration form.
+        # If reCAPTCHA is valid, process the form
         if form.is_valid():
-            # Save the form without committing to allow modifications.
-            user = form.save(commit=False)
+            user = form.save(commit=False)  # Save user instance without committing
             
-            # Assign the default school ("Default School") if the user does not have one.
-            if not user.school:
-                try:
-                    default_school = School.objects.get(name="Default School")
-                    user.school = default_school
-                except School.DoesNotExist:
-                    messages.error(request, "Default School not found. Please contact support.")
-                    return redirect("register_teacher")
+            # Assign default school if none is provided
+            user.school, _ = School.objects.get_or_create(name="Default School")
+
+            user.save()  # Save user with assigned school
+            login(request, user)  # Auto-login new teacher
             
-            user.save()  # Save the user now that the default school is assigned.
-            login(request, user)  # Auto-login the new teacher.
             messages.success(request, "Your account has been created successfully!")
             return redirect("teacher_dashboard")
         else:
             messages.error(request, "There were errors in the form. Please correct them.")
+
     else:
         form = TeacherRegistrationForm()
 
-    return render(request, "learning/register_teacher.html", {"form": form})
+    return render(request, "learning/register_teacher.html", {"form": form, "recaptcha_site_key": settings.RECAPTCHA_SITE_KEY})
 
 
 
