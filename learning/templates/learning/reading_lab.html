@@ -1,58 +1,109 @@
+<div class="container">
+    <h1>📖 Reading Lab</h1>
+    <p>Select a vocabulary list, exam board, and topic to generate a parallel text.</p>
 
-<h2>Reading Lab</h2>
-<p>Select your options and generate a parallel text.</p>
+    <!-- AI Credit Counter -->
+    <div class="ai-credit-box">
+        <strong>AI Credits Left:</strong> {{ request.user.ai_credits }}
+    </div>
 
-<form id="reading-form" method="POST" action="{% url 'generate_reading' %}">
-    {% csrf_token %}
+    <!-- Reading Lab Form -->
+    <form method="POST">
+        {% csrf_token %}
+        
+        <!-- Select Vocabulary List -->
+        <label for="vocab_list">Select Vocabulary List:</label>
+        <select name="vocab_list" id="vocab_list" required>
+            <option value="">-- Select a List --</option>
+            {% for list in vocabulary_lists %}
+            <option value="{{ list.id }}" data-source="{{ list.source_language }}" data-target="{{ list.target_language }}">
+                {{ list.name }} ({{ list.source_language }} → {{ list.target_language }})
+            </option>
+            {% endfor %}
+        </select>
 
-    <label for="source_language">Source Language:</label>
-    <select name="source_language" required>
-        <option value="English">English</option>
-        <option value="French">French</option>
-        <option value="Spanish">Spanish</option>
-        <option value="German">German</option>
-    </select>
+        <!-- Display Available Words -->
+        <div id="word-selection" style="display: none;">
+            <label>Select Vocabulary Words:</label>
+            <div id="words-container"></div>
+        </div>
 
-    <label for="target_language">Target Language:</label>
-    <select name="target_language" required>
-        <option value="English">English</option>
-        <option value="French">French</option>
-        <option value="Spanish">Spanish</option>
-        <option value="German">German</option>
-    </select>
+        <!-- Select Exam Board -->
+        <label for="exam_board">Select Exam Board:</label>
+        <select name="exam_board" id="exam_board" required>
+            <option value="">-- Select Exam Board --</option>
+            {% for board, topics in exam_board_topics.items %}
+            <option value="{{ board }}">{{ board }}</option>
+            {% endfor %}
+        </select>
 
-    <label for="exam_board">Exam Board:</label>
-    <select name="exam_board" required>
-        <option value="GCSE Edexcel">GCSE Edexcel</option>
-        <option value="GCSE AQA">GCSE AQA</option>
-        <option value="iGCSE Cambridge">iGCSE Cambridge</option>
-        <option value="IB DP">IB DP</option>
-        <option value="A Level Edexcel">A Level Edexcel</option>
-        <option value="A Level AQA">A Level AQA</option>
-    </select>
+        <!-- Select Topic -->
+        <label for="topic">Select Topic:</label>
+        <select name="topic" id="topic" required>
+            <option value="">-- Select a Topic --</option>
+        </select>
 
-    <label for="topic">Topic:</label>
-    <input type="text" name="topic" required>
+        <!-- Select CEFR Level -->
+        <label for="level">Select CEFR Level:</label>
+        <select name="level" required>
+            {% for lvl in levels %}
+            <option value="{{ lvl }}">{{ lvl }}</option>
+            {% endfor %}
+        </select>
 
-    <label for="level">Language Level:</label>
-    <select name="level">
-        <option value="A1">A1 (Beginner)</option>
-        <option value="A2">A2 (Elementary)</option>
-        <option value="B1">B1 (Intermediate)</option>
-        <option value="B2">B2 (Upper-Intermediate)</option>
-        <option value="C1">C1 (Advanced)</option>
-        <option value="C2">C2 (Proficient)</option>
-    </select>
+        <!-- Word Count -->
+        <label for="word_count">Word Count (Max 200):</label>
+        <input type="number" name="word_count" max="200" required>
 
-    <label for="word_count">Word Count (Max 200):</label>
-    <input type="number" name="word_count" min="50" max="200" required>
+        <!-- Submit -->
+        <button type="submit">Generate Parallel Text</button>
+    </form>
 
-    <label>Select Vocabulary:</label>
-    <ul>
-        {% for word in vocab_words %}
-        <li><input type="checkbox" name="selected_vocab" value="{{ word }}"> {{ word }}</li>
-        {% endfor %}
-    </ul>
+    <!-- Display Results -->
+    {% if generated_text_source %}
+    <div class="result-box">
+        <h2>Generated Text</h2>
+        <h3>📘 {{ generated_text_source|safe }}</h3>
+        <h3>📙 {{ generated_text_target|safe }}</h3>
+    </div>
+    {% endif %}
+</div>
 
-    <button type="submit">Generate</button>
-</form>
+<script>
+    // Update word list when vocabulary list is selected
+    document.getElementById("vocab_list").addEventListener("change", function () {
+        let vocabId = this.value;
+        fetch(`/get-vocab-words/${vocabId}/`)
+            .then(response => response.json())
+            .then(data => {
+                let wordsContainer = document.getElementById("words-container");
+                wordsContainer.innerHTML = "";
+                data.words.forEach(word => {
+                    let checkbox = document.createElement("input");
+                    checkbox.type = "checkbox";
+                    checkbox.name = "selected_words";
+                    checkbox.value = word.id;
+                    wordsContainer.appendChild(checkbox);
+                    wordsContainer.appendChild(document.createTextNode(` ${word.word} → ${word.translation}`));
+                    wordsContainer.appendChild(document.createElement("br"));
+                });
+                document.getElementById("word-selection").style.display = "block";
+            });
+    });
+
+    // Update topic dropdown when exam board is selected
+    document.getElementById("exam_board").addEventListener("change", function () {
+        let topics = {{ exam_board_topics|safe }};
+        let board = this.value;
+        let topicDropdown = document.getElementById("topic");
+        topicDropdown.innerHTML = "<option value=''>-- Select a Topic --</option>";
+        if (topics[board]) {
+            topics[board].forEach(topic => {
+                let option = document.createElement("option");
+                option.value = topic;
+                option.textContent = topic;
+                topicDropdown.appendChild(option);
+            });
+        }
+    });
+</script>

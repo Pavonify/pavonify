@@ -260,19 +260,35 @@ class Announcement(models.Model):
     def __str__(self):
         return self.title
 
+# NEW MODEL: Stores the generated AI texts
 class ReadingLabText(models.Model):
     teacher = models.ForeignKey(User, on_delete=models.CASCADE)
-    source_language = models.CharField(max_length=50)
-    target_language = models.CharField(max_length=50)
+    vocabulary_list = models.ForeignKey(VocabularyList, on_delete=models.SET_NULL, null=True)
+    selected_words = models.ManyToManyField(VocabularyWord, related_name="included_in_reading_lab")  # ✅ Stores selected words
     exam_board = models.CharField(max_length=100)
     topic = models.CharField(max_length=100)
-    level = models.CharField(max_length=10)  # A1-C2
-    word_count = models.IntegerField()
-    selected_vocab = models.TextField()  # Store selected words as a JSON string
+    level = models.CharField(max_length=10, choices=[
+        ("A1", "A1"), ("A2", "A2"), ("B1", "B1"), ("B2", "B2"), ("C1", "C1"), ("C2", "C2")
+    ])
+    word_count = models.PositiveIntegerField()
+
+    # ✅ Automatically taken from VocabularyList
+    source_language = models.CharField(max_length=50)
+    target_language = models.CharField(max_length=50)
+
+    # ✅ AI-Generated texts stored
     generated_text_source = models.TextField()
     generated_text_target = models.TextField()
+    
     created_at = models.DateTimeField(auto_now_add=True)
 
+    def save(self, *args, **kwargs):
+        """ Ensure source & target language are set correctly. """
+        if self.vocabulary_list:
+            self.source_language = self.vocabulary_list.source_language
+            self.target_language = self.vocabulary_list.target_language
+        super().save(*args, **kwargs)
+
     def __str__(self):
-        return f"ReadingLab ({self.teacher.username} - {self.topic})"
+        return f"{self.teacher.username} - {self.topic} ({self.created_at.date()})"
 
