@@ -1558,7 +1558,7 @@ def reading_lab(request):
 
     # Fetch vocabulary lists for the dropdown (only those created by the teacher)
     vocabulary_lists = VocabularyList.objects.filter(teacher=request.user)
-    return render(request, "reading_lab.html", {
+    return render(request, "learning/reading_lab.html", {
         "vocabulary_lists": vocabulary_lists,
         "exam_boards": EXAM_BOARD_TOPICS.keys(),
     })
