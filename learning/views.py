@@ -1501,7 +1501,6 @@ EXAM_BOARD_TOPICS = {
     "A Level AQA": ["Art & Architecture", "Multiculturalism", "Regional Identity", "Scientific Advances"]
 }
 
-# Get words for a vocabulary list
 def get_vocab_words(request, list_id):
     words = VocabularyWord.objects.filter(list_id=list_id)
     word_data = [{"id": w.id, "word": w.word, "translation": w.translation} for w in words]

@@ -1,6 +1,9 @@
+
+{% load static %}
+
 <div class="container">
     <h1>Reading Lab</h1>
-    
+
     <!-- Flash Messages -->
     {% if messages %}
     <ul class="messages">
@@ -25,7 +28,7 @@
         </select>
 
         <!-- Step 2: Select Words (Initially Hidden) -->
-        <div id="word-selection" style="display:none;">
+        <div id="word-selection" style="display:none; margin-top: 15px;">
             <h3>Select Words to Include:</h3>
             <div id="word-list"></div>
         </div>
@@ -40,7 +43,7 @@
         </select>
 
         <!-- Step 4: Select Topic (Initially Hidden) -->
-        <div id="topic-selection" style="display:none;">
+        <div id="topic-selection" style="display:none; margin-top: 15px;">
             <label for="topic">Select a Topic:</label>
             <select id="topic" name="topic" required></select>
         </div>
@@ -68,7 +71,7 @@
     </form>
 
     <!-- Display AI-Generated Text -->
-    <div id="generated-text" style="display:none;">
+    <div id="generated-text" style="display:none; margin-top: 20px;">
         <h2>Generated Parallel Text</h2>
         <p><strong>Source Language:</strong></p>
         <p id="generated-source"></p>
