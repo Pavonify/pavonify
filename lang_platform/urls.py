@@ -94,7 +94,9 @@ urlpatterns = [
     path("payment-success/", views.payment_success, name="payment_success"),
     path("stripe/webhook/", stripe_webhook, name="stripe_webhook"),
     path("teacher-cancel-subscription/", views.teacher_cancel_subscription, name="teacher_cancel_subscription"),
-    path('reading-lab/', views.reading_lab, name='reading_lab'),
+    path("", views.reading_lab, name="reading_lab"),
+    path("<int:text_id>/", views.reading_lab_display, name="reading_lab_display"),
+    path("get-words/", views.get_words, name="get_words"),
 
 ]
 

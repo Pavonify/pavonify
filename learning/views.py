@@ -29,6 +29,10 @@ from django.views import View
 import requests
 from .models import Announcement
 from django.core.paginator import Paginator
+import google.generativeai as genai
+
+# Configure Gemini API
+genai.configure(api_key="AIzaSyAhBjjphW7nVHETfDtewuy_qiFXspa1yO4")
 
 
 User = get_user_model()
@@ -1491,100 +1495,84 @@ def teacher_cancel_subscription(request):
     return redirect("teacher_dashboard")
 
 
-# Exam board topics (Replace this with real topics from research)
+# Hardcoded exam board topics (you can replace this with a database model or JSON file)
 EXAM_BOARD_TOPICS = {
-    "GCSE Edexcel": ["Travel & Tourism", "School Life", "Technology & Media", "Healthy Living"],
-    "GCSE AQA": ["Family & Relationships", "Hobbies & Interests", "Environment", "Social Issues"],
-    "iGCSE Cambridge": ["Work & Jobs", "Global Issues", "Food & Drink", "Festivals"],
-    "IB DP": ["Identity", "Experiences", "Human Ingenuity", "Social Organization", "Sharing the Planet"],
-    "A Level Edexcel": ["Politics", "Literature & Film", "History & Culture", "Contemporary Issues"],
-    "A Level AQA": ["Art & Architecture", "Multiculturalism", "Regional Identity", "Scientific Advances"]
+    "Cambridge": ["Environment", "Technology", "Education", "Health", "Travel"],
+    "IELTS": ["Globalization", "Art and Culture", "Science", "History", "Social Issues"],
+    "TOEFL": ["Academic Research", "Campus Life", "Natural Sciences", "Social Sciences"],
 }
-
-def get_vocab_words(request, list_id):
-    words = VocabularyWord.objects.filter(list_id=list_id)
-    word_data = [{"id": w.id, "word": w.word, "translation": w.translation} for w in words]
-    return JsonResponse({"words": word_data})
-
-# Get topics for an exam board
-def get_exam_board_topics(request, board):
-    topics = EXAM_BOARD_TOPICS.get(board, [])
-    return JsonResponse({"topics": topics})
 
 @login_required
 def reading_lab(request):
-    teacher = request.user
-    vocabulary_lists = VocabularyList.objects.filter(teacher=teacher)
-
     if request.method == "POST":
-        vocab_list_id = request.POST.get("vocab_list")
-        selected_words = request.POST.getlist("selected_words")
+        # Ensure the user is a teacher and has AI credits
+        if not request.user.is_teacher or request.user.ai_credits <= 0:
+            return render(request, "error.html", {"message": "You do not have enough AI credits or are not a teacher."})
+
+        # Get form data
+        vocabulary_list_id = request.POST.get("vocabulary_list")
+        selected_word_ids = request.POST.getlist("selected_words")
         exam_board = request.POST.get("exam_board")
         topic = request.POST.get("topic")
         level = request.POST.get("level")
         word_count = int(request.POST.get("word_count"))
 
-        # Ensure the teacher has enough AI credits
-        if teacher.ai_credits <= 0:
-            messages.error(request, "You have run out of AI credits. Upgrade to get more!")
-            return redirect("reading_lab")
+        # Fetch selected vocabulary list and words
+        vocabulary_list = VocabularyList.objects.get(id=vocabulary_list_id)
+        selected_words = VocabularyWord.objects.filter(id__in=selected_word_ids)
+        selected_words_text = ", ".join([word.word for word in selected_words])
 
-        # Fetch the selected vocabulary list
-        try:
-            vocab_list = VocabularyList.objects.get(id=vocab_list_id, teacher=teacher)
-        except VocabularyList.DoesNotExist:
-            messages.error(request, "Invalid vocabulary list.")
-            return redirect("reading_lab")
+        # Construct the prompt for Gemini API
+        prompt = (
+            f"Generate a parallel text in {vocabulary_list.source_language} and {vocabulary_list.target_language} "
+            f"on the topic of {topic}. The text should be at {level} level and include the following words: "
+            f"{selected_words_text}. The word count should be approximately {word_count}."
+        )
 
-        # Get selected vocabulary words
-        words = VocabularyWord.objects.filter(id__in=selected_words)
+        # Call Gemini API to generate texts
+        model = genai.GenerativeModel('gemini-pro')
+        response = model.generate_content(prompt)
+        generated_text = response.text
 
-        # Convert word list into a formatted prompt for Gemini AI
-        vocab_prompt = ", ".join([f"{word.word} ({word.translation})" for word in words])
+        # Split the generated text into source and target (assuming Gemini returns them separated by a delimiter)
+        source_text, target_text = generated_text.split("\n\n")  # Adjust delimiter as needed
 
-        # AI request to Gemini (Free tier)
-        ai_prompt = f"""
-        Generate a {word_count}-word reading text for {level} level students.
-        The topic is "{topic}" based on the {exam_board} syllabus.
-        Include the following vocabulary: {vocab_prompt}.
-        Write in {vocab_list.source_language} with a parallel translation in {vocab_list.target_language}.
-        """
-
-        # Call Gemini AI API
-        headers = {"Authorization": f"Bearer {settings.GEMINI_API_KEY}"}
-        response = requests.post("https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateText",
-                                 json={"prompt": ai_prompt}, headers=headers)
-
-        ai_data = response.json()
-        if "error" in ai_data:
-            messages.error(request, "Error generating text. Please try again.")
-            return redirect("reading_lab")
-
-        generated_text_source = ai_data["text"]["source"]
-        generated_text_target = ai_data["text"]["target"]
-
-        # Save the AI-generated text
-        reading_lab_entry = ReadingLabText.objects.create(
-            teacher=teacher,
-            vocabulary_list=vocab_list,
+        # Save the generated texts to the database
+        reading_lab_text = ReadingLabText(
+            teacher=request.user,
+            vocabulary_list=vocabulary_list,
             exam_board=exam_board,
             topic=topic,
             level=level,
             word_count=word_count,
-            generated_text_source=generated_text_source,
-            generated_text_target=generated_text_target
+            generated_text_source=source_text,
+            generated_text_target=target_text,
         )
-        reading_lab_entry.selected_words.set(words)
+        reading_lab_text.save()
+        reading_lab_text.selected_words.set(selected_words)
 
-        # Deduct 1 AI credit
-        teacher.ai_credits -= 1
-        teacher.save()
+        # Deduct 1 AI credit from the teacher
+        request.user.deduct_credit()
 
-        messages.success(request, "Parallel text successfully generated!")
-        return redirect("reading_lab")
+        return redirect("reading_lab_display", reading_lab_text.id)
 
-    return render(request, "learning/reading_lab.html", {
+    # Fetch vocabulary lists for the dropdown (only those created by the teacher)
+    vocabulary_lists = VocabularyList.objects.filter(teacher=request.user)
+    return render(request, "reading_lab.html", {
         "vocabulary_lists": vocabulary_lists,
-        "exam_board_topics": EXAM_BOARD_TOPICS,
-        "levels": ["A1", "A2", "B1", "B2", "C1", "C2"]
+        "exam_boards": EXAM_BOARD_TOPICS.keys(),
     })
+
+@login_required
+def reading_lab_display(request, text_id):
+    # Fetch the generated text
+    reading_lab_text = ReadingLabText.objects.get(id=text_id)
+    return render(request, "reading_lab_display.html", {
+        "reading_lab_text": reading_lab_text,
+    })
+
+def get_words(request):
+    """ AJAX endpoint to fetch words for a selected vocabulary list """
+    vocabulary_list_id = request.GET.get("vocabulary_list_id")
+    words = VocabularyWord.objects.filter(list_id=vocabulary_list_id).values("id", "word")
+    return JsonResponse({"words": list(words)})

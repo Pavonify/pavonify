@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generated Text</title>
+    <style>
+        .parallel-text {
+            display: flex;
+            gap: 20px;
+        }
+        .source-text, .target-text {
+            flex: 1;
+        }
+    </style>
+</head>
+<body>
+    <h1>Generated Parallel Text</h1>
+    <div class="parallel-text">
+        <div class="source-text">
+            <h3>Source Language: {{ reading_lab_text.source_language }}</h3>
+            <p>{{ reading_lab_text.generated_text_source }}</p>
+        </div>
+        <div class="target-text">
+            <h3>Target Language: {{ reading_lab_text.target_language }}</h3>
+            <p>{{ reading_lab_text.generated_text_target }}</p>
+        </div>
+    </div>
+    <a href="{% url 'reading_lab' %}">Generate Another Text</a>
+</body>
+</html>
