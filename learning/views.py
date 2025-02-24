@@ -1501,6 +1501,17 @@ EXAM_BOARD_TOPICS = {
     "A Level AQA": ["Art & Architecture", "Multiculturalism", "Regional Identity", "Scientific Advances"]
 }
 
+# Get words for a vocabulary list
+def get_vocab_words(request, list_id):
+    words = VocabularyWord.objects.filter(list_id=list_id)
+    word_data = [{"id": w.id, "word": w.word, "translation": w.translation} for w in words]
+    return JsonResponse({"words": word_data})
+
+# Get topics for an exam board
+def get_exam_board_topics(request, board):
+    topics = EXAM_BOARD_TOPICS.get(board, [])
+    return JsonResponse({"topics": topics})
+
 @login_required
 def reading_lab(request):
     teacher = request.user

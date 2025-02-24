@@ -1,109 +1,173 @@
 <div class="container">
-    <h1>📖 Reading Lab</h1>
-    <p>Select a vocabulary list, exam board, and topic to generate a parallel text.</p>
+    <h1>Reading Lab</h1>
+    
+    <!-- Flash Messages -->
+    {% if messages %}
+    <ul class="messages">
+        {% for message in messages %}
+        <li class="{{ message.tags }}">{{ message }}</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
 
-    <!-- AI Credit Counter -->
-    <div class="ai-credit-box">
-        <strong>AI Credits Left:</strong> {{ request.user.ai_credits }}
-    </div>
-
-    <!-- Reading Lab Form -->
-    <form method="POST">
+    <form id="reading-lab-form" method="POST">
         {% csrf_token %}
-        
-        <!-- Select Vocabulary List -->
-        <label for="vocab_list">Select Vocabulary List:</label>
-        <select name="vocab_list" id="vocab_list" required>
-            <option value="">-- Select a List --</option>
-            {% for list in vocabulary_lists %}
-            <option value="{{ list.id }}" data-source="{{ list.source_language }}" data-target="{{ list.target_language }}">
-                {{ list.name }} ({{ list.source_language }} → {{ list.target_language }})
+
+        <!-- Step 1: Select Vocabulary List -->
+        <label for="vocab_list">Select a Vocabulary List:</label>
+        <select id="vocab_list" name="vocab_list" required>
+            <option value="">-- Choose a list --</option>
+            {% for vocab_list in vocabulary_lists %}
+            <option value="{{ vocab_list.id }}" data-source="{{ vocab_list.source_language }}" data-target="{{ vocab_list.target_language }}">
+                {{ vocab_list.name }} ({{ vocab_list.source_language }} → {{ vocab_list.target_language }})
             </option>
             {% endfor %}
         </select>
 
-        <!-- Display Available Words -->
-        <div id="word-selection" style="display: none;">
-            <label>Select Vocabulary Words:</label>
-            <div id="words-container"></div>
+        <!-- Step 2: Select Words (Initially Hidden) -->
+        <div id="word-selection" style="display:none;">
+            <h3>Select Words to Include:</h3>
+            <div id="word-list"></div>
         </div>
 
-        <!-- Select Exam Board -->
-        <label for="exam_board">Select Exam Board:</label>
-        <select name="exam_board" id="exam_board" required>
-            <option value="">-- Select Exam Board --</option>
+        <!-- Step 3: Select Exam Board -->
+        <label for="exam_board">Exam Board:</label>
+        <select id="exam_board" name="exam_board" required>
+            <option value="">-- Choose an exam board --</option>
             {% for board, topics in exam_board_topics.items %}
             <option value="{{ board }}">{{ board }}</option>
             {% endfor %}
         </select>
 
-        <!-- Select Topic -->
-        <label for="topic">Select Topic:</label>
-        <select name="topic" id="topic" required>
-            <option value="">-- Select a Topic --</option>
+        <!-- Step 4: Select Topic (Initially Hidden) -->
+        <div id="topic-selection" style="display:none;">
+            <label for="topic">Select a Topic:</label>
+            <select id="topic" name="topic" required></select>
+        </div>
+
+        <!-- Step 5: Select CEFR Level -->
+        <label for="level">Select Level:</label>
+        <select id="level" name="level" required>
+            <option value="A1">A1</option>
+            <option value="A2">A2</option>
+            <option value="B1">B1</option>
+            <option value="B2">B2</option>
+            <option value="C1">C1</option>
+            <option value="C2">C2</option>
         </select>
 
-        <!-- Select CEFR Level -->
-        <label for="level">Select CEFR Level:</label>
-        <select name="level" required>
-            {% for lvl in levels %}
-            <option value="{{ lvl }}">{{ lvl }}</option>
-            {% endfor %}
-        </select>
+        <!-- Step 6: Word Count -->
+        <label for="word_count">Word Count (max 200):</label>
+        <input type="number" id="word_count" name="word_count" min="50" max="200" required>
 
-        <!-- Word Count -->
-        <label for="word_count">Word Count (Max 200):</label>
-        <input type="number" name="word_count" max="200" required>
+        <!-- Generate Button -->
+        <button type="submit" id="generate-button">Generate</button>
 
-        <!-- Submit -->
-        <button type="submit">Generate Parallel Text</button>
+        <!-- Loading Indicator -->
+        <div id="loading" style="display:none;">⏳ Generating text, please wait...</div>
     </form>
 
-    <!-- Display Results -->
-    {% if generated_text_source %}
-    <div class="result-box">
-        <h2>Generated Text</h2>
-        <h3>📘 {{ generated_text_source|safe }}</h3>
-        <h3>📙 {{ generated_text_target|safe }}</h3>
+    <!-- Display AI-Generated Text -->
+    <div id="generated-text" style="display:none;">
+        <h2>Generated Parallel Text</h2>
+        <p><strong>Source Language:</strong></p>
+        <p id="generated-source"></p>
+        <p><strong>Target Language:</strong></p>
+        <p id="generated-target"></p>
     </div>
-    {% endif %}
 </div>
 
+<!-- JavaScript for Dynamic UI -->
 <script>
-    // Update word list when vocabulary list is selected
-    document.getElementById("vocab_list").addEventListener("change", function () {
-        let vocabId = this.value;
-        fetch(`/get-vocab-words/${vocabId}/`)
+document.addEventListener("DOMContentLoaded", function() {
+    const vocabSelect = document.getElementById("vocab_list");
+    const wordSelection = document.getElementById("word-selection");
+    const wordListDiv = document.getElementById("word-list");
+    const examBoardSelect = document.getElementById("exam_board");
+    const topicSelect = document.getElementById("topic");
+    const topicSelectionDiv = document.getElementById("topic-selection");
+    const form = document.getElementById("reading-lab-form");
+    const loadingDiv = document.getElementById("loading");
+    const generateButton = document.getElementById("generate-button");
+    const generatedTextDiv = document.getElementById("generated-text");
+    const generatedSource = document.getElementById("generated-source");
+    const generatedTarget = document.getElementById("generated-target");
+
+    // Fetch words when a vocab list is selected
+    vocabSelect.addEventListener("change", function() {
+        const listId = this.value;
+        if (listId) {
+            fetch(`/get-vocab-words/${listId}/`)
             .then(response => response.json())
             .then(data => {
-                let wordsContainer = document.getElementById("words-container");
-                wordsContainer.innerHTML = "";
+                wordListDiv.innerHTML = ""; // Clear previous words
                 data.words.forEach(word => {
-                    let checkbox = document.createElement("input");
+                    const checkbox = document.createElement("input");
                     checkbox.type = "checkbox";
                     checkbox.name = "selected_words";
                     checkbox.value = word.id;
-                    wordsContainer.appendChild(checkbox);
-                    wordsContainer.appendChild(document.createTextNode(` ${word.word} → ${word.translation}`));
-                    wordsContainer.appendChild(document.createElement("br"));
-                });
-                document.getElementById("word-selection").style.display = "block";
-            });
-    });
+                    checkbox.id = `word-${word.id}`;
 
-    // Update topic dropdown when exam board is selected
-    document.getElementById("exam_board").addEventListener("change", function () {
-        let topics = {{ exam_board_topics|safe }};
-        let board = this.value;
-        let topicDropdown = document.getElementById("topic");
-        topicDropdown.innerHTML = "<option value=''>-- Select a Topic --</option>";
-        if (topics[board]) {
-            topics[board].forEach(topic => {
-                let option = document.createElement("option");
-                option.value = topic;
-                option.textContent = topic;
-                topicDropdown.appendChild(option);
+                    const label = document.createElement("label");
+                    label.htmlFor = `word-${word.id}`;
+                    label.textContent = `${word.word} (${word.translation})`;
+
+                    const br = document.createElement("br");
+
+                    wordListDiv.appendChild(checkbox);
+                    wordListDiv.appendChild(label);
+                    wordListDiv.appendChild(br);
+                });
+                wordSelection.style.display = "block";
             });
+        } else {
+            wordSelection.style.display = "none";
         }
     });
+
+    // Show topic dropdown when an exam board is selected
+    examBoardSelect.addEventListener("change", function() {
+        const selectedBoard = this.value;
+        if (selectedBoard) {
+            fetch(`/get-exam-board-topics/${selectedBoard}/`)
+            .then(response => response.json())
+            .then(data => {
+                topicSelect.innerHTML = "";
+                data.topics.forEach(topic => {
+                    const option = document.createElement("option");
+                    option.value = topic;
+                    option.textContent = topic;
+                    topicSelect.appendChild(option);
+                });
+                topicSelectionDiv.style.display = "block";
+            });
+        } else {
+            topicSelectionDiv.style.display = "none";
+        }
+    });
+
+    // Handle form submission
+    form.addEventListener("submit", function(event) {
+        event.preventDefault();
+        generateButton.disabled = true;
+        loadingDiv.style.display = "block";
+
+        fetch("{% url 'reading_lab' %}", {
+            method: "POST",
+            body: new FormData(form)
+        })
+        .then(response => response.json())
+        .then(data => {
+            loadingDiv.style.display = "none";
+            generateButton.disabled = false;
+            if (data.error) {
+                alert(data.error);
+            } else {
+                generatedSource.textContent = data.generated_text_source;
+                generatedTarget.textContent = data.generated_text_target;
+                generatedTextDiv.style.display = "block";
+            }
+        });
+    });
+});
 </script>
