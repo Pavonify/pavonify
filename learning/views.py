@@ -1495,7 +1495,7 @@ def teacher_cancel_subscription(request):
     return redirect("teacher_dashboard")
 
 
-# Hardcoded exam board topics (you can replace this with a database model or JSON file)
+# Hardcoded exam board topics
 EXAM_BOARD_TOPICS = {
     "Cambridge": ["Environment", "Technology", "Education", "Health", "Travel"],
     "IELTS": ["Globalization", "Art and Culture", "Science", "History", "Social Issues"],
@@ -1556,12 +1556,17 @@ def reading_lab(request):
 
         return redirect("reading_lab_display", reading_lab_text.id)
 
+    # Convert exam board topics to JSON format for JavaScript
+    exam_board_topics_json = json.dumps(EXAM_BOARD_TOPICS)
+
     # Fetch vocabulary lists for the dropdown (only those created by the teacher)
     vocabulary_lists = VocabularyList.objects.filter(teacher=request.user)
     return render(request, "learning/reading_lab.html", {
         "vocabulary_lists": vocabulary_lists,
-        "exam_boards": list(EXAM_BOARD_TOPICS.keys())
+        "exam_boards": list(EXAM_BOARD_TOPICS.keys()),
+        "exam_board_topics_json": exam_board_topics_json  # Pass JSON to template
     })
+
 
 @login_required
 def reading_lab_display(request, text_id):
