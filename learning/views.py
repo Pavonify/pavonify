@@ -54,6 +54,9 @@ def teacher_dashboard(request):
     if not request.user.is_teacher:
         return redirect("login")
 
+    # Fetch the teacher's generated texts
+    reading_lab_texts = ReadingLabText.objects.filter(teacher=request.user).order_by('-created_at')
+
     # Fetch data
     vocab_lists = VocabularyList.objects.filter(teacher=request.user)
     classes = Class.objects.filter(teachers=request.user)  # Use 'teachers' field instead of 'teacher'
@@ -95,6 +98,7 @@ def teacher_dashboard(request):
         "classes": classes,
         "students": students,
         "announcements": announcements,
+        'reading_lab_texts': reading_lab_texts,
     })
 
 

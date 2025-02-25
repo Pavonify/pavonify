@@ -591,6 +591,36 @@
     font-weight: bold;
 }
 
+/* Reading Lab Pane */
+#reading-lab {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.ai-credits {
+  margin-bottom: 20px;
+  padding: 15px;
+  background-color: #f9f9f9;
+  border-radius: 10px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.ai-credits p {
+  margin: 0;
+  font-size: 16px;
+  color: #333;
+}
+
+#purchase-credits-btn {
+  margin-top: 10px;
+  background-color: #0aa2ef;
+  color: white;
+}
+
+#purchase-credits-btn:hover {
+  background-color: #086baf;
+}
+
 
   </style>
 </head>
@@ -620,6 +650,7 @@
       <a href="#" data-pane="assignments">Assignments</a>
       <a href="#" data-pane="students">Students</a>
       <a href="#" data-pane="worksheet-lab">✨Worksheet Lab✨</a>
+      <a href="#" data-pane="reading-lab">📚Reading Lab📚</a> 
       {% if not request.user.is_premium %}
       <a href="#" data-pane="teacher-upgrade" class="btn-upgrade">Upgrade to Premium</a>
       {% endif %}
@@ -1108,6 +1139,52 @@
       </script>
     </div>
   </div>
+
+<!-- Reading Lab Pane -->
+<div class="pane" id="reading-lab">
+  <h2>Reading Lab</h2>
+  
+  <!-- AI Credits Section -->
+  <div class="ai-credits">
+    <p><strong>AI Credits Remaining:</strong> {{ request.user.ai_credits }}</p>
+    <button class="btn" id="purchase-credits-btn">Purchase More Credits</button>
+  </div>
+
+  <!-- Generated Texts Table -->
+  <table>
+    <thead>
+      <tr>
+        <th>Topic</th>
+        <th>Exam Board</th>
+        <th>Level</th>
+        <th>Word Count</th>
+        <th>Created At</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for text in reading_lab_texts %}
+      <tr>
+        <td>{{ text.topic }}</td>
+        <td>{{ text.exam_board }}</td>
+        <td>{{ text.level }}</td>
+        <td>{{ text.word_count }}</td>
+        <td>{{ text.created_at|date:"Y-m-d H:i" }}</td>
+        <td>
+          <a href="{% url 'reading_lab_display' text.id %}" class="btn">View</a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="6">No texts generated yet.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <!-- Generate New Text Button -->
+  <a href="{% url 'reading_lab' %}" class="btn">Generate New Text</a>
+</div>
   
   <script>
     // Sidebar Navigation: Switch content panes
@@ -1206,6 +1283,14 @@
           alert("Error: " + data.error);
       }
   });
+
+
+document.getElementById("purchase-credits-btn").addEventListener("click", function(event) {
+  event.preventDefault();
+  alert("Purchase more credits functionality coming soon!");
+});
+
+
 </script>
 
 </body>
