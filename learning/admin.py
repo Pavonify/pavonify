@@ -6,7 +6,7 @@ from datetime import timedelta
 from django.utils.html import format_html
 from .models import (
     School, User, Class, Student, VocabularyList, VocabularyWord,
-    Progress, Assignment, AssignmentProgress, Trophy, StudentTrophy, Announcement
+    Progress, Assignment, AssignmentProgress, Trophy, StudentTrophy, Announcement, ReadingLabText
 
 )
 
@@ -202,3 +202,26 @@ class UserAdmin(admin.ModelAdmin):
         return obj.is_premium
     is_premium_display.boolean = True  # This tells the admin to display as a tick/cross
     is_premium_display.short_description = "Premium"
+
+# Register the ReadingLabText model
+@admin.register(ReadingLabText)
+class ReadingLabTextAdmin(admin.ModelAdmin):
+    list_display = ('id', 'teacher', 'topic', 'exam_board', 'level', 'word_count', 'created_at')
+    list_filter = ('exam_board', 'level', 'created_at')
+    search_fields = ('topic', 'teacher__username')
+    readonly_fields = ('created_at',)  # Make created_at read-only
+    filter_horizontal = ('selected_words',)  # For easier selection of words
+
+    # Customize the form to display related fields
+    fieldsets = (
+        ('General Information', {
+            'fields': ('teacher', 'vocabulary_list', 'selected_words', 'exam_board', 'topic', 'level', 'word_count')
+        }),
+        ('Generated Texts', {
+            'fields': ('generated_text_source', 'generated_text_target')
+        }),
+        ('Metadata', {
+            'fields': ('created_at',)
+        }),
+    )
+
