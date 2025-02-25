@@ -155,33 +155,33 @@
 
 <script>
     document.addEventListener("DOMContentLoaded", function () {
-        // Get the words from the selected vocabulary list (replace this dynamically in Django)
-        let selectedWords = [
+        // Get the words from the selected vocabulary list (Django dynamically inserts these)
+        let sourceWords = [
             {% for word in reading_lab_text.selected_words.all %}
                 "{{ word.word }}",
             {% endfor %}
         ];
+        
+        let targetWords = [
+            {% for word in reading_lab_text.selected_words.all %}
+                "{{ word.translation }}",
+            {% endfor %}
+        ];
 
-        function highlightWords(textElement) {
+        function highlightWords(textElement, words) {
             let text = textElement.innerHTML;
-            selectedWords.forEach(word => {
+            words.forEach(word => {
                 let regex = new RegExp(`\\b${word}\\b`, "gi"); // Match whole word case-insensitive
                 text = text.replace(regex, `<span class="highlight">${word}</span>`);
             });
             textElement.innerHTML = text;
         }
 
-        highlightWords(document.querySelector(".source-text-content"));
-        highlightWords(document.querySelector(".target-text-content"));
+        highlightWords(document.querySelector(".source-text-content"), sourceWords);
+        highlightWords(document.querySelector(".target-text-content"), targetWords);
     });
 </script>
 
-<style>
-    .highlight {
-        background-color: yellow;
-        font-weight: bold;
-    }
-</style>
 
 
 </body>
