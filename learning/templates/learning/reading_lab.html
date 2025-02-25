@@ -5,7 +5,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Reading Lab</title>
-    
     <style>
         /* Global Styles */
         body {
@@ -18,7 +17,6 @@
             align-items: center;
         }
 
-        /* Main content container */
         .main-content {
             flex-grow: 1;
             padding: 40px;
@@ -29,7 +27,6 @@
             width: 100%;
         }
 
-        /* Pane styling */
         .pane {
             background-color: white;
             border-radius: 10px;
@@ -50,7 +47,6 @@
             font-size: 28px;
         }
 
-        /* Form Styling */
         .form-group {
             margin-bottom: 15px;
         }
@@ -71,8 +67,7 @@
             border-color: #0aa2ef;
             box-shadow: 0 0 5px rgba(10, 162, 239, 0.5);
         }
-        
-        /* Word Selection Box */
+
         .word-selection-box {
             border: 1px solid #ccc;
             max-height: 200px;
@@ -87,7 +82,6 @@
             cursor: pointer;
         }
 
-        /* Button Styling */
         .btn {
             background-color: #ff2c61;
             color: white;
@@ -106,12 +100,10 @@
             background-color: #d4204c;
         }
 
-        /* Hide sections initially */
         .hidden {
             display: none;
         }
 
-        /* Align radio buttons inline */
         .radio-group {
             display: flex;
             align-items: center;
@@ -123,60 +115,37 @@
             height: 16px;
         }
 
-        /* Responsive Design */
         @media (max-width: 768px) {
             .pane {
                 width: 95%;
             }
         }
 
-.back-btn {
-    background-color: #0aa2ef; /* Light blue */
-    color: white;
-    border: none;
-    padding: 10px 15px;
-    border-radius: 5px;
-    text-decoration: none;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-    font-size: 16px;
-    display: inline-block;
-    margin-top: 20px;
-    text-align: center;
-}
-
-.back-btn:hover {
-    background-color: #086baf; /* Darker blue */
-}
-
-select, 
-input[type="number"], 
-input[type="text"], 
-button {
-    width: 100%;
-    max-width: 100%;
-    padding: 10px;
-    font-size: 16px;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-    box-sizing: border-box;
-}
-
-
+        .back-btn {
+            background-color: #0aa2ef;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            text-decoration: none;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            font-size: 16px;
+            display: inline-block;
+            margin-top: 20px;
+            text-align: center;
+        }
+        .back-btn:hover {
+            background-color: #086baf;
+        }
     </style>
 </head>
-
 <body>
-
-    <!-- Main Content -->
     <div class="main-content">
         <div class="pane">
             <h2>📚 Reading Lab</h2>
-
             <form method="post">
                 {% csrf_token %}
-
-                <!-- Vocabulary List Dropdown -->
                 <div class="form-group">
                     <label for="vocabulary_list">Vocabulary List</label>
                     <select id="vocabulary_list" name="vocabulary_list" onchange="updateWordSelection()" required>
@@ -187,13 +156,11 @@ button {
                     </select>
                 </div>
 
-                <!-- Word Selection (Scrollable) -->
                 <div class="form-group hidden" id="word_selection">
                     <label>Select Words</label>
                     <div class="word-selection-box"></div>
                 </div>
 
-                <!-- Topic Selection Method -->
                 <div class="form-group">
                     <label>Choose a Topic Selection Method:</label>
                     <div class="radio-group">
@@ -206,7 +173,6 @@ button {
                     </div>
                 </div>
 
-                <!-- Exam Board Dropdown -->
                 <div class="form-group hidden" id="exam_board_section">
                     <label for="exam_board">Exam Board</label>
                     <select id="exam_board" name="exam_board" onchange="updateTopics()">
@@ -217,7 +183,6 @@ button {
                     </select>
                 </div>
 
-                <!-- Topics Dropdown (Initially Hidden) -->
                 <div class="form-group hidden" id="topic_group">
                     <label for="topic">Topic</label>
                     <select id="topic" name="topic">
@@ -225,13 +190,11 @@ button {
                     </select>
                 </div>
 
-                <!-- Custom Topic Input (Initially Hidden) -->
                 <div class="form-group hidden" id="custom_topic_section">
                     <label for="custom_topic">Enter Your Own Topic (Max 25 chars)</label>
                     <input type="text" id="custom_topic" name="custom_topic" maxlength="25" placeholder="Type your topic here">
                 </div>
 
-                <!-- Level Selection -->
                 <div class="form-group">
                     <label for="level">Level</label>
                     <select id="level" name="level" required>
@@ -244,7 +207,6 @@ button {
                     </select>
                 </div>
 
-                <!-- Word Count Selection -->
                 <div class="form-group">
                     <label for="word_count">Word Count</label>
                     <input type="number" id="word_count" name="word_count" min="50" max="200" required>
@@ -252,14 +214,10 @@ button {
 
                 <button type="submit" class="btn">🔄 Generate Text</button>
             </form>
-
-<a href="{% url 'teacher_dashboard' %}" class="btn back-btn">⬅️ Back to Dashboard</a>
-
-
+            <a href="{% url 'teacher_dashboard' %}" class="btn back-btn">⬅️ Back to Dashboard</a>
         </div>
     </div>
 
-    <!-- JavaScript -->
     <script>
         const examBoardTopics = JSON.parse('{{ exam_board_topics_json|escapejs }}');
 
@@ -289,7 +247,31 @@ button {
             const isCustomTopicSelected = document.getElementById("topic_method_custom").checked;
             document.getElementById("custom_topic_section").classList.toggle("hidden", !isCustomTopicSelected);
         }
-    </script>
 
+        function updateWordSelection() {
+            const vocabularyListId = document.getElementById("vocabulary_list").value;
+            const wordSelectionDiv = document.querySelector(".word-selection-box");
+
+            if (vocabularyListId) {
+                fetch(`/get-words/?vocabulary_list_id=${vocabularyListId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        let wordListHTML = '';
+                        data.words.forEach(word => {
+                            wordListHTML += `
+                                <label>
+                                    <input type="checkbox" name="selected_words" value="${word.id}" checked>
+                                    ${word.word}
+                                </label>
+                            `;
+                        });
+                        wordSelectionDiv.innerHTML = wordListHTML;
+                        wordSelectionDiv.parentElement.classList.remove("hidden");
+                    });
+            } else {
+                wordSelectionDiv.parentElement.classList.add("hidden");
+            }
+        }
+    </script>
 </body>
 </html>
