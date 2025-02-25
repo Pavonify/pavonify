@@ -105,18 +105,69 @@
 
             <div class="parallel-text">
                 <div class="source-text">
-                    <h3>Source Language: {{ reading_lab_text.vocabulary_list.source_language }}</h3>
-                    <p>{{ reading_lab_text.generated_text_source }}</p>
+<h3>
+    <img class="flag" src="{% static 'flags/' %}{{ reading_lab_text.vocabulary_list.source_language|lower }}.png" alt="{{ reading_lab_text.vocabulary_list.source_language }}">
+</h3>
+<p class="source-text-content highlight-words">{{ reading_lab_text.generated_text_source }}</p>
                 </div>
                 <div class="target-text">
-                    <h3>Target Language: {{ reading_lab_text.vocabulary_list.target_language }}</h3>
-                    <p>{{ reading_lab_text.generated_text_target }}</p>
+<h3>
+    <img class="flag" src="{% static 'flags/' %}{{ reading_lab_text.vocabulary_list.target_language|lower }}.png" alt="{{ reading_lab_text.vocabulary_list.target_language }}">
+</h3>	
+<p class="target-text-content highlight-words">{{ reading_lab_text.generated_text_target }}</p>
+
                 </div>
             </div>
 
             <a href="{% url 'reading_lab' %}" class="btn">🔄 Generate Another Text</a>
         </div>
     </div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        function removeFirstSentence(element) {
+            let text = element.innerHTML;
+            let firstPeriodIndex = text.indexOf(".");
+            if (firstPeriodIndex !== -1) {
+                element.innerHTML = text.substring(firstPeriodIndex + 1).trim();
+            }
+        }
+        
+        removeFirstSentence(document.querySelector(".source-text-content"));
+        removeFirstSentence(document.querySelector(".target-text-content"));
+    });
+</script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        // Get the words from the selected vocabulary list (replace this dynamically in Django)
+        let selectedWords = [
+            {% for word in reading_lab_text.selected_words.all %}
+                "{{ word.word }}",
+            {% endfor %}
+        ];
+
+        function highlightWords(textElement) {
+            let text = textElement.innerHTML;
+            selectedWords.forEach(word => {
+                let regex = new RegExp(`\\b${word}\\b`, "gi"); // Match whole word case-insensitive
+                text = text.replace(regex, `<span class="highlight">${word}</span>`);
+            });
+            textElement.innerHTML = text;
+        }
+
+        highlightWords(document.querySelector(".source-text-content"));
+        highlightWords(document.querySelector(".target-text-content"));
+    });
+</script>
+
+<style>
+    .highlight {
+        background-color: yellow;
+        font-weight: bold;
+    }
+</style>
+
 
 </body>
 </html>
