@@ -1526,7 +1526,8 @@ def reading_lab(request):
         prompt = (
             f"Generate a parallel text in {vocabulary_list.source_language} and {vocabulary_list.target_language} "
             f"on the topic of {topic}. The text should be at {level} level and include the following words: "
-            f"{selected_words_text}. The word count should be approximately {word_count}."
+            f"{selected_words_text}. The word count should be approximately {word_count}. "
+            f"Separate the source and target texts with '==='."
         )
 
         # Call Gemini API to generate texts
@@ -1534,8 +1535,18 @@ def reading_lab(request):
         response = model.generate_content(prompt)
         generated_text = response.text
 
-        # Split the generated text into source and target (assuming Gemini returns them separated by a delimiter)
-        source_text, target_text = generated_text.split("\n\n")  # Adjust delimiter as needed
+        # Debug: Print the generated text
+        print("Generated Text:", generated_text)
+
+        # Split the generated text using the custom delimiter
+        text_parts = generated_text.split("===")
+
+        # Validate the number of parts
+        if len(text_parts) < 2:
+            return render(request, "error.html", {"message": "The generated text is not in the expected format."})
+
+        # Assign the source and target texts
+        source_text, target_text = text_parts[0], text_parts[1]
 
         # Save the generated texts to the database
         reading_lab_text = ReadingLabText(
@@ -1566,7 +1577,6 @@ def reading_lab(request):
         "exam_boards": list(EXAM_BOARD_TOPICS.keys()),
         "exam_board_topics_json": exam_board_topics_json  # Pass JSON to template
     })
-
 
 @login_required
 def reading_lab_display(request, text_id):
