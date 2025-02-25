@@ -1582,7 +1582,7 @@ def reading_lab(request):
 def reading_lab_display(request, text_id):
     # Fetch the generated text
     reading_lab_text = ReadingLabText.objects.get(id=text_id)
-    return render(request, "reading_lab_display.html", {
+    return render(request, "learning/reading_lab_display.html", {
         "reading_lab_text": reading_lab_text,
     })
 
