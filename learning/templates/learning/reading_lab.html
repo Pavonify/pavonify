@@ -111,6 +111,18 @@
             display: none;
         }
 
+        /* Align radio buttons inline */
+        .radio-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .radio-group input {
+            margin: 0;
+            width: 16px;
+            height: 16px;
+        }
+
         /* Responsive Design */
         @media (max-width: 768px) {
             .pane {
@@ -151,15 +163,18 @@
                 <!-- Topic Selection Method -->
                 <div class="form-group">
                     <label>Choose a Topic Selection Method:</label>
-                    <input type="radio" name="topic_method" value="exam_board" id="topic_method_board" checked onclick="toggleTopicSelection()"> 
-                    <label for="topic_method_board">I want to select an exam board theme</label>
-                    
-                    <input type="radio" name="topic_method" value="custom_topic" id="topic_method_custom" onclick="toggleTopicSelection()"> 
-                    <label for="topic_method_custom">I want to set my own topic</label>
+                    <div class="radio-group">
+                        <input type="radio" name="topic_method" value="exam_board" id="topic_method_board" checked onclick="toggleTopicSelection()"> 
+                        <label for="topic_method_board">I want to select an exam board theme</label>
+                    </div>
+                    <div class="radio-group">
+                        <input type="radio" name="topic_method" value="custom_topic" id="topic_method_custom" onclick="toggleTopicSelection()"> 
+                        <label for="topic_method_custom">I want to set my own topic</label>
+                    </div>
                 </div>
 
                 <!-- Exam Board Dropdown -->
-                <div class="form-group" id="exam_board_section">
+                <div class="form-group hidden" id="exam_board_section">
                     <label for="exam_board">Exam Board</label>
                     <select id="exam_board" name="exam_board" onchange="updateTopics()">
                         <option value="">Select an exam board</option>
@@ -232,7 +247,7 @@
         function toggleTopicSelection() {
             const isExamBoardSelected = document.getElementById("topic_method_board").checked;
             document.getElementById("exam_board_section").classList.toggle("hidden", !isExamBoardSelected);
-            document.getElementById("topic_group").classList.toggle("hidden", !isExamBoardSelected);
+            document.getElementById("topic_group").classList.add("hidden"); // Keep it hidden initially
 
             const isCustomTopicSelected = document.getElementById("topic_method_custom").checked;
             document.getElementById("custom_topic_section").classList.toggle("hidden", !isCustomTopicSelected);
