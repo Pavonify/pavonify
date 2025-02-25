@@ -9,7 +9,7 @@
         label { display: block; font-weight: bold; }
         select, input[type="number"] { width: 100%; padding: 8px; }
         .hidden { display: none; }
-        
+
         /* Scrollable list box for words */
         .word-selection-box {
             border: 1px solid #ccc;
@@ -44,7 +44,7 @@
         <!-- Word Selection (Scrollable) -->
         <div class="form-group hidden" id="word_selection">
             <label>Select Words</label>
-            <!-- Words will be dynamically populated -->
+            <div class="word-selection-box"></div>
         </div>
 
         <!-- Exam Board Dropdown -->
@@ -88,16 +88,21 @@
         <button type="submit">Generate Text</button>
     </form>
 
-    <!-- JSON Data for Exam Board Topics (Fixing the issue) -->
+    <!-- **JSON Data for Exam Board Topics** -->
     <script>
-        const examBoardTopics = {{ exam_boards|safe }};
+        const examBoardTopics = JSON.parse('{{ exam_board_topics_json|escapejs }}');
 
         function updateTopics() {
+            console.log("updateTopics() called"); // Debugging
             const examBoard = document.getElementById("exam_board").value;
+            console.log("Selected Exam Board:", examBoard); // Debugging
+            console.log("Exam Board Topics:", examBoardTopics); // Debugging
+
             const topicSelect = document.getElementById("topic");
             topicSelect.innerHTML = ""; // Clear existing options
 
             if (examBoard in examBoardTopics) {
+                console.log("Topics for selected exam board:", examBoardTopics[examBoard]); // Debugging
                 examBoardTopics[examBoard].forEach(topic => {
                     const option = document.createElement("option");
                     option.value = topic;
@@ -106,19 +111,20 @@
                 });
                 document.getElementById("topic_group").classList.remove("hidden");
             } else {
+                console.log("No topics found for selected exam board"); // Debugging
                 document.getElementById("topic_group").classList.add("hidden");
             }
         }
 
         function updateWordSelection() {
             const vocabularyListId = document.getElementById("vocabulary_list").value;
-            const wordSelectionDiv = document.getElementById("word_selection");
-            
+            const wordSelectionDiv = document.querySelector(".word-selection-box");
+
             if (vocabularyListId) {
                 fetch(`/get-words/?vocabulary_list_id=${vocabularyListId}`)
                     .then(response => response.json())
                     .then(data => {
-                        let wordListHTML = '<div class="word-selection-box">';
+                        let wordListHTML = '';
                         data.words.forEach(word => {
                             wordListHTML += `
                                 <label>
@@ -127,12 +133,11 @@
                                 </label>
                             `;
                         });
-                        wordListHTML += '</div>';
                         wordSelectionDiv.innerHTML = wordListHTML;
-                        wordSelectionDiv.classList.remove("hidden");
+                        wordSelectionDiv.parentElement.classList.remove("hidden");
                     });
             } else {
-                wordSelectionDiv.classList.add("hidden");
+                wordSelectionDiv.parentElement.classList.add("hidden");
             }
         }
     </script>

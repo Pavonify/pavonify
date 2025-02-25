@@ -3,137 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reading Lab</title>
+    <title>Generated Text</title>
     <style>
-        .form-group { margin-bottom: 15px; }
-        label { display: block; font-weight: bold; }
-        select, input[type="number"] { width: 100%; padding: 8px; }
-        .hidden { display: none; }
-
-        /* Scrollable list box for words */
-        .word-selection-box {
-            border: 1px solid #ccc;
-            max-height: 200px;
-            overflow-y: auto;
-            padding: 10px;
-            background: white;
+        .parallel-text {
+            display: flex;
+            gap: 20px;
         }
-        .word-selection-box label {
-            display: block;
-            padding: 5px;
-            cursor: pointer;
+        .source-text, .target-text {
+            flex: 1;
         }
     </style>
 </head>
 <body>
-    <h1>Reading Lab</h1>
-    <form method="post">
-        {% csrf_token %}
-
-        <!-- Vocabulary List Dropdown -->
-        <div class="form-group">
-            <label for="vocabulary_list">Vocabulary List</label>
-            <select id="vocabulary_list" name="vocabulary_list" onchange="updateWordSelection()" required>
-                <option value="">Select a vocabulary list</option>
-                {% for list in vocabulary_lists %}
-                    <option value="{{ list.id }}">{{ list.name }}</option>
-                {% endfor %}
-            </select>
+    <h1>Generated Parallel Text</h1>
+    <div class="parallel-text">
+        <div class="source-text">
+            <h3>Source Language: {{ reading_lab_text.source_language }}</h3>
+            <p>{{ reading_lab_text.generated_text_source }}</p>
         </div>
-
-        <!-- Word Selection (Scrollable) -->
-        <div class="form-group hidden" id="word_selection">
-            <label>Select Words</label>
-            <div class="word-selection-box"></div>
+        <div class="target-text">
+            <h3>Target Language: {{ reading_lab_text.target_language }}</h3>
+            <p>{{ reading_lab_text.generated_text_target }}</p>
         </div>
-
-        <!-- Exam Board Dropdown -->
-        <div class="form-group">
-            <label for="exam_board">Exam Board</label>
-            <select id="exam_board" name="exam_board" onchange="updateTopics()" required>
-                <option value="">Select an exam board</option>
-                {% for board in exam_boards %}
-                    <option value="{{ board }}">{{ board }}</option>
-                {% endfor %}
-            </select>
-        </div>
-
-        <!-- Topics Dropdown (Initially Hidden) -->
-        <div class="form-group hidden" id="topic_group">
-            <label for="topic">Topic</label>
-            <select id="topic" name="topic" required>
-                <!-- Topics will be populated dynamically -->
-            </select>
-        </div>
-
-        <!-- Level Selection -->
-        <div class="form-group">
-            <label for="level">Level</label>
-            <select id="level" name="level" required>
-                <option value="A1">A1</option>
-                <option value="A2">A2</option>
-                <option value="B1">B1</option>
-                <option value="B2">B2</option>
-                <option value="C1">C1</option>
-                <option value="C2">C2</option>
-            </select>
-        </div>
-
-        <!-- Word Count Selection -->
-        <div class="form-group">
-            <label for="word_count">Word Count</label>
-            <input type="number" id="word_count" name="word_count" min="50" max="200" required>
-        </div>
-
-        <button type="submit">Generate Text</button>
-    </form>
-
-    <!-- **JSON Data for Exam Board Topics** -->
-    <script>
-        const examBoardTopics = JSON.parse('{{ exam_board_topics_json|escapejs }}');
-
-        function updateTopics() {
-            const examBoard = document.getElementById("exam_board").value;
-            const topicSelect = document.getElementById("topic");
-            topicSelect.innerHTML = ""; // Clear existing options
-
-            if (examBoard in examBoardTopics) {
-                examBoardTopics[examBoard].forEach(topic => {
-                    const option = document.createElement("option");
-                    option.value = topic;
-                    option.textContent = topic;
-                    topicSelect.appendChild(option);
-                });
-                document.getElementById("topic_group").classList.remove("hidden");
-            } else {
-                document.getElementById("topic_group").classList.add("hidden");
-            }
-        }
-
-        function updateWordSelection() {
-            const vocabularyListId = document.getElementById("vocabulary_list").value;
-            const wordSelectionDiv = document.querySelector(".word-selection-box");
-
-            if (vocabularyListId) {
-                fetch(`/get-words/?vocabulary_list_id=${vocabularyListId}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        let wordListHTML = '';
-                        data.words.forEach(word => {
-                            wordListHTML += `
-                                <label>
-                                    <input type="checkbox" name="selected_words" value="${word.id}" checked>
-                                    ${word.word}
-                                </label>
-                            `;
-                        });
-                        wordSelectionDiv.innerHTML = wordListHTML;
-                        wordSelectionDiv.parentElement.classList.remove("hidden");
-                    });
-            } else {
-                wordSelectionDiv.parentElement.classList.add("hidden");
-            }
-        }
-    </script>
+    </div>
+    <a href="{% url 'reading_lab' %}">Generate Another Text</a>
 </body>
 </html>
