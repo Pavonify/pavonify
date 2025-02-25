@@ -9,57 +9,64 @@
         label { display: block; font-weight: bold; }
         select, input[type="number"] { width: 100%; padding: 8px; }
         .hidden { display: none; }
+        
+        /* 🔥 Scrollable list box for words */
+        .word-selection-box {
+            border: 1px solid #ccc;
+            max-height: 200px; /* ✅ Limits height */
+            overflow-y: auto;
+            padding: 10px;
+            background: white;
+        }
+        .word-selection-box label {
+            display: block;
+            padding: 5px;
+            cursor: pointer;
+        }
     </style>
     <script>
-// Load topics dynamically when an exam board is selected
-function updateTopics() {
-    const examBoard = document.getElementById("exam_board").value;
-    const topicSelect = document.getElementById("topic");
-    topicSelect.innerHTML = ""; // Clear existing options
+        // ✅ Load topics dynamically when an exam board is selected
+        function updateTopics() {
+            const examBoard = document.getElementById("exam_board").value;
+            const topicSelect = document.getElementById("topic");
+            topicSelect.innerHTML = ""; // Clear existing options
+            
+            const topics = JSON.parse(document.getElementById("exam_board_topics").textContent);
+            
+            if (topics[examBoard]) {
+                topics[examBoard].forEach(topic => {
+                    const option = document.createElement("option");
+                    option.value = topic;
+                    option.textContent = topic;
+                    topicSelect.appendChild(option);
+                });
+                document.getElementById("topic_group").classList.remove("hidden");
+            } else {
+                document.getElementById("topic_group").classList.add("hidden");
+            }
+        }
 
-    // Fetch topics from JSON script correctly
-    const topics = JSON.parse(document.getElementById("exam_board_topics").textContent);
-    
-    if (topics[examBoard]) {
-        topics[examBoard].forEach(topic => {
-            const option = document.createElement("option");
-            option.value = topic;
-            option.textContent = topic;
-            topicSelect.appendChild(option);
-        });
-        document.getElementById("topic_group").classList.remove("hidden");
-    } else {
-        document.getElementById("topic_group").classList.add("hidden");
-    }
-}
-
-
-        // Load words dynamically when a vocabulary list is selected
+        // ✅ Fetch vocabulary words and display in scrollable list
         function updateWordSelection() {
             const vocabularyListId = document.getElementById("vocabulary_list").value;
             const wordSelectionDiv = document.getElementById("word_selection");
-            wordSelectionDiv.innerHTML = ""; // Clear previous selection
             
             if (vocabularyListId) {
                 fetch(`/get-words/?vocabulary_list_id=${vocabularyListId}`)
                     .then(response => response.json())
                     .then(data => {
-                        if (data.words.length > 0) {
-                            data.words.forEach(word => {
-                                const label = document.createElement("label");
-                                const checkbox = document.createElement("input");
-                                checkbox.type = "checkbox";
-                                checkbox.name = "selected_words";
-                                checkbox.value = word.id;
-                                label.appendChild(checkbox);
-                                label.append(` ${word.word}`);
-                                wordSelectionDiv.appendChild(label);
-                                wordSelectionDiv.appendChild(document.createElement("br"));
-                            });
-                            wordSelectionDiv.classList.remove("hidden");
-                        } else {
-                            wordSelectionDiv.classList.add("hidden");
-                        }
+                        let wordListHTML = '<div class="word-selection-box">';
+                        data.words.forEach(word => {
+                            wordListHTML += `
+                                <label>
+                                    <input type="checkbox" name="selected_words" value="${word.id}" checked>
+                                    ${word.word}
+                                </label>
+                            `;
+                        });
+                        wordListHTML += '</div>';
+                        wordSelectionDiv.innerHTML = wordListHTML;
+                        wordSelectionDiv.classList.remove("hidden");
                     });
             } else {
                 wordSelectionDiv.classList.add("hidden");
@@ -69,46 +76,46 @@ function updateTopics() {
 </head>
 <body>
     <h1>Reading Lab</h1>
-    
-<script id="exam_board_topics" type="application/json">
-    {{ exam_boards|json_script:"exam_board_topics" }}
-</script>
-
     <form method="post">
         {% csrf_token %}
-        
+
+        <!-- Vocabulary List Dropdown -->
         <div class="form-group">
             <label for="vocabulary_list">Vocabulary List</label>
             <select id="vocabulary_list" name="vocabulary_list" onchange="updateWordSelection()" required>
-                <option value="">-- Select a vocabulary list --</option>
+                <option value="">Select a vocabulary list</option>
                 {% for list in vocabulary_lists %}
                     <option value="{{ list.id }}">{{ list.name }}</option>
                 {% endfor %}
             </select>
         </div>
 
+        <!-- Word Selection (Scrollable) -->
         <div class="form-group hidden" id="word_selection">
             <label>Select Words</label>
-            <!-- Words will be dynamically inserted here -->
+            <!-- Words will be dynamically populated -->
         </div>
 
+        <!-- Exam Board Dropdown -->
         <div class="form-group">
             <label for="exam_board">Exam Board</label>
             <select id="exam_board" name="exam_board" onchange="updateTopics()" required>
-                <option value="">-- Select an exam board --</option>
+                <option value="">Select an exam board</option>
                 {% for board in exam_boards %}
                     <option value="{{ board }}">{{ board }}</option>
                 {% endfor %}
             </select>
         </div>
 
+        <!-- Topics Dropdown (Initially Hidden) -->
         <div class="form-group hidden" id="topic_group">
             <label for="topic">Topic</label>
             <select id="topic" name="topic" required>
-                <!-- Topics will be dynamically populated -->
+                <!-- Topics will be populated dynamically -->
             </select>
         </div>
 
+        <!-- Level Selection -->
         <div class="form-group">
             <label for="level">Level</label>
             <select id="level" name="level" required>
@@ -121,12 +128,18 @@ function updateTopics() {
             </select>
         </div>
 
+        <!-- Word Count Selection -->
         <div class="form-group">
-            <label for="word_count">Word Count (max 200)</label>
+            <label for="word_count">Word Count</label>
             <input type="number" id="word_count" name="word_count" min="50" max="200" required>
         </div>
 
         <button type="submit">Generate Text</button>
     </form>
+
+    <!-- JSON Data for Exam Board Topics -->
+    <script id="exam_board_topics" type="application/json">
+        {{ exam_boards|json_script:"exam_board_topics" }}
+    </script>
 </body>
 </html>
