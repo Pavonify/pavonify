@@ -1501,10 +1501,54 @@ def teacher_cancel_subscription(request):
 
 # Hardcoded exam board topics
 EXAM_BOARD_TOPICS = {
-    "Cambridge": ["Environment", "Technology", "Education", "Health", "Travel"],
-    "IELTS": ["Globalization", "Art and Culture", "Science", "History", "Social Issues"],
-    "TOEFL": ["Academic Research", "Campus Life", "Natural Sciences", "Social Sciences"],
+    "iGCSE Cambridge": [
+        "Everyday Activities",
+        "Personal and Social Life",
+        "The World Around Us",
+        "The World of Work",
+        "The International World"
+    ],
+    "GCSE AQA": [
+        "Identity and Culture",
+        "Local, National, International, and Global Areas of Interest",
+        "Current and Future Study and Employment"
+    ],
+    "GCSE Edexcel": [
+        "Identity and Culture",
+        "Local Area, Holiday, and Travel",
+        "School",
+        "Future Aspirations, Study, and Work",
+        "International and Global Dimension"
+    ],
+    "IB MYP": [
+        "Identities and Relationships",
+        "Personal and Cultural Expression",
+        "Orientation in Space and Time",
+        "Scientific and Technical Innovation",
+        "Globalization and Sustainability",
+        "Fairness and Development"
+    ],
+    "IB DP": [
+        "Identities",
+        "Experiences",
+        "Human Ingenuity",
+        "Social Organization",
+        "Sharing the Planet"
+    ],
+    "A Level Edexcel": [
+        "Changes in Society",
+        "Political and Artistic Culture in the Target Language-speaking World",
+        "Multiculturalism and Immigration",
+        "Historical Developments and Resistance Movements"
+    ],
+    "A Level AQA": [
+        "Aspects of Society: Current Trends",
+        "Aspects of Society: Current Issues",
+        "Artistic Culture in the Target Language-speaking World",
+        "Aspects of Political Life in the Target Language-speaking World"
+    ]
 }
+
 
 @login_required
 def reading_lab(request):
