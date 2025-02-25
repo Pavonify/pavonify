@@ -130,6 +130,39 @@
             }
         }
 
+.back-btn {
+    background-color: #0aa2ef; /* Light blue */
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    font-size: 16px;
+    display: inline-block;
+    margin-top: 20px;
+    text-align: center;
+}
+
+.back-btn:hover {
+    background-color: #086baf; /* Darker blue */
+}
+
+select, 
+input[type="number"], 
+input[type="text"], 
+button {
+    width: 100%;
+    max-width: 100%;
+    padding: 10px;
+    font-size: 16px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    box-sizing: border-box;
+}
+
+
     </style>
 </head>
 
@@ -219,6 +252,10 @@
 
                 <button type="submit" class="btn">🔄 Generate Text</button>
             </form>
+
+<a href="{% url 'teacher_dashboard' %}" class="btn back-btn">⬅️ Back to Dashboard</a>
+
+
         </div>
     </div>
 
