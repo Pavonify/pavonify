@@ -115,6 +115,26 @@
         border-radius: 3px;
     }
 
+.back-btn {
+    background-color: #0aa2ef; /* Light blue */
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    font-size: 16px;
+    display: inline-block;
+    margin-top: 20px;
+    text-align: center;
+}
+
+.back-btn:hover {
+    background-color: #086baf; /* Darker blue */
+}
+
+
     </style>
 </head>
 
@@ -142,6 +162,8 @@
             </div>
 
             <a href="{% url 'reading_lab' %}" class="btn">🔄 Generate Another Text</a>
+<!-- Back to Dashboard Button -->
+<a href="{% url 'teacher_dashboard' %}" class="btn back-btn">⬅️ Back to Dashboard</a>
         </div>
     </div>
 
