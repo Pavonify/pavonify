@@ -10,10 +10,10 @@
         select, input[type="number"] { width: 100%; padding: 8px; }
         .hidden { display: none; }
         
-        /* 🔥 Scrollable list box for words */
+        /* Scrollable list box for words */
         .word-selection-box {
             border: 1px solid #ccc;
-            max-height: 200px; /* ✅ Limits height */
+            max-height: 200px;
             overflow-y: auto;
             padding: 10px;
             background: white;
@@ -24,55 +24,6 @@
             cursor: pointer;
         }
     </style>
-    <script>
-        // ✅ Load topics dynamically when an exam board is selected
-        function updateTopics() {
-            const examBoard = document.getElementById("exam_board").value;
-            const topicSelect = document.getElementById("topic");
-            topicSelect.innerHTML = ""; // Clear existing options
-            
-            const topics = JSON.parse(document.getElementById("exam_board_topics").textContent);
-            
-            if (topics[examBoard]) {
-                topics[examBoard].forEach(topic => {
-                    const option = document.createElement("option");
-                    option.value = topic;
-                    option.textContent = topic;
-                    topicSelect.appendChild(option);
-                });
-                document.getElementById("topic_group").classList.remove("hidden");
-            } else {
-                document.getElementById("topic_group").classList.add("hidden");
-            }
-        }
-
-        // ✅ Fetch vocabulary words and display in scrollable list
-        function updateWordSelection() {
-            const vocabularyListId = document.getElementById("vocabulary_list").value;
-            const wordSelectionDiv = document.getElementById("word_selection");
-            
-            if (vocabularyListId) {
-                fetch(`/get-words/?vocabulary_list_id=${vocabularyListId}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        let wordListHTML = '<div class="word-selection-box">';
-                        data.words.forEach(word => {
-                            wordListHTML += `
-                                <label>
-                                    <input type="checkbox" name="selected_words" value="${word.id}" checked>
-                                    ${word.word}
-                                </label>
-                            `;
-                        });
-                        wordListHTML += '</div>';
-                        wordSelectionDiv.innerHTML = wordListHTML;
-                        wordSelectionDiv.classList.remove("hidden");
-                    });
-            } else {
-                wordSelectionDiv.classList.add("hidden");
-            }
-        }
-    </script>
 </head>
 <body>
     <h1>Reading Lab</h1>
@@ -137,9 +88,53 @@
         <button type="submit">Generate Text</button>
     </form>
 
-    <!-- JSON Data for Exam Board Topics -->
-    <script id="exam_board_topics" type="application/json">
-        {{ exam_boards|json_script:"exam_board_topics" }}
+    <!-- JSON Data for Exam Board Topics (Fixing the issue) -->
+    <script>
+        const examBoardTopics = {{ exam_boards|safe }};
+
+        function updateTopics() {
+            const examBoard = document.getElementById("exam_board").value;
+            const topicSelect = document.getElementById("topic");
+            topicSelect.innerHTML = ""; // Clear existing options
+
+            if (examBoard in examBoardTopics) {
+                examBoardTopics[examBoard].forEach(topic => {
+                    const option = document.createElement("option");
+                    option.value = topic;
+                    option.textContent = topic;
+                    topicSelect.appendChild(option);
+                });
+                document.getElementById("topic_group").classList.remove("hidden");
+            } else {
+                document.getElementById("topic_group").classList.add("hidden");
+            }
+        }
+
+        function updateWordSelection() {
+            const vocabularyListId = document.getElementById("vocabulary_list").value;
+            const wordSelectionDiv = document.getElementById("word_selection");
+            
+            if (vocabularyListId) {
+                fetch(`/get-words/?vocabulary_list_id=${vocabularyListId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        let wordListHTML = '<div class="word-selection-box">';
+                        data.words.forEach(word => {
+                            wordListHTML += `
+                                <label>
+                                    <input type="checkbox" name="selected_words" value="${word.id}" checked>
+                                    ${word.word}
+                                </label>
+                            `;
+                        });
+                        wordListHTML += '</div>';
+                        wordSelectionDiv.innerHTML = wordListHTML;
+                        wordSelectionDiv.classList.remove("hidden");
+                    });
+            } else {
+                wordSelectionDiv.classList.add("hidden");
+            }
+        }
     </script>
 </body>
 </html>
