@@ -1,31 +1,122 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Generated Parallel Text</title>
+    
     <style>
+        /* Inherit dashboard styling */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            min-height: 100vh;
+            background: #e3f2fd;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Main content container */
+        .main-content {
+            flex-grow: 1;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            width: 100%;
+        }
+
+        /* Panel container */
+        .pane {
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            max-width: 800px;
+            width: 90%;
+            margin-bottom: 20px;
+            animation: fadeIn 1s ease-in-out;
+            color: #333;
+        }
+        .pane h2 {
+            margin-top: 0;
+            color: #0aa2ef;
+            font-size: 28px;
+        }
+
+        /* Parallel text section */
         .parallel-text {
             display: flex;
             gap: 20px;
+            justify-content: center;
+            width: 100%;
+            margin-top: 20px;
         }
         .source-text, .target-text {
             flex: 1;
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            min-height: 200px;
         }
+        .source-text h3, .target-text h3 {
+            color: #0aa2ef;
+            text-align: center;
+        }
+
+        /* Button Styling */
+        .btn {
+            background-color: #ff2c61;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            text-decoration: none;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            font-size: 16px;
+            display: inline-block;
+            margin-top: 20px;
+        }
+        .btn:hover {
+            background-color: #d4204c;
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .parallel-text {
+                flex-direction: column;
+            }
+        }
+
     </style>
 </head>
+
 <body>
-    <h1>Generated Parallel Text</h1>
-    <div class="parallel-text">
-        <div class="source-text">
-            <h3>Source Language: {{ reading_lab_text.source_language }}</h3>
-            <p>{{ reading_lab_text.generated_text_source }}</p>
-        </div>
-        <div class="target-text">
-            <h3>Target Language: {{ reading_lab_text.target_language }}</h3>
-            <p>{{ reading_lab_text.generated_text_target }}</p>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="pane">
+            <h2>Generated Parallel Text 📖</h2>
+
+            <div class="parallel-text">
+                <div class="source-text">
+                    <h3>Source Language: {{ reading_lab_text.vocabulary_list.source_language }}</h3>
+                    <p>{{ reading_lab_text.generated_text_source }}</p>
+                </div>
+                <div class="target-text">
+                    <h3>Target Language: {{ reading_lab_text.vocabulary_list.target_language }}</h3>
+                    <p>{{ reading_lab_text.generated_text_target }}</p>
+                </div>
+            </div>
+
+            <a href="{% url 'reading_lab' %}" class="btn">🔄 Generate Another Text</a>
         </div>
     </div>
-    <a href="{% url 'reading_lab' %}">Generate Another Text</a>
+
 </body>
 </html>
