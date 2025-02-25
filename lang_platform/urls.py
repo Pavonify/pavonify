@@ -22,7 +22,7 @@ from django_countries.fields import CountryField
 from django.contrib import admin
 from django.urls import path
 from learning import views  # Import views from the learning app
-from learning.views import flashcard_mode
+from learning.views import flashcard_mode, delete_reading_lab_text
 from django.contrib.auth.decorators import login_required
 from learning.views import update_assignment_points, teacher_upgrade, create_checkout_session, worksheet_lab_view, custom_404_view, teacher_account_settings
 from django.conf.urls import handler404
@@ -97,6 +97,7 @@ urlpatterns = [
     path("reading-lab/", views.reading_lab, name="reading_lab"),
     path("reading-lab/<int:text_id>/", views.reading_lab_display, name="reading_lab_display"),
     path("get-words/", views.get_words, name="get_words"),
+    path('delete-reading-lab-text/<int:text_id>/', delete_reading_lab_text, name='delete_reading_lab_text'),
 
 ]
 

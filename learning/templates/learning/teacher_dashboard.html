@@ -1216,6 +1216,7 @@
         <td>{{ text.created_at|date:"Y-m-d H:i" }}</td>
         <td>
           <a href="{% url 'reading_lab_display' text.id %}" class="btn">View</a>
+<button class="btn btn-delete" data-text-id="{{ text.id }}">Delete</button>
         </td>
       </tr>
       {% empty %}
@@ -1338,6 +1339,32 @@ document.getElementById("purchase-credits-btn").addEventListener("click", functi
   alert("Purchase more credits functionality coming soon!");
 });
 
+    document.addEventListener("DOMContentLoaded", function () {
+        document.querySelectorAll(".btn-delete").forEach(button => {
+            button.addEventListener("click", function () {
+                let textId = this.getAttribute("data-text-id");
+                
+                if (confirm("Are you sure you want to delete this text? This action cannot be undone.")) {
+                    fetch(`/delete-reading-lab-text/${textId}/`, {
+                        method: "POST",
+                        headers: {
+                            "X-CSRFToken": "{{ csrf_token }}", 
+                            "Content-Type": "application/json"
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            document.getElementById(`text-row-${textId}`).remove();
+                        } else {
+                            alert("Error deleting text.");
+                        }
+                    })
+                    .catch(error => console.error("Error:", error));
+                }
+            });
+        });
+    });
 
 </script>
 

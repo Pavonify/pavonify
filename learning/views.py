@@ -1639,3 +1639,10 @@ def get_words(request):
     vocabulary_list_id = request.GET.get("vocabulary_list_id")
     words = VocabularyWord.objects.filter(list_id=vocabulary_list_id).values("id", "word")
     return JsonResponse({"words": list(words)})
+
+def delete_reading_lab_text(request, text_id):
+    if request.method == "POST":
+        text = get_object_or_404(ReadingLabText, id=text_id)
+        text.delete()
+        return JsonResponse({"success": True})
+    return JsonResponse({"success": False, "error": "Invalid request"}, status=400)
