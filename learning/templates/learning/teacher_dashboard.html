@@ -26,7 +26,7 @@
     .sidebar {
       background-color: #0aa2ef;
       color: white;
-      padding: 20px;
+      padding: 15px;
       width: 250px;
       box-shadow: 2px 0 5px rgba(0,0,0,0.1);
       display: flex;
@@ -59,8 +59,8 @@
       width: 100%;
       color: white;
       text-decoration: none;
-      padding: 10px 15px;
-      margin: 5px 0;
+      padding: 8px 12px;
+      margin: 3px 0;
       border-radius: 5px;
       background-color: #0a8fd9;
       text-align: center;
@@ -592,9 +592,13 @@
 }
 
 /* Reading Lab Pane */
+/* Fix for Reading Lab Pane Overflow */
 #reading-lab {
   max-width: 1000px;
+  max-height: 80vh; /* Limits height to 80% of viewport */
   margin: 0 auto;
+  overflow-y: auto; /* Adds vertical scrolling if needed */
+  padding: 20px;
 }
 
 .ai-credits {
