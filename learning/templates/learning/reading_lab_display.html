@@ -6,7 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Generated Parallel Text & Activities</title>
     <style>
-        /* Global Page Styles */
         body {
             font-family: Arial, sans-serif;
             margin: 0;
@@ -112,6 +111,7 @@
             white-space: pre-wrap;
             margin-bottom: 20px;
         }
+        /* Highlight text that is between **...** in the original parallel text. */
         .highlight {
             background-color: yellow;
             font-weight: bold;
@@ -129,7 +129,6 @@
     <div class="main-content">
         <div class="pane">
             <h2>Generated Parallel Text 📖</h2>
-
             <div class="parallel-text">
                 <div class="source-text">
                     <h3>
@@ -145,7 +144,7 @@
                 </div>
             </div>
 
-            <!-- Buttons: Generate Another Text, Back to Dashboard, THEN Generate Activities -->
+            <!-- Buttons: Generate Another Text, Back to Dashboard -->
             <a href="{% url 'reading_lab' %}" class="btn">🔄 Generate Another Text</a>
             <a href="{% url 'teacher_dashboard' %}" class="btn back-btn">⬅️ Back to Dashboard</a>
 
@@ -183,22 +182,7 @@
     </div>
 
     <script>
-        // 1) Remove the first sentence if desired
-        //    (comment out if you do not want this behavior)
-        document.addEventListener("DOMContentLoaded", function () {
-            function removeFirstSentence(element) {
-                let text = element.innerHTML;
-                let firstPeriodIndex = text.indexOf(".");
-                if (firstPeriodIndex !== -1) {
-                    element.innerHTML = text.substring(firstPeriodIndex + 1).trim();
-                }
-            }
-            // removeFirstSentence(document.querySelector(".source-text-content"));
-            // removeFirstSentence(document.querySelector(".target-text-content"));
-        });
-
-        // 2) Highlight text only where it is wrapped in **...**
-        //    Example: "We live in a **clean** apartment." -> highlight "clean" in yellow
+        // 1) Highlight text only where it is wrapped in **...** in the original parallel text
         document.addEventListener("DOMContentLoaded", function () {
             function highlightDoubleAsterisks(element) {
                 let text = element.innerHTML;

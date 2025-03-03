@@ -1696,9 +1696,14 @@ def delete_reading_lab_text(request, text_id):
 
 
 
-# Example imports for your models
-# from learning.models import ReadingLabText, EXAM_BOARD_TOPICS
-# from learning.models import VocabularyList, VocabularyWord
+# Helper: remove lines like "English:", "German:", etc.
+def remove_language_labels(text):
+    pattern = re.compile(r"(?i)(English|German|French|Spanish|Italian):\s*")
+    return pattern.sub("", text)
+
+# Helper: remove all "**"
+def remove_double_asterisks(text):
+    return text.replace("**", "")
 
 # 1) Cloze (Gap-Fill) Helper
 def generate_cloze(text, num_words_to_remove=10):
@@ -1708,17 +1713,21 @@ def generate_cloze(text, num_words_to_remove=10):
         num_words_to_remove = max(1, len(words) // 2)
     indices = random.sample(range(len(words)), num_words_to_remove)
     indices.sort()
+
     cloze_words = words.copy()
     for i in indices:
         cloze_words[i] = "_____"
+
     cloze_text = " ".join(cloze_words)
     answer_key = [words[i] for i in indices]
-    return (
+
+    result = (
         "Cloze Activity:\n\n"
         + cloze_text
         + "\n\nAnswer Key:\n"
         + ", ".join(answer_key)
     )
+    return result
 
 # 2) Reorder Paragraph Helper
 def generate_reorder_activity(text, num_chunks=10):
@@ -1733,6 +1742,7 @@ def generate_reorder_activity(text, num_chunks=10):
         chunks = [
             " ".join(words[i:i+chunk_size]) for i in range(0, len(words), chunk_size)
         ]
+
     original_order = list(range(1, len(chunks) + 1))
     scrambled = list(zip(original_order, chunks))
     random.shuffle(scrambled)
@@ -1744,23 +1754,17 @@ def generate_reorder_activity(text, num_chunks=10):
 
     return (
         "Reorder Activity:\n\n"
-        + "Scrambled Chunks:\n"
+        "Scrambled Chunks:\n"
         + scrambled_text
         + "\n\nCorrect Order (for teacher reference):\n"
         + correct_order
     )
 
-# 3) Remove lines like "English:" or "German:" or "French:" etc.
-def remove_language_labels(text):
-    # Removes lines or occurrences like "English:", "German:", "French:", ignoring case
-    pattern = re.compile(r"(?i)(English|German|French|Spanish|Italian):\s*")
-    return pattern.sub("", text)
-
 @login_required
 def reading_lab_display(request, text_id):
     reading_lab_text = get_object_or_404(ReadingLabText, id=text_id, teacher=request.user)
 
-    # Activity results
+    # Activities
     cloze_source = None
     cloze_target = None
     reorder_target = None
@@ -1778,44 +1782,57 @@ def reading_lab_display(request, text_id):
             })
 
         # 1) Cloze - source language
-        cloze_source = generate_cloze(reading_lab_text.generated_text_source, 10)
+        cloze_source_tmp = generate_cloze(reading_lab_text.generated_text_source, 10)
+        cloze_source_tmp = remove_language_labels(cloze_source_tmp)
+        cloze_source_tmp = remove_double_asterisks(cloze_source_tmp)
+        cloze_source = cloze_source_tmp
 
         # 2) Cloze - target language
-        cloze_target = generate_cloze(reading_lab_text.generated_text_target, 10)
+        cloze_target_tmp = generate_cloze(reading_lab_text.generated_text_target, 10)
+        cloze_target_tmp = remove_language_labels(cloze_target_tmp)
+        cloze_target_tmp = remove_double_asterisks(cloze_target_tmp)
+        cloze_target = cloze_target_tmp
 
         # 3) Reorder the target paragraph
-        reorder_target = generate_reorder_activity(reading_lab_text.generated_text_target, 10)
+        reorder_target_tmp = generate_reorder_activity(reading_lab_text.generated_text_target, 10)
+        reorder_target_tmp = remove_language_labels(reorder_target_tmp)
+        reorder_target_tmp = remove_double_asterisks(reorder_target_tmp)
+        reorder_target = reorder_target_tmp
 
         # 4) Tangled Translation (AI-based)
+        # Instruct the model to chunk each text in 5-10 words and alternate.
         tangled_prompt = (
-            "Take the following source text and target text, and randomly interleave lines "
-            "from both into a single paragraph. After '===', provide the correct separation "
-            "(first the entire source text in correct order, then the entire target text in correct order). "
-            "Do not label lines with any language names. Only the merged paragraph, then '===', then the separation.\n\n"
+            "Please create a single 'tangled translation' from the following texts. "
+            "Break each text into chunks of 5-10 words, then alternate one chunk from the source text "
+            "with one chunk from the target text, continuing until both texts are used up. "
+            "Join them into a single paragraph. After '===', provide the correct separation: "
+            "first the entire source text in correct order, then the entire target text in correct order. "
+            "Do not label lines with any language name or add 'English:' or 'German:' etc.\n\n"
             f"Source text:\n{reading_lab_text.generated_text_source}\n\n"
             f"Target text:\n{reading_lab_text.generated_text_target}"
         )
         model = genai.GenerativeModel('gemini-2.0-flash')
         tangled_response = model.generate_content(tangled_prompt)
-        tangled_translation = remove_language_labels(tangled_response.text)
+        tangled_tmp = remove_language_labels(tangled_response.text)
+        tangled_tmp = remove_double_asterisks(tangled_tmp)
+        tangled_translation = tangled_tmp
 
         # 5) Comprehension & Grammar Questions (AI-based)
-        #    5-10 questions, each question in source language & target language,
-        #    plus some vocab & grammar questions
+        # 5-10 Qs in both source & target languages, plus vocab/grammar
         comp_prompt = (
             "Based on the following parallel text, create 5-10 comprehension questions. "
-            "For each question, provide it first in the source language, then in the target language. "
-            "Then create some vocabulary questions (matching synonyms, fill in the blanks, etc.) "
-            "and some grammatical questions (identifying tenses or forms) about the text. "
-            "Provide the answers or solutions as well. "
-            "Do not label lines with any language name.\n\n"
+            "For each question, provide it in the source language and then in the target language. "
+            "Then create some vocabulary and grammar questions about the text, with answers. "
+            "Do not label lines with any language name or add 'English:' or 'German:' etc.\n\n"
             f"Source text:\n{reading_lab_text.generated_text_source}\n\n"
             f"Target text:\n{reading_lab_text.generated_text_target}"
         )
         comp_response = model.generate_content(comp_prompt)
-        comprehension_questions = remove_language_labels(comp_response.text)
+        comp_tmp = remove_language_labels(comp_response.text)
+        comp_tmp = remove_double_asterisks(comp_tmp)
+        comprehension_questions = comp_tmp
 
-        # Deduct 1 Pavonicoin total for generating all activities
+        # Deduct 1 Pavonicoin total
         request.user.deduct_credit()
         coins_left = request.user.ai_credits
 
