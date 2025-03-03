@@ -1803,7 +1803,7 @@ def reading_lab_display(request, text_id):
         # Instruct the model to chunk each text in 5-10 words and alternate.
         tangled_prompt = (
             "Combine the source text and target text into one tangled paragraph, mixing them at the "
-            "sentence or phrase level. This activity is based on the EPI activity Tangled Translation. 
+            "sentence or phrase level. This activity is based on the EPI activity Tangled Translation.  " 
             "About half of the text should be in the source language, "
             "and half in the target language. Keep the same meaning. After '===', show the "
             "correct separation: first the entire source text, then the entire target text. "
