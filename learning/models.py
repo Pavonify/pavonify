@@ -34,29 +34,29 @@ class User(AbstractUser):
 
     first_name = models.CharField(max_length=50, blank=False)
     last_name = models.CharField(max_length=50, blank=False)
-    email = models.EmailField(unique=True)  # ensures email is unique
+    email = models.EmailField(unique=True)
     country = CountryField(blank_label="Select a country")
 
-    # Default premium_expiration to now (which means expired if compared later)
+    # Default premium_expiration to now (expired by default)
     premium_expiration = models.DateTimeField(default=now)
 
     # Stripe subscription fields
     subscription_id = models.CharField(max_length=255, blank=True, null=True)
     subscription_cancelled = models.BooleanField(default=False)
 
-    # New field: AI request credits (default 5 for premium teachers)
-    ai_credits = models.IntegerField(default=5)
+    # Pavonicoins for AI requests (1 on signup, 5 on subscription)
+    ai_credits = models.IntegerField(default=1)  # Grant 1 credit on registration
 
     @property
     def is_premium(self):
-        """Return True if the teacher's premium subscription is active."""
+        """Check if premium subscription is active."""
         return self.premium_expiration > now()
 
     def upgrade_to_premium(self, days=30):
-        """Extend premium expiration by a given number of days.
-           If already premium, extend from the current expiration; otherwise, extend from now."""
+        """Extend premium expiration by given days."""
         current_expiration = self.premium_expiration if self.premium_expiration > now() else now()
         self.premium_expiration = current_expiration + timedelta(days=days)
+        self.add_credits(5)  # Grant 5 Pavonicoins on upgrade
         self.save()
 
     def deduct_credit(self):
@@ -68,7 +68,7 @@ class User(AbstractUser):
         return False  # Not enough credits
 
     def add_credits(self, amount):
-        """Add AI credits (e.g., for purchases or bonuses)."""
+        """Add Pavonicoins."""
         self.ai_credits += amount
         self.save()
 

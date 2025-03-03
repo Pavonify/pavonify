@@ -1189,7 +1189,10 @@
         <strong>Pavonicoins Remaining 🪙:</strong> {{ request.user.ai_credits }} 
         <span class="tooltip">What are Pavonicoins?</span>
     </p>
-    <button class="btn" id="purchase-credits-btn">Purchase More Pavonicoins</button>
+<form action="{% url 'buy_pavicoins' %}" method="POST">
+    {% csrf_token %}
+    <button type="submit" class="btn">💰 Buy 20 Pavonicoins</button>
+</form>
 </div>
 
 

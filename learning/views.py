@@ -735,9 +735,13 @@ def register_teacher(request):
             user.school, _ = School.objects.get_or_create(name="Default School")
 
             user.save()  # Save user with assigned school
+
+            # ✅ Add 1 free Pavonicoin for testing
+            user.add_credits(1)  
+
             login(request, user)  # Auto-login new teacher
             
-            messages.success(request, "Your account has been created successfully!")
+            messages.success(request, "Your account has been created successfully! You have received 1 free Pavonicoin to test the Reading Lab.")
             return redirect("teacher_dashboard")
 
         else:
@@ -751,6 +755,7 @@ def register_teacher(request):
         "form": form,
         "recaptcha_site_key": settings.RECAPTCHA_SITE_KEY
     })
+
 
 
 
@@ -1845,3 +1850,27 @@ def reading_lab_display(request, text_id):
         "tangled_translation": tangled_translation,
         "comprehension_questions": comprehension_questions,
     })
+
+@login_required
+def buy_pavicoins(request):
+    try:
+        session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            line_items=[{
+                'price': 'price_1QyTOsJYDgv8Jx3V96D0iJoR',  # Your Stripe price ID
+                'quantity': 1,
+            }],
+            mode='payment',
+            success_url=request.build_absolute_uri(reverse('pavicoins_success')),
+            cancel_url=request.build_absolute_uri(reverse('teacher_dashboard')),
+            metadata={'user_id': request.user.id},  # Store user info for later updates
+        )
+        return redirect(session.url)
+    except stripe.error.StripeError as e:
+        messages.error(request, f"Stripe error: {str(e)}")
+        return redirect('teacher_dashboard')
+
+@login_required
+def pavicoins_success(request):
+    messages.success(request, "Purchase successful! 20 Pavonicoins have been added to your account.")
+    return redirect('teacher_dashboard')

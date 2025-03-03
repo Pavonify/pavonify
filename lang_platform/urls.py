@@ -98,6 +98,8 @@ urlpatterns = [
     path("reading-lab/<int:text_id>/", views.reading_lab_display, name="reading_lab_display"),
     path("get-words/", views.get_words, name="get_words"),
     path('delete-reading-lab-text/<int:text_id>/', delete_reading_lab_text, name='delete_reading_lab_text'),
+    path("buy-pavicoins/", buy_pavicoins, name="buy_pavicoins"),
+    path("pavicoins-success/", pavicoins_success, name="pavicoins_success"),
 
 ]
 
