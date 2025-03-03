@@ -16,7 +16,6 @@
             justify-content: center;
             align-items: center;
         }
-
         .main-content {
             flex-grow: 1;
             padding: 40px;
@@ -26,7 +25,6 @@
             text-align: center;
             width: 100%;
         }
-
         .pane {
             background-color: white;
             border-radius: 10px;
@@ -39,14 +37,12 @@
             color: #333;
             text-align: left;
         }
-
         .pane h2 {
             text-align: center;
             margin-top: 0;
             color: #0aa2ef;
             font-size: 28px;
         }
-
         .form-group {
             margin-bottom: 15px;
         }
@@ -67,7 +63,6 @@
             border-color: #0aa2ef;
             box-shadow: 0 0 5px rgba(10, 162, 239, 0.5);
         }
-
         .word-selection-box {
             border: 1px solid #ccc;
             max-height: 200px;
@@ -81,7 +76,10 @@
             padding: 5px;
             cursor: pointer;
         }
-
+        .checkbox-group label {
+            display: inline-block;
+            margin-right: 10px;
+        }
         .btn {
             background-color: #ff2c61;
             color: white;
@@ -99,11 +97,9 @@
         .btn:hover {
             background-color: #d4204c;
         }
-
         .hidden {
             display: none;
         }
-
         .radio-group {
             display: flex;
             align-items: center;
@@ -114,13 +110,11 @@
             width: 16px;
             height: 16px;
         }
-
         @media (max-width: 768px) {
             .pane {
                 width: 95%;
             }
         }
-
         .back-btn {
             background-color: #0aa2ef;
             color: white;
@@ -209,7 +203,19 @@
 
                 <div class="form-group">
                     <label for="word_count">Word Count</label>
-                    <input type="number" id="word_count" name="word_count" min="50" max="200" required>
+                    <input type="number" id="word_count" name="word_count" min="50" max="300" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Select Tense(s):</label>
+                    <div class="checkbox-group">
+                        <label><input type="checkbox" name="tenses" value="present"> Present</label>
+                        <label><input type="checkbox" name="tenses" value="imperfect"> Imperfect</label>
+                        <label><input type="checkbox" name="tenses" value="perfect"> Perfect</label>
+                        <label><input type="checkbox" name="tenses" value="pluperfect"> Pluperfect</label>
+                        <label><input type="checkbox" name="tenses" value="future"> Future</label>
+                        <label><input type="checkbox" name="tenses" value="conditional"> Conditional</label>
+                    </div>
                 </div>
 
                 <button type="submit" class="btn">🔄 Generate Text</button>

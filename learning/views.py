@@ -1562,8 +1562,15 @@ def reading_lab(request):
         selected_word_ids = request.POST.getlist("selected_words")
         exam_board = request.POST.get("exam_board")
         topic = request.POST.get("topic")
+        # Use custom_topic if provided, else use topic from exam board selection
+        custom_topic = request.POST.get("custom_topic")
+        if custom_topic:
+            topic = custom_topic
         level = request.POST.get("level")
         word_count = int(request.POST.get("word_count"))
+
+        # Get selected tenses from checkboxes
+        tenses = request.POST.getlist("tenses")
 
         # Fetch selected vocabulary list and words
         vocabulary_list = VocabularyList.objects.get(id=vocabulary_list_id)
@@ -1574,9 +1581,11 @@ def reading_lab(request):
         prompt = (
             f"Generate a parallel text in {vocabulary_list.source_language} and {vocabulary_list.target_language} "
             f"on the topic of {topic}. The text should be at {level} level and include the following words: "
-            f"{selected_words_text}. The word count should be approximately {word_count}. "
-            f"Separate the source and target texts with '==='."
+            f"{selected_words_text}. The word count should be approximately {word_count}."
         )
+        if tenses:
+            prompt += f" The text should be written in the following tense(s): {', '.join(tenses)}."
+        prompt += " Separate the source and target texts with '==='.  Include as many of the words listed as possible."
 
         # Call Gemini API to generate texts
         model = genai.GenerativeModel('gemini-pro')
@@ -1625,6 +1634,7 @@ def reading_lab(request):
         "exam_boards": list(EXAM_BOARD_TOPICS.keys()),
         "exam_board_topics_json": exam_board_topics_json  # Pass JSON to template
     })
+
 
 @login_required
 def reading_lab_display(request, text_id):
