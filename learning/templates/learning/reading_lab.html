@@ -76,6 +76,16 @@
             padding: 5px;
             cursor: pointer;
         }
+        .select-controls {
+            margin-bottom: 10px;
+        }
+        .select-controls a {
+            font-size: 14px;
+            text-decoration: none;
+            color: #0aa2ef;
+            margin-right: 10px;
+            cursor: pointer;
+        }
         .checkbox-group label {
             display: inline-block;
             margin-right: 10px;
@@ -262,6 +272,11 @@
                 fetch(`/get-words/?vocabulary_list_id=${vocabularyListId}`)
                     .then(response => response.json())
                     .then(data => {
+                        let controlsHTML = `
+                            <div class="select-controls">
+                                <a href="#" onclick="selectAllWords(true); return false;">Select All</a> | 
+                                <a href="#" onclick="selectAllWords(false); return false;">Select None</a>
+                            </div>`;
                         let wordListHTML = '';
                         data.words.forEach(word => {
                             wordListHTML += `
@@ -271,12 +286,19 @@
                                 </label>
                             `;
                         });
-                        wordSelectionDiv.innerHTML = wordListHTML;
+                        wordSelectionDiv.innerHTML = controlsHTML + wordListHTML;
                         wordSelectionDiv.parentElement.classList.remove("hidden");
                     });
             } else {
                 wordSelectionDiv.parentElement.classList.add("hidden");
             }
+        }
+
+        function selectAllWords(select) {
+            const checkboxes = document.querySelectorAll(".word-selection-box input[type='checkbox']");
+            checkboxes.forEach(cb => {
+                cb.checked = select;
+            });
         }
     </script>
 </body>
