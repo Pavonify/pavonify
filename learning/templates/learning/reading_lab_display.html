@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Generated Parallel Text & Activities</title>
     <style>
-        /* Inherit dashboard styling */
+        /* Global Page Styles */
         body {
             font-family: Arial, sans-serif;
             margin: 0;
@@ -93,11 +93,6 @@
         .back-btn:hover {
             background-color: #086baf;
         }
-        .language-icons p {
-            margin: 10px 0;
-            font-size: 16px;
-            color: #333;
-        }
         .flag {
             width: 24px;
             height: 24px;
@@ -112,36 +107,16 @@
             padding: 2px 5px;
             border-radius: 3px;
         }
-        /* Activity Form Styles */
-        .activity-form {
+        .activities {
             margin-top: 30px;
             text-align: left;
         }
-        .activity-form h3 {
-            color: #0aa2ef;
-        }
-        .activity-form label {
-            font-weight: bold;
-            margin-bottom: 5px;
-            display: block;
-        }
-        .activity-form select, .activity-form button {
-            width: 100%;
-            padding: 10px;
-            font-size: 16px;
-            margin-bottom: 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-        }
-        .activity-output {
-            margin-top: 30px;
-            text-align: left;
-        }
-        .activity-output pre {
+        .activity-box {
             background: #f0f0f0;
             padding: 15px;
             border-radius: 5px;
             white-space: pre-wrap;
+            margin-bottom: 20px;
         }
         @media (max-width: 768px) {
             .parallel-text {
@@ -154,6 +129,7 @@
     <div class="main-content">
         <div class="pane">
             <h2>Generated Parallel Text 📖</h2>
+            <p>You have <strong>{{ coins_left }}</strong> Pavonicoins left.</p>
             <div class="parallel-text">
                 <div class="source-text">
                     <h3>
@@ -168,38 +144,45 @@
                     <p class="target-text-content highlight">{{ reading_lab_text.generated_text_target }}</p>
                 </div>
             </div>
+
+            <!-- Single-button form to generate all activities -->
+            <form method="post">
+                {% csrf_token %}
+                <button type="submit" class="btn">Generate All Activities (Cost: 1 Pavonicoin)</button>
+            </form>
+
+            <!-- Back to other pages -->
             <a href="{% url 'reading_lab' %}" class="btn">🔄 Generate Another Text</a>
             <a href="{% url 'teacher_dashboard' %}" class="btn back-btn">⬅️ Back to Dashboard</a>
 
-            <!-- Activity Generation Form -->
-            <div class="activity-form">
-                <h3>Generate Activity (Cost: 1 Pavonicoin)</h3>
-                <form method="post">
-                    {% csrf_token %}
-                    <label for="activity_type">Select Activity:</label>
-                    <select id="activity_type" name="activity_type">
-                        <option value="cloze_source">Cloze – Source Language Gap Fill (Remove 10 words)</option>
-                        <option value="cloze_target">Cloze – Target Language Gap Fill (Remove 10 words)</option>
-                        <option value="reorder_target">Reorder Target Paragraph (Split into 10 chunks)</option>
-                        <option value="tangled_translation">Tangled Translation (AI required)</option>
-                        <option value="comprehension">Comprehension Questions in English (AI required)</option>
-                    </select>
-                    <button type="submit" class="btn">Generate Activity</button>
-                </form>
+            <!-- Display the Activities -->
+            <div class="activities">
+                {% if cloze_source %}
+                    <h3>Cloze - Source Language</h3>
+                    <div class="activity-box">{{ cloze_source }}</div>
+                {% endif %}
+                {% if cloze_target %}
+                    <h3>Cloze - Target Language</h3>
+                    <div class="activity-box">{{ cloze_target }}</div>
+                {% endif %}
+                {% if reorder_target %}
+                    <h3>Reorder the Target Paragraph</h3>
+                    <div class="activity-box">{{ reorder_target }}</div>
+                {% endif %}
+                {% if tangled_translation %}
+                    <h3>Tangled Translation</h3>
+                    <div class="activity-box">{{ tangled_translation }}</div>
+                {% endif %}
+                {% if comprehension_questions %}
+                    <h3>Comprehension Questions</h3>
+                    <div class="activity-box">{{ comprehension_questions }}</div>
+                {% endif %}
             </div>
-
-            <!-- Display Generated Activity (if available) -->
-            {% if activity_output %}
-                <div class="activity-output">
-                    <h3>Generated Activity</h3>
-                    <pre>{{ activity_output }}</pre>
-                </div>
-            {% endif %}
         </div>
     </div>
 
     <script>
-        // Existing scripts to remove first sentence and highlight vocabulary words
+        // Remove the first sentence from each text (if desired)
         document.addEventListener("DOMContentLoaded", function () {
             function removeFirstSentence(element) {
                 let text = element.innerHTML;
@@ -211,25 +194,30 @@
             removeFirstSentence(document.querySelector(".source-text-content"));
             removeFirstSentence(document.querySelector(".target-text-content"));
         });
+
+        // Restore word-by-word highlighting
         document.addEventListener("DOMContentLoaded", function () {
             let sourceWords = [
                 {% for word in reading_lab_text.selected_words.all %}
-                    "{{ word.word }}",
+                    "{{ word.word|escapejs }}",
                 {% endfor %}
             ];
             let targetWords = [
                 {% for word in reading_lab_text.selected_words.all %}
-                    "{{ word.translation }}",
+                    "{{ word.translation|escapejs }}",
                 {% endfor %}
             ];
+
             function highlightWords(textElement, words) {
                 let text = textElement.innerHTML;
                 words.forEach(word => {
-                    let regex = new RegExp(`\\b${word}\\b`, "gi");
+                    // Regex for whole-word matching, ignoring case
+                    let regex = new RegExp("\\b" + word + "\\b", "gi");
                     text = text.replace(regex, `<span class="highlight">${word}</span>`);
                 });
                 textElement.innerHTML = text;
             }
+
             highlightWords(document.querySelector(".source-text-content"), sourceWords);
             highlightWords(document.querySelector(".target-text-content"), targetWords);
         });

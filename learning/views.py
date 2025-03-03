@@ -31,6 +31,7 @@ from .models import Announcement
 from django.core.paginator import Paginator
 import google.generativeai as genai
 import math
+import re
 
 # Configure Gemini API
 genai.configure(api_key="AIzaSyAhBjjphW7nVHETfDtewuy_qiFXspa1yO4")
@@ -1693,9 +1694,21 @@ def delete_reading_lab_text(request, text_id):
         return JsonResponse({"success": True})
     return JsonResponse({"success": False, "error": "Invalid request"}, status=400)
 
-# Helper function for cloze (gap-fill) activities
-def generate_cloze(text, num_words_to_remove):
+#import json
+import random
+import math
+import re
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+
+# Assume these models are imported as needed:
+# from learning.models import ReadingLabText, VocabularyList, VocabularyWord, EXAM_BOARD_TOPICS
+# from your_user_model import User  # or whichever user model you have
+
+# 1) Cloze (Gap-Fill) Helper
+def generate_cloze(text, num_words_to_remove=10):
     words = text.split()
+    # If the text is too short, adjust how many words to remove
     if len(words) < num_words_to_remove:
         num_words_to_remove = max(1, len(words) // 2)
     indices = random.sample(range(len(words)), num_words_to_remove)
@@ -1705,10 +1718,15 @@ def generate_cloze(text, num_words_to_remove):
         cloze_words[i] = "_____"
     cloze_text = " ".join(cloze_words)
     answer_key = [words[i] for i in indices]
-    return f"Cloze Activity:\n\n{cloze_text}\n\nAnswer Key: {', '.join(answer_key)}"
+    return (
+        "Cloze Activity:\n\n"
+        + cloze_text
+        + "\n\nAnswer Key:\n"
+        + ", ".join(answer_key)
+    )
 
-# Helper function for reorder activity
-def generate_reorder_activity(text, num_chunks):
+# 2) Reorder Paragraph Helper
+def generate_reorder_activity(text, num_chunks=10):
     # Try splitting text into sentences first
     sentences = [s.strip() for s in text.split('.') if s.strip()]
     if len(sentences) >= num_chunks:
@@ -1717,68 +1735,96 @@ def generate_reorder_activity(text, num_chunks):
         # If not enough sentences, split by words into roughly equal chunks
         words = text.split()
         chunk_size = math.ceil(len(words) / num_chunks)
-        chunks = [" ".join(words[i:i+chunk_size]) for i in range(0, len(words), chunk_size)]
-    original_order = list(range(1, len(chunks)+1))
+        chunks = [
+            " ".join(words[i:i+chunk_size]) for i in range(0, len(words), chunk_size)
+        ]
+    original_order = list(range(1, len(chunks) + 1))
     scrambled = list(zip(original_order, chunks))
     random.shuffle(scrambled)
+
     scrambled_text = "\n".join([f"{i}. {chunk}" for i, chunk in scrambled])
-    correct_order = "\n".join([f"{i}. {chunk}" for i, chunk in sorted(scrambled, key=lambda x: x[0])])
-    return (f"Reorder Activity:\n\nScrambled Chunks:\n{scrambled_text}\n\n"
-            f"Correct Order (for teacher reference):\n{correct_order}")
+    correct_order = "\n".join([
+        f"{i}. {chunk}" for i, chunk in sorted(scrambled, key=lambda x: x[0])
+    ])
+
+    return (
+        "Reorder Activity:\n\n"
+        + "Scrambled Chunks:\n"
+        + scrambled_text
+        + "\n\nCorrect Order (for teacher reference):\n"
+        + correct_order
+    )
+
+# 3) Remove lines like "English:" or "German:"
+def remove_language_labels(text):
+    # Removes e.g. "English:", "German:", "French:", "Spanish:", "Italian:" ignoring case
+    pattern = re.compile(r"(?i)(English|German|French|Spanish|Italian):\s*")
+    return pattern.sub("", text)
 
 @login_required
 def reading_lab_display(request, text_id):
     reading_lab_text = get_object_or_404(ReadingLabText, id=text_id, teacher=request.user)
-    activity_output = None
+
+    # Activities to display in the template
+    cloze_source = None
+    cloze_target = None
+    reorder_target = None
+    tangled_translation = None
+    comprehension_questions = None
+
+    # How many Pavonicoins does the teacher have left?
+    coins_left = request.user.ai_credits
 
     if request.method == "POST":
-        # Check if teacher has at least one pavonicoin available
-        if request.user.ai_credits <= 0:
-            return render(request, "error.html", {"message": "You do not have enough Pavonicoin to generate an activity."})
-        
-        activity_type = request.POST.get("activity_type")
-        
-        # Process the chosen activity
-        if activity_type == "cloze_source":
-            # Generate cloze (gap-fill) exercise from the source text by removing 10 words.
-            activity_output = generate_cloze(reading_lab_text.generated_text_source, 10)
-        elif activity_type == "cloze_target":
-            # Generate cloze exercise from the target text by removing 10 words.
-            activity_output = generate_cloze(reading_lab_text.generated_text_target, 10)
-        elif activity_type == "reorder_target":
-            # Generate reorder exercise: split target text into 10 chunks and scramble them.
-            activity_output = generate_reorder_activity(reading_lab_text.generated_text_target, 10)
-        elif activity_type == "tangled_translation":
-            # Use Gemini API to generate a tangled translation exercise from the target text.
-            prompt = (
-                f"Generate a tangled translation exercise using the following target text:\n\n"
-                f"{reading_lab_text.generated_text_target}\n\n"
-                "Jumble the sentence structures or word order so that the text becomes difficult to understand. "
-                "Then provide the correct version at the end separated by '==='."
-            )
-            model = genai.GenerativeModel('gemini-2.0-flash')
-            response = model.generate_content(prompt)
-            activity_output = response.text
-        elif activity_type == "comprehension":
-            # Use Gemini API to generate comprehension questions (in English) based on the parallel text.
-            prompt = (
-                f"Generate a set of comprehension questions in English based on the following parallel text:\n\n"
-                f"Source Text:\n{reading_lab_text.generated_text_source}\n\n"
-                f"Target Text:\n{reading_lab_text.generated_text_target}\n\n"
-                "Provide questions with answers."
-            )
-            model = genai.GenerativeModel('gemini-2.0-flash')
-            response = model.generate_content(prompt)
-            activity_output = response.text
-        else:
-            activity_output = "Invalid activity type selected."
+        # Check if user has at least 1 Pavonicoin
+        if request.user.ai_credits < 1:
+            return render(request, "error.html", {
+                "message": "You do not have enough Pavonicoins to generate activities."
+            })
 
-        # Deduct one pavonicoin from the teacher for generating an activity.
+        # 1) Cloze - source language
+        cloze_source = generate_cloze(reading_lab_text.generated_text_source, 10)
+
+        # 2) Cloze - target language
+        cloze_target = generate_cloze(reading_lab_text.generated_text_target, 10)
+
+        # 3) Reorder the target paragraph
+        reorder_target = generate_reorder_activity(reading_lab_text.generated_text_target, 10)
+
+        # 4) Tangled Translation (AI-based)
+        tangled_prompt = (
+            "Take the following parallel text in two languages. Interleave or mix the lines "
+            "from both languages to create a single 'tangled' paragraph. Then after '===', "
+            "provide the correct separation (source text vs. target text). Avoid labeling lines "
+            "with 'English:' or 'German:' etc.\n\n"
+            f"Source text:\n{reading_lab_text.generated_text_source}\n\n"
+            f"Target text:\n{reading_lab_text.generated_text_target}"
+        )
+
+        model = genai.GenerativeModel('gemini-2.0-flash')
+        tangled_response = model.generate_content(tangled_prompt)
+        tangled_translation = remove_language_labels(tangled_response.text)
+
+        # 5) Comprehension questions in English (AI-based)
+        comp_prompt = (
+            "Create a set of 5 comprehension questions in English about the following parallel text. "
+            "Provide each question and a short answer. Avoid labeling lines with 'English:' or 'German:' etc.\n\n"
+            f"Source text:\n{reading_lab_text.generated_text_source}\n\n"
+            f"Target text:\n{reading_lab_text.generated_text_target}"
+        )
+        comp_response = model.generate_content(comp_prompt)
+        comprehension_questions = remove_language_labels(comp_response.text)
+
+        # Deduct 1 Pavonicoin total for generating all activities
         request.user.deduct_credit()
+        coins_left = request.user.ai_credits
 
-    exam_board_topics_json = json.dumps(EXAM_BOARD_TOPICS)
     return render(request, "learning/reading_lab_display.html", {
         "reading_lab_text": reading_lab_text,
-        "activity_output": activity_output,
-        "exam_board_topics_json": exam_board_topics_json,
+        "coins_left": coins_left,
+        "cloze_source": cloze_source,
+        "cloze_target": cloze_target,
+        "reorder_target": reorder_target,
+        "tangled_translation": tangled_translation,
+        "comprehension_questions": comprehension_questions,
     })
