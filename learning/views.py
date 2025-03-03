@@ -1550,6 +1550,19 @@ EXAM_BOARD_TOPICS = {
 }
 
 
+import json
+from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
+
+# Example language code -> name map
+LANGUAGE_MAP = {
+    'en': 'English',
+    'de': 'German',
+    'fr': 'French',
+    'sp': 'Spanish',
+    'it': 'Italian',
+}
+
 @login_required
 def reading_lab(request):
     if request.method == "POST":
@@ -1562,32 +1575,51 @@ def reading_lab(request):
         selected_word_ids = request.POST.getlist("selected_words")
         exam_board = request.POST.get("exam_board")
         topic = request.POST.get("topic")
-        # Use custom_topic if provided, else use topic from exam board selection
         custom_topic = request.POST.get("custom_topic")
         if custom_topic:
             topic = custom_topic
         level = request.POST.get("level")
-        word_count = int(request.POST.get("word_count"))
-
-        # Get selected tenses from checkboxes
+        word_count = int(request.POST.get("word_count", 100))
         tenses = request.POST.getlist("tenses")
 
         # Fetch selected vocabulary list and words
         vocabulary_list = VocabularyList.objects.get(id=vocabulary_list_id)
         selected_words = VocabularyWord.objects.filter(id__in=selected_word_ids)
-        selected_words_text = ", ".join([word.word for word in selected_words])
 
-        # Construct the prompt for Gemini API
+        # Prepare the language names from codes
+        source_lang_code = vocabulary_list.source_language  # e.g. 'en'
+        target_lang_code = vocabulary_list.target_language  # e.g. 'de'
+        source_lang_name = LANGUAGE_MAP.get(source_lang_code, 'Unknown')
+        target_lang_name = LANGUAGE_MAP.get(target_lang_code, 'Unknown')
+
+        # Join the selected words into a comma-separated list
+        # (assuming 'word' is the source-language form)
+        selected_words_text = ", ".join([w.word for w in selected_words])
+
+        # Start building the prompt
         prompt = (
-            f"Generate a parallel text in {vocabulary_list.source_language} and {vocabulary_list.target_language} "
-            f"on the topic of {topic}. The text should be at {level} level and include the following words: "
-            f"{selected_words_text}. The word count should be approximately {word_count}."
+            f"Generate a parallel text in {source_lang_name} and {target_lang_name} "
+            f"on the topic of {topic}. The text should be at {level} level. "
+            f"The word count should be approximately {word_count} words."
         )
+
+        # Add tense requirement if any were selected
         if tenses:
             prompt += f" The text should be written in the following tense(s): {', '.join(tenses)}."
-        prompt += " Separate the source and target texts with '==='.  Include as many of the words listed as possible."
+
+        # Explicitly tell the model how to handle the source-language words:
+        prompt += (
+            f" Here is a list of {source_lang_name} words: {selected_words_text}. "
+            f"In the {source_lang_name} text, incorporate these words exactly. "
+            f"In the {target_lang_name} text, translate these words into {target_lang_name} and use them in context. "
+            f"The {target_lang_name} text should not contain the {source_lang_name} words."
+        )
+
+        # Add the final instruction for the parallel format
+        prompt += " Separate the source and target texts with '==='."
 
         # Call Gemini API to generate texts
+        # Adjust model name if necessary
         model = genai.GenerativeModel('gemini-2.0-flash')
         response = model.generate_content(prompt)
         generated_text = response.text
@@ -1603,7 +1635,7 @@ def reading_lab(request):
             return render(request, "error.html", {"message": "The generated text is not in the expected format."})
 
         # Assign the source and target texts
-        source_text, target_text = text_parts[0], text_parts[1]
+        source_text, target_text = text_parts[0].strip(), text_parts[1].strip()
 
         # Save the generated texts to the database
         reading_lab_text = ReadingLabText(
@@ -1624,15 +1656,13 @@ def reading_lab(request):
 
         return redirect("reading_lab_display", reading_lab_text.id)
 
-    # Convert exam board topics to JSON format for JavaScript
+    # If GET request, display the form
     exam_board_topics_json = json.dumps(EXAM_BOARD_TOPICS)
-
-    # Fetch vocabulary lists for the dropdown (only those created by the teacher)
     vocabulary_lists = VocabularyList.objects.filter(teacher=request.user)
     return render(request, "learning/reading_lab.html", {
         "vocabulary_lists": vocabulary_lists,
         "exam_boards": list(EXAM_BOARD_TOPICS.keys()),
-        "exam_board_topics_json": exam_board_topics_json  # Pass JSON to template
+        "exam_board_topics_json": exam_board_topics_json
     })
 
 
