@@ -30,6 +30,7 @@ import requests
 from .models import Announcement
 from django.core.paginator import Paginator
 import google.generativeai as genai
+import math
 
 # Configure Gemini API
 genai.configure(api_key="AIzaSyAhBjjphW7nVHETfDtewuy_qiFXspa1yO4")
@@ -1691,3 +1692,93 @@ def delete_reading_lab_text(request, text_id):
         text.delete()
         return JsonResponse({"success": True})
     return JsonResponse({"success": False, "error": "Invalid request"}, status=400)
+
+# Helper function for cloze (gap-fill) activities
+def generate_cloze(text, num_words_to_remove):
+    words = text.split()
+    if len(words) < num_words_to_remove:
+        num_words_to_remove = max(1, len(words) // 2)
+    indices = random.sample(range(len(words)), num_words_to_remove)
+    indices.sort()
+    cloze_words = words.copy()
+    for i in indices:
+        cloze_words[i] = "_____"
+    cloze_text = " ".join(cloze_words)
+    answer_key = [words[i] for i in indices]
+    return f"Cloze Activity:\n\n{cloze_text}\n\nAnswer Key: {', '.join(answer_key)}"
+
+# Helper function for reorder activity
+def generate_reorder_activity(text, num_chunks):
+    # Try splitting text into sentences first
+    sentences = [s.strip() for s in text.split('.') if s.strip()]
+    if len(sentences) >= num_chunks:
+        chunks = sentences[:num_chunks]
+    else:
+        # If not enough sentences, split by words into roughly equal chunks
+        words = text.split()
+        chunk_size = math.ceil(len(words) / num_chunks)
+        chunks = [" ".join(words[i:i+chunk_size]) for i in range(0, len(words), chunk_size)]
+    original_order = list(range(1, len(chunks)+1))
+    scrambled = list(zip(original_order, chunks))
+    random.shuffle(scrambled)
+    scrambled_text = "\n".join([f"{i}. {chunk}" for i, chunk in scrambled])
+    correct_order = "\n".join([f"{i}. {chunk}" for i, chunk in sorted(scrambled, key=lambda x: x[0])])
+    return (f"Reorder Activity:\n\nScrambled Chunks:\n{scrambled_text}\n\n"
+            f"Correct Order (for teacher reference):\n{correct_order}")
+
+@login_required
+def reading_lab_display(request, text_id):
+    reading_lab_text = get_object_or_404(ReadingLabText, id=text_id, teacher=request.user)
+    activity_output = None
+
+    if request.method == "POST":
+        # Check if teacher has at least one pavonicoin available
+        if request.user.ai_credits <= 0:
+            return render(request, "error.html", {"message": "You do not have enough Pavonicoin to generate an activity."})
+        
+        activity_type = request.POST.get("activity_type")
+        
+        # Process the chosen activity
+        if activity_type == "cloze_source":
+            # Generate cloze (gap-fill) exercise from the source text by removing 10 words.
+            activity_output = generate_cloze(reading_lab_text.generated_text_source, 10)
+        elif activity_type == "cloze_target":
+            # Generate cloze exercise from the target text by removing 10 words.
+            activity_output = generate_cloze(reading_lab_text.generated_text_target, 10)
+        elif activity_type == "reorder_target":
+            # Generate reorder exercise: split target text into 10 chunks and scramble them.
+            activity_output = generate_reorder_activity(reading_lab_text.generated_text_target, 10)
+        elif activity_type == "tangled_translation":
+            # Use Gemini API to generate a tangled translation exercise from the target text.
+            prompt = (
+                f"Generate a tangled translation exercise using the following target text:\n\n"
+                f"{reading_lab_text.generated_text_target}\n\n"
+                "Jumble the sentence structures or word order so that the text becomes difficult to understand. "
+                "Then provide the correct version at the end separated by '==='."
+            )
+            model = genai.GenerativeModel('gemini-2.0-flash')
+            response = model.generate_content(prompt)
+            activity_output = response.text
+        elif activity_type == "comprehension":
+            # Use Gemini API to generate comprehension questions (in English) based on the parallel text.
+            prompt = (
+                f"Generate a set of comprehension questions in English based on the following parallel text:\n\n"
+                f"Source Text:\n{reading_lab_text.generated_text_source}\n\n"
+                f"Target Text:\n{reading_lab_text.generated_text_target}\n\n"
+                "Provide questions with answers."
+            )
+            model = genai.GenerativeModel('gemini-2.0-flash')
+            response = model.generate_content(prompt)
+            activity_output = response.text
+        else:
+            activity_output = "Invalid activity type selected."
+
+        # Deduct one pavonicoin from the teacher for generating an activity.
+        request.user.deduct_credit()
+
+    exam_board_topics_json = json.dumps(EXAM_BOARD_TOPICS)
+    return render(request, "learning/reading_lab_display.html", {
+        "reading_lab_text": reading_lab_text,
+        "activity_output": activity_output,
+        "exam_board_topics_json": exam_board_topics_json,
+    })

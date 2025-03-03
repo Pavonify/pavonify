@@ -4,8 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Generated Parallel Text</title>
-    
+    <title>Generated Parallel Text & Activities</title>
     <style>
         /* Inherit dashboard styling */
         body {
@@ -17,8 +16,6 @@
             justify-content: center;
             align-items: center;
         }
-
-        /* Main content container */
         .main-content {
             flex-grow: 1;
             padding: 40px;
@@ -28,8 +25,6 @@
             text-align: center;
             width: 100%;
         }
-
-        /* Panel container */
         .pane {
             background-color: white;
             border-radius: 10px;
@@ -46,8 +41,6 @@
             color: #0aa2ef;
             font-size: 28px;
         }
-
-        /* Parallel text section */
         .parallel-text {
             display: flex;
             gap: 20px;
@@ -67,8 +60,6 @@
             color: #0aa2ef;
             text-align: center;
         }
-
-        /* Button Styling */
         .btn {
             background-color: #ff2c61;
             color: white;
@@ -85,133 +76,163 @@
         .btn:hover {
             background-color: #d4204c;
         }
-
-        /* Responsive design */
+        .back-btn {
+            background-color: #0aa2ef;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            text-decoration: none;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            font-size: 16px;
+            display: inline-block;
+            margin-top: 20px;
+            text-align: center;
+        }
+        .back-btn:hover {
+            background-color: #086baf;
+        }
+        .language-icons p {
+            margin: 10px 0;
+            font-size: 16px;
+            color: #333;
+        }
+        .flag {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            object-fit: cover;
+            vertical-align: middle;
+            margin-left: 5px;
+        }
+        .highlight {
+            background-color: yellow;
+            font-weight: bold;
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
+        /* Activity Form Styles */
+        .activity-form {
+            margin-top: 30px;
+            text-align: left;
+        }
+        .activity-form h3 {
+            color: #0aa2ef;
+        }
+        .activity-form label {
+            font-weight: bold;
+            margin-bottom: 5px;
+            display: block;
+        }
+        .activity-form select, .activity-form button {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .activity-output {
+            margin-top: 30px;
+            text-align: left;
+        }
+        .activity-output pre {
+            background: #f0f0f0;
+            padding: 15px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+        }
         @media (max-width: 768px) {
             .parallel-text {
                 flex-direction: column;
             }
         }
-
-    /* Language Icons */
-    .language-icons p {
-      margin: 10px 0;
-      font-size: 16px;
-      color: #333;
-    }
-    .flag {
-      width: 24px;
-      height: 24px;
-      border-radius: 50%;
-      object-fit: cover;
-      vertical-align: middle;
-      margin-left: 5px;
-    }
-
-    .highlight {
-        background-color: yellow;
-        font-weight: bold;
-        padding: 2px 5px;
-        border-radius: 3px;
-    }
-
-.back-btn {
-    background-color: #0aa2ef; /* Light blue */
-    color: white;
-    border: none;
-    padding: 10px 15px;
-    border-radius: 5px;
-    text-decoration: none;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-    font-size: 16px;
-    display: inline-block;
-    margin-top: 20px;
-    text-align: center;
-}
-
-.back-btn:hover {
-    background-color: #086baf; /* Darker blue */
-}
-
-
     </style>
 </head>
-
 <body>
-
-    <!-- Main Content -->
     <div class="main-content">
         <div class="pane">
             <h2>Generated Parallel Text 📖</h2>
-
             <div class="parallel-text">
                 <div class="source-text">
-<h3>
-    <img class="flag" src="{% static 'flags/' %}{{ reading_lab_text.vocabulary_list.source_language|lower }}.png" alt="{{ reading_lab_text.vocabulary_list.source_language }}">
-</h3>
-<p class="source-text-content highlight-words">{{ reading_lab_text.generated_text_source }}</p>
+                    <h3>
+                        <img class="flag" src="{% static 'flags/' %}{{ reading_lab_text.vocabulary_list.source_language|lower }}.png" alt="{{ reading_lab_text.vocabulary_list.source_language }}">
+                    </h3>
+                    <p class="source-text-content highlight">{{ reading_lab_text.generated_text_source }}</p>
                 </div>
                 <div class="target-text">
-<h3>
-    <img class="flag" src="{% static 'flags/' %}{{ reading_lab_text.vocabulary_list.target_language|lower }}.png" alt="{{ reading_lab_text.vocabulary_list.target_language }}">
-</h3>	
-<p class="target-text-content highlight-words">{{ reading_lab_text.generated_text_target }}</p>
-
+                    <h3>
+                        <img class="flag" src="{% static 'flags/' %}{{ reading_lab_text.vocabulary_list.target_language|lower }}.png" alt="{{ reading_lab_text.vocabulary_list.target_language }}">
+                    </h3>
+                    <p class="target-text-content highlight">{{ reading_lab_text.generated_text_target }}</p>
                 </div>
             </div>
-
             <a href="{% url 'reading_lab' %}" class="btn">🔄 Generate Another Text</a>
-<!-- Back to Dashboard Button -->
-<a href="{% url 'teacher_dashboard' %}" class="btn back-btn">⬅️ Back to Dashboard</a>
+            <a href="{% url 'teacher_dashboard' %}" class="btn back-btn">⬅️ Back to Dashboard</a>
+
+            <!-- Activity Generation Form -->
+            <div class="activity-form">
+                <h3>Generate Activity (Cost: 1 Pavonicoin)</h3>
+                <form method="post">
+                    {% csrf_token %}
+                    <label for="activity_type">Select Activity:</label>
+                    <select id="activity_type" name="activity_type">
+                        <option value="cloze_source">Cloze – Source Language Gap Fill (Remove 10 words)</option>
+                        <option value="cloze_target">Cloze – Target Language Gap Fill (Remove 10 words)</option>
+                        <option value="reorder_target">Reorder Target Paragraph (Split into 10 chunks)</option>
+                        <option value="tangled_translation">Tangled Translation (AI required)</option>
+                        <option value="comprehension">Comprehension Questions in English (AI required)</option>
+                    </select>
+                    <button type="submit" class="btn">Generate Activity</button>
+                </form>
+            </div>
+
+            <!-- Display Generated Activity (if available) -->
+            {% if activity_output %}
+                <div class="activity-output">
+                    <h3>Generated Activity</h3>
+                    <pre>{{ activity_output }}</pre>
+                </div>
+            {% endif %}
         </div>
     </div>
 
-<script>
-    document.addEventListener("DOMContentLoaded", function () {
-        function removeFirstSentence(element) {
-            let text = element.innerHTML;
-            let firstPeriodIndex = text.indexOf(".");
-            if (firstPeriodIndex !== -1) {
-                element.innerHTML = text.substring(firstPeriodIndex + 1).trim();
+    <script>
+        // Existing scripts to remove first sentence and highlight vocabulary words
+        document.addEventListener("DOMContentLoaded", function () {
+            function removeFirstSentence(element) {
+                let text = element.innerHTML;
+                let firstPeriodIndex = text.indexOf(".");
+                if (firstPeriodIndex !== -1) {
+                    element.innerHTML = text.substring(firstPeriodIndex + 1).trim();
+                }
             }
-        }
-        
-        removeFirstSentence(document.querySelector(".source-text-content"));
-        removeFirstSentence(document.querySelector(".target-text-content"));
-    });
-</script>
-
-<script>
-    document.addEventListener("DOMContentLoaded", function () {
-        // Get the words from the selected vocabulary list (Django dynamically inserts these)
-        let sourceWords = [
-            {% for word in reading_lab_text.selected_words.all %}
-                "{{ word.word }}",
-            {% endfor %}
-        ];
-        
-        let targetWords = [
-            {% for word in reading_lab_text.selected_words.all %}
-                "{{ word.translation }}",
-            {% endfor %}
-        ];
-
-        function highlightWords(textElement, words) {
-            let text = textElement.innerHTML;
-            words.forEach(word => {
-                let regex = new RegExp(`\\b${word}\\b`, "gi"); // Match whole word case-insensitive
-                text = text.replace(regex, `<span class="highlight">${word}</span>`);
-            });
-            textElement.innerHTML = text;
-        }
-
-        highlightWords(document.querySelector(".source-text-content"), sourceWords);
-        highlightWords(document.querySelector(".target-text-content"), targetWords);
-    });
-</script>
-
-
-
+            removeFirstSentence(document.querySelector(".source-text-content"));
+            removeFirstSentence(document.querySelector(".target-text-content"));
+        });
+        document.addEventListener("DOMContentLoaded", function () {
+            let sourceWords = [
+                {% for word in reading_lab_text.selected_words.all %}
+                    "{{ word.word }}",
+                {% endfor %}
+            ];
+            let targetWords = [
+                {% for word in reading_lab_text.selected_words.all %}
+                    "{{ word.translation }}",
+                {% endfor %}
+            ];
+            function highlightWords(textElement, words) {
+                let text = textElement.innerHTML;
+                words.forEach(word => {
+                    let regex = new RegExp(`\\b${word}\\b`, "gi");
+                    text = text.replace(regex, `<span class="highlight">${word}</span>`);
+                });
+                textElement.innerHTML = text;
+            }
+            highlightWords(document.querySelector(".source-text-content"), sourceWords);
+            highlightWords(document.querySelector(".target-text-content"), targetWords);
+        });
+    </script>
 </body>
 </html>
