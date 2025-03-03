@@ -75,19 +75,7 @@
       background-color: #007bb5;
     }
   </style>
-  <!-- Load Google reCAPTCHA API v3 -->
-  <script src="https://www.google.com/recaptcha/api.js?render={{ recaptcha_site_key }}"></script>
-  <script>
-    function onSubmit(event) {
-        event.preventDefault();
-        grecaptcha.ready(function() {
-            grecaptcha.execute("{{ recaptcha_site_key }}", { action: "register" }).then(function(token) {
-                document.getElementById('g-recaptcha-response').value = token;
-                document.getElementById('registration-form').submit();
-            });
-        });
-    }
-  </script>
+
 </head>
 <body>
   <div class="container">
@@ -110,7 +98,6 @@
       {{ form.password2.label_tag }} {{ form.password2 }}
       {{ form.country.label_tag }} {{ form.country }}
       
-      <input type="hidden" id="g-recaptcha-response" name="g-recaptcha-response">
       
       <button type="submit">Register</button>
     </form>
