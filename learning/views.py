@@ -1588,7 +1588,7 @@ def reading_lab(request):
         prompt += " Separate the source and target texts with '==='.  Include as many of the words listed as possible."
 
         # Call Gemini API to generate texts
-        model = genai.GenerativeModel('gemini-pro')
+        model = genai.GenerativeModel('gemini-2.0-flash')
         response = model.generate_content(prompt)
         generated_text = response.text
 
