@@ -1694,16 +1694,11 @@ def delete_reading_lab_text(request, text_id):
         return JsonResponse({"success": True})
     return JsonResponse({"success": False, "error": "Invalid request"}, status=400)
 
-#import json
-import random
-import math
-import re
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required
 
-# Assume these models are imported as needed:
-# from learning.models import ReadingLabText, VocabularyList, VocabularyWord, EXAM_BOARD_TOPICS
-# from your_user_model import User  # or whichever user model you have
+
+# Example imports for your models
+# from learning.models import ReadingLabText, EXAM_BOARD_TOPICS
+# from learning.models import VocabularyList, VocabularyWord
 
 # 1) Cloze (Gap-Fill) Helper
 def generate_cloze(text, num_words_to_remove=10):
@@ -1755,9 +1750,9 @@ def generate_reorder_activity(text, num_chunks=10):
         + correct_order
     )
 
-# 3) Remove lines like "English:" or "German:"
+# 3) Remove lines like "English:" or "German:" or "French:" etc.
 def remove_language_labels(text):
-    # Removes e.g. "English:", "German:", "French:", "Spanish:", "Italian:" ignoring case
+    # Removes lines or occurrences like "English:", "German:", "French:", ignoring case
     pattern = re.compile(r"(?i)(English|German|French|Spanish|Italian):\s*")
     return pattern.sub("", text)
 
@@ -1765,14 +1760,14 @@ def remove_language_labels(text):
 def reading_lab_display(request, text_id):
     reading_lab_text = get_object_or_404(ReadingLabText, id=text_id, teacher=request.user)
 
-    # Activities to display in the template
+    # Activity results
     cloze_source = None
     cloze_target = None
     reorder_target = None
     tangled_translation = None
     comprehension_questions = None
 
-    # How many Pavonicoins does the teacher have left?
+    # Teacher's coin count
     coins_left = request.user.ai_credits
 
     if request.method == "POST":
@@ -1793,22 +1788,27 @@ def reading_lab_display(request, text_id):
 
         # 4) Tangled Translation (AI-based)
         tangled_prompt = (
-            "Take the following parallel text in two languages. Interleave or mix the lines "
-            "from both languages to create a single 'tangled' paragraph. Then after '===', "
-            "provide the correct separation (source text vs. target text). Avoid labeling lines "
-            "with 'English:' or 'German:' etc.\n\n"
+            "Take the following source text and target text, and randomly interleave lines "
+            "from both into a single paragraph. After '===', provide the correct separation "
+            "(first the entire source text in correct order, then the entire target text in correct order). "
+            "Do not label lines with any language names. Only the merged paragraph, then '===', then the separation.\n\n"
             f"Source text:\n{reading_lab_text.generated_text_source}\n\n"
             f"Target text:\n{reading_lab_text.generated_text_target}"
         )
-
         model = genai.GenerativeModel('gemini-2.0-flash')
         tangled_response = model.generate_content(tangled_prompt)
         tangled_translation = remove_language_labels(tangled_response.text)
 
-        # 5) Comprehension questions in English (AI-based)
+        # 5) Comprehension & Grammar Questions (AI-based)
+        #    5-10 questions, each question in source language & target language,
+        #    plus some vocab & grammar questions
         comp_prompt = (
-            "Create a set of 5 comprehension questions in English about the following parallel text. "
-            "Provide each question and a short answer. Avoid labeling lines with 'English:' or 'German:' etc.\n\n"
+            "Based on the following parallel text, create 5-10 comprehension questions. "
+            "For each question, provide it first in the source language, then in the target language. "
+            "Then create some vocabulary questions (matching synonyms, fill in the blanks, etc.) "
+            "and some grammatical questions (identifying tenses or forms) about the text. "
+            "Provide the answers or solutions as well. "
+            "Do not label lines with any language name.\n\n"
             f"Source text:\n{reading_lab_text.generated_text_source}\n\n"
             f"Target text:\n{reading_lab_text.generated_text_target}"
         )

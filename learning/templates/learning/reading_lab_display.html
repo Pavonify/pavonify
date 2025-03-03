@@ -101,12 +101,6 @@
             vertical-align: middle;
             margin-left: 5px;
         }
-        .highlight {
-            background-color: yellow;
-            font-weight: bold;
-            padding: 2px 5px;
-            border-radius: 3px;
-        }
         .activities {
             margin-top: 30px;
             text-align: left;
@@ -117,6 +111,12 @@
             border-radius: 5px;
             white-space: pre-wrap;
             margin-bottom: 20px;
+        }
+        .highlight {
+            background-color: yellow;
+            font-weight: bold;
+            padding: 2px 5px;
+            border-radius: 3px;
         }
         @media (max-width: 768px) {
             .parallel-text {
@@ -129,40 +129,41 @@
     <div class="main-content">
         <div class="pane">
             <h2>Generated Parallel Text 📖</h2>
-            <p>You have <strong>{{ coins_left }}</strong> Pavonicoins left.</p>
+
             <div class="parallel-text">
                 <div class="source-text">
                     <h3>
                         <img class="flag" src="{% static 'flags/' %}{{ reading_lab_text.vocabulary_list.source_language|lower }}.png" alt="{{ reading_lab_text.vocabulary_list.source_language }}">
                     </h3>
-                    <p class="source-text-content highlight">{{ reading_lab_text.generated_text_source }}</p>
+                    <p class="source-text-content">{{ reading_lab_text.generated_text_source }}</p>
                 </div>
                 <div class="target-text">
                     <h3>
                         <img class="flag" src="{% static 'flags/' %}{{ reading_lab_text.vocabulary_list.target_language|lower }}.png" alt="{{ reading_lab_text.vocabulary_list.target_language }}">
                     </h3>
-                    <p class="target-text-content highlight">{{ reading_lab_text.generated_text_target }}</p>
+                    <p class="target-text-content">{{ reading_lab_text.generated_text_target }}</p>
                 </div>
             </div>
+
+            <!-- Buttons: Generate Another Text, Back to Dashboard, THEN Generate Activities -->
+            <a href="{% url 'reading_lab' %}" class="btn">🔄 Generate Another Text</a>
+            <a href="{% url 'teacher_dashboard' %}" class="btn back-btn">⬅️ Back to Dashboard</a>
 
             <!-- Single-button form to generate all activities -->
             <form method="post">
                 {% csrf_token %}
                 <button type="submit" class="btn">Generate All Activities (Cost: 1 Pavonicoin)</button>
             </form>
-
-            <!-- Back to other pages -->
-            <a href="{% url 'reading_lab' %}" class="btn">🔄 Generate Another Text</a>
-            <a href="{% url 'teacher_dashboard' %}" class="btn back-btn">⬅️ Back to Dashboard</a>
+            <p>You have <strong>{{ coins_left }}</strong> Pavonicoins left.</p>
 
             <!-- Display the Activities -->
             <div class="activities">
                 {% if cloze_source %}
-                    <h3>Cloze - Source Language</h3>
+                    <h3>Cloze – Source Language</h3>
                     <div class="activity-box">{{ cloze_source }}</div>
                 {% endif %}
                 {% if cloze_target %}
-                    <h3>Cloze - Target Language</h3>
+                    <h3>Cloze – Target Language</h3>
                     <div class="activity-box">{{ cloze_target }}</div>
                 {% endif %}
                 {% if reorder_target %}
@@ -174,7 +175,7 @@
                     <div class="activity-box">{{ tangled_translation }}</div>
                 {% endif %}
                 {% if comprehension_questions %}
-                    <h3>Comprehension Questions</h3>
+                    <h3>Comprehension & Grammar Questions</h3>
                     <div class="activity-box">{{ comprehension_questions }}</div>
                 {% endif %}
             </div>
@@ -182,7 +183,8 @@
     </div>
 
     <script>
-        // Remove the first sentence from each text (if desired)
+        // 1) Remove the first sentence if desired
+        //    (comment out if you do not want this behavior)
         document.addEventListener("DOMContentLoaded", function () {
             function removeFirstSentence(element) {
                 let text = element.innerHTML;
@@ -191,35 +193,22 @@
                     element.innerHTML = text.substring(firstPeriodIndex + 1).trim();
                 }
             }
-            removeFirstSentence(document.querySelector(".source-text-content"));
-            removeFirstSentence(document.querySelector(".target-text-content"));
+            // removeFirstSentence(document.querySelector(".source-text-content"));
+            // removeFirstSentence(document.querySelector(".target-text-content"));
         });
 
-        // Restore word-by-word highlighting
+        // 2) Highlight text only where it is wrapped in **...**
+        //    Example: "We live in a **clean** apartment." -> highlight "clean" in yellow
         document.addEventListener("DOMContentLoaded", function () {
-            let sourceWords = [
-                {% for word in reading_lab_text.selected_words.all %}
-                    "{{ word.word|escapejs }}",
-                {% endfor %}
-            ];
-            let targetWords = [
-                {% for word in reading_lab_text.selected_words.all %}
-                    "{{ word.translation|escapejs }}",
-                {% endfor %}
-            ];
-
-            function highlightWords(textElement, words) {
-                let text = textElement.innerHTML;
-                words.forEach(word => {
-                    // Regex for whole-word matching, ignoring case
-                    let regex = new RegExp("\\b" + word + "\\b", "gi");
-                    text = text.replace(regex, `<span class="highlight">${word}</span>`);
-                });
-                textElement.innerHTML = text;
+            function highlightDoubleAsterisks(element) {
+                let text = element.innerHTML;
+                // Regex to find **some text** (non-greedy)
+                let pattern = /\*\*(.*?)\*\*/g;
+                text = text.replace(pattern, '<span class="highlight">$1</span>');
+                element.innerHTML = text;
             }
-
-            highlightWords(document.querySelector(".source-text-content"), sourceWords);
-            highlightWords(document.querySelector(".target-text-content"), targetWords);
+            highlightDoubleAsterisks(document.querySelector(".source-text-content"));
+            highlightDoubleAsterisks(document.querySelector(".target-text-content"));
         });
     </script>
 </body>
