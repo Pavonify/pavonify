@@ -107,10 +107,15 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
-# Static Files
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
-STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"  # ✅ Add this
+
+# ✅ Add this to tell Django where your original static files are:
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, "static"),  # Ensure your favicon is here
+]
+
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 # Authentication Settings
 AUTH_USER_MODEL = 'learning.User'
