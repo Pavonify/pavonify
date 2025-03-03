@@ -1802,12 +1802,12 @@ def reading_lab_display(request, text_id):
         # 4) Tangled Translation (AI-based)
         # Instruct the model to chunk each text in 5-10 words and alternate.
         tangled_prompt = (
-            "Please create a single 'tangled translation' from the following texts. "
-            "Break each text into chunks of 5-10 words, then alternate one chunk from the source text "
-            "with one chunk from the target text, continuing until both texts are used up. "
-            "Join them into a single paragraph. After '===', provide the correct separation: "
-            "first the entire source text in correct order, then the entire target text in correct order. "
-            "Do not label lines with any language name or add 'English:' or 'German:' etc.\n\n"
+            "Combine the source text and target text into one tangled paragraph, mixing them at the "
+            "sentence or phrase level. This activity is based on the EPI activity Tangled Translation. 
+            "About half of the text should be in the source language, "
+            "and half in the target language. Keep the same meaning. After '===', show the "
+            "correct separation: first the entire source text, then the entire target text. "
+            "Do not label lines with any language names, and remove any '**' asterisks.\n\n"
             f"Source text:\n{reading_lab_text.generated_text_source}\n\n"
             f"Target text:\n{reading_lab_text.generated_text_target}"
         )
