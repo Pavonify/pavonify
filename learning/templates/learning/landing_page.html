@@ -385,6 +385,26 @@
         width: 100%;
       }
     }
+
+/* Blog Button - Styled Like Dashboard Nav Buttons */
+.blog-button {
+  display: block;
+  width: 100%;
+  color: white;
+  text-decoration: none;
+  padding: 10px;
+  margin-top: auto; /* Push to bottom */
+  border-radius: 5px;
+  background-color: #0a8fd9;
+  text-align: center;
+  font-size: 16px;
+  transition: background-color 0.3s ease;
+}
+
+.blog-button:hover {
+  background-color: #086baf;
+}
+
   </style>
 </head>
 
@@ -408,7 +428,9 @@
     <p>🌍 Your <strong>ultimate interactive language learning platform!</strong><br>
        🎮 Play engaging games, <strong>build vocabulary</strong>, and track your progress.<br>
        🚀 Join as a <strong>student or teacher</strong> and start learning today!</p>
-<li><a href="{% url 'blog_list' %}">Blog</a></li>
+<!-- Blog Button - Styled Like Dashboard Nav Buttons -->
+<a href="{% url 'blog_list' %}" class="blog-button">📖 Visit the Blog</a>
+
   </div>
 
   <!-- Main Content -->
