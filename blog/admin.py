@@ -5,5 +5,3 @@ from .models import BlogPost
 class BlogPostAdmin(admin.ModelAdmin):
     list_display = ("title", "author", "created_at")
     prepopulated_fields = {"slug": ("title",)}  # Auto-fill slug from title
-
-admin.site.register(BlogPost)
