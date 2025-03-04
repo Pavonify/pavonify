@@ -1,0 +1,10 @@
+{% block content %}
+<h1>📝 Pavonify Blog</h1>
+{% for post in posts %}
+    <div class="blog-post">
+        <h2><a href="{% url 'blog_detail' post.slug %}">{{ post.title }}</a></h2>
+        <p>By {{ post.author }} | {{ post.created_at|date:"F j, Y" }}</p>
+        <p>{{ post.content|truncatewords:30 }}</p>
+    </div>
+{% endfor %}
+{% endblock %}

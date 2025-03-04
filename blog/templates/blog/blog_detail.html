@@ -1,0 +1,10 @@
+{% block content %}
+<article>
+    <h1>{{ post.title }}</h1>
+    <p>By {{ post.author }} | {{ post.created_at|date:"F j, Y" }}</p>
+    {% if post.featured_image %}
+        <img src="{{ post.featured_image.url }}" alt="{{ post.title }}">
+    {% endif %}
+    <p>{{ post.content|linebreaks }}</p>
+</article>
+{% endblock %}

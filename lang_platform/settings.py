@@ -38,7 +38,6 @@ CSRF_TRUSTED_ORIGINS = [
 
 X_FRAME_OPTIONS = 'SAMEORIGIN'
 
-# Installed Apps
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -46,10 +45,13 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'learning',  # Your app
+    
+    'learning',  # Your main app
+    'blog',  # ✅ Add your new blog app
     'django_q',
     'django_countries',
 ]
+
 
 # Middleware
 MIDDLEWARE = [

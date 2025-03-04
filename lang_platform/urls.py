@@ -15,7 +15,7 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path, re_path
+from django.urls import path, re_path, include
 from learning import views
 from django.contrib.auth import views as auth_views
 from django_countries.fields import CountryField 
@@ -100,6 +100,7 @@ urlpatterns = [
     path('delete-reading-lab-text/<int:text_id>/', delete_reading_lab_text, name='delete_reading_lab_text'),
     path("buy-pavicoins/", buy_pavicoins, name="buy_pavicoins"),
     path("pavicoins-success/", pavicoins_success, name="pavicoins_success"),
+    path("blog/", include("blog.urls")),  # ✅ Add this
 
 ]
 
