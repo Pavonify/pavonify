@@ -61,6 +61,27 @@
       font-size: 16px;
     }
 
+    .checkbox-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      margin-bottom: 15px;
+    }
+
+    .checkbox-container input {
+      margin-right: 10px;
+    }
+
+    .checkbox-container a {
+      color: #0aa2ef;
+      text-decoration: none;
+    }
+
+    .checkbox-container a:hover {
+      text-decoration: underline;
+    }
+
     form button {
       background-color: #0aa2ef;
       color: white;
@@ -76,6 +97,15 @@
     }
   </style>
 
+  <script>
+    function validateForm(event) {
+      const checkbox = document.getElementById('privacy-policy-checkbox');
+      if (!checkbox.checked) {
+        event.preventDefault();
+        alert("You must agree to the Privacy Policy to register.");
+      }
+    }
+  </script>
 </head>
 <body>
   <div class="container">
@@ -89,7 +119,7 @@
       {% endfor %}
     {% endif %}
     
-    <form id="registration-form" method="POST" onsubmit="onSubmit(event)">
+    <form id="registration-form" method="POST" onsubmit="validateForm(event)">
       {% csrf_token %}
       {{ form.full_name.label_tag }} {{ form.full_name }}
       {{ form.email.label_tag }} {{ form.email }}
@@ -97,8 +127,15 @@
       {{ form.password1.label_tag }} {{ form.password1 }}
       {{ form.password2.label_tag }} {{ form.password2 }}
       {{ form.country.label_tag }} {{ form.country }}
-      
-      
+
+      <div class="checkbox-container">
+        <input type="checkbox" id="privacy-policy-checkbox">
+        <label for="privacy-policy-checkbox">
+          I accept the 
+          <a href="{% static 'Privacy Policy for Pavonify.pdf' %}" target="_blank">Privacy Policy</a>.
+        </label>
+      </div>
+
       <button type="submit">Register</button>
     </form>
   </div>

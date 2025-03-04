@@ -112,7 +112,7 @@
             <img src="{{ post.featured_image.url }}" alt="{{ post.title }}" class="blog-image">
         {% endif %}
 
-        <p>{{ post.content|linebreaks }}</p>
+        <p>{{ post.content|linebreaks|safe }}</p>
     </div>
 
     <!-- Return to Blog Button -->

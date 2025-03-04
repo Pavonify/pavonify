@@ -113,7 +113,7 @@
         <div class="blog-post">
             <h2><a href="{% url 'blog_detail' post.slug %}">{{ post.title }}</a></h2>
             <p>By {{ post.author }} | {{ post.created_at|date:"F j, Y" }}</p>
-            <p>{{ post.content|truncatewords:30 }}</p>
+            <p>{{ post.content|truncatewords:30|safe }}</p>
         </div>
         {% empty %}
         <p>No blog posts yet. Check back soon!</p>
