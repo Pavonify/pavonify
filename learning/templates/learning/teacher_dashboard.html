@@ -1048,7 +1048,11 @@
     <button type="submit" class="btn-save">Save Changes</button>
 </form>
 
-    
+    <!-- Delete Account Button -->
+<div style="margin-top: 20px; text-align: center;">
+    <button id="delete-account-btn" class="btn-delete">Delete My Account</button>
+</div>
+
       <!-- Premium Subscription Section -->
       <div class="premium-status {% if request.user.is_premium %}premium-active{% else %}premium-inactive{% endif %}">
 {% if request.user.is_premium %}
@@ -1370,6 +1374,31 @@ document.getElementById("purchase-credits-btn").addEventListener("click", functi
     });
 
 </script>
+
+<script>
+document.getElementById("delete-account-btn").addEventListener("click", function() {
+    if (confirm("Are you sure you want to delete your account? This action cannot be undone.")) {
+        fetch("{% url 'delete_teacher_account' %}", {
+            method: "POST",
+            headers: {
+                "X-CSRFToken": "{{ csrf_token }}",
+                "Content-Type": "application/json"
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert("Your account has been successfully deleted.");
+                window.location.href = "{% url 'landing_page' %}"; // Redirect to homepage
+            } else {
+                alert("An error occurred. Please try again.");
+            }
+        })
+        .catch(error => console.error("Error:", error));
+    }
+});
+</script>
+
 
 </body>
 </html>

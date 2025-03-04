@@ -24,7 +24,7 @@ from django.urls import path
 from learning import views  # Import views from the learning app
 from learning.views import flashcard_mode, delete_reading_lab_text
 from django.contrib.auth.decorators import login_required
-from learning.views import update_assignment_points, buy_pavicoins, pavicoins_success, teacher_upgrade, create_checkout_session, worksheet_lab_view, custom_404_view, teacher_account_settings
+from learning.views import update_assignment_points, delete_teacher_account, buy_pavicoins, pavicoins_success, teacher_upgrade, create_checkout_session, worksheet_lab_view, custom_404_view, teacher_account_settings
 from django.conf.urls import handler404
 from learning.webhooks import stripe_webhook
 handler404 = custom_404_view
@@ -101,6 +101,7 @@ urlpatterns = [
     path("buy-pavicoins/", buy_pavicoins, name="buy_pavicoins"),
     path("pavicoins-success/", pavicoins_success, name="pavicoins_success"),
     path("blog/", include("blog.urls")),  # ✅ Add this
+    path("delete-account/", delete_teacher_account, name="delete_teacher_account"),
 
 ]
 

@@ -1856,3 +1856,11 @@ def buy_pavicoins(request):
 def pavicoins_success(request):
     messages.success(request, "Purchase successful! 20 Pavonicoins have been added to your account.")
     return redirect('teacher_dashboard')
+
+def delete_teacher_account(request):
+    if request.method == "POST" and request.user.is_authenticated:
+        user = request.user
+        user.delete()
+        logout(request)
+        return JsonResponse({"success": True})
+    return JsonResponse({"success": False}, status=400)

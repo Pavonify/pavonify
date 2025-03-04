@@ -71,22 +71,26 @@
 .checkbox-container label {
   display: flex;
   align-items: center;
-  gap: 5px; /* Adds a little spacing */
+  gap: 8px; /* Adds a little spacing */
+  cursor: pointer;
 }
 
 .checkbox-container input {
   margin: 0;
+  width: 16px; /* Explicitly set width */
+  height: 16px; /* Explicitly set height */
 }
 
+.checkbox-container a {
+  color: #0aa2ef;
+  text-decoration: none;
+  font-size: 14px; /* Ensure it matches other text */
+}
 
-    .checkbox-container a {
-      color: #0aa2ef;
-      text-decoration: none;
-    }
+.checkbox-container a:hover {
+  text-decoration: underline;
+}
 
-    .checkbox-container a:hover {
-      text-decoration: underline;
-    }
 
     form button {
       background-color: #0aa2ef;
@@ -135,11 +139,12 @@
       {{ form.country.label_tag }} {{ form.country }}
 
 <div class="checkbox-container">
-  <label>
-    <input type="checkbox" id="privacy-policy-checkbox">
+  <input type="checkbox" id="privacy-policy-checkbox">
+  <label for="privacy-policy-checkbox">
     I accept the <a href="{% static 'Privacy Policy for Pavonify.pdf' %}" target="_blank">Privacy Policy</a>.
   </label>
 </div>
+
 
 
       <button type="submit">Register</button>
