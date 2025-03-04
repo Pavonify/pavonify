@@ -662,6 +662,43 @@
   background-color: #086baf;
 }
 
+/* Ensure the class leaderboard div matches the overall leaderboard styling */
+.class-leaderboard {
+  flex: 0 0 auto;
+  margin: 20px auto;
+  max-width: 600px;
+  min-width: 300px; /* Adjust this value as needed */
+}
+
+.class-leaderboard h4 {
+  color: #0aa2ef;
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+.class-leaderboard table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.class-leaderboard th,
+.class-leaderboard td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: center;
+  font-size: 14px;
+}
+
+.class-leaderboard th {
+  background-color: #0aa2ef;
+  color: #fff;
+}
+
+.class-leaderboard tbody tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+
 /* Tooltip Effect */
 .tooltip {
     position: relative;
@@ -782,6 +819,7 @@
       <tr>
         <th>Rank</th>
         <th>Student</th>
+        <th>Class Name</th>
         <th>Total Points</th>
       </tr>
     </thead>
@@ -790,11 +828,20 @@
       <tr>
         <td>{{ forloop.counter0|add:overall_leaderboard_page.start_index }}</td>
         <td>{{ student.username }}</td>
+        <td>
+          {% if student.classes.all %}
+            {% for class in student.classes.all %}
+              {{ class.name }}{% if not forloop.last %}, {% endif %}
+            {% endfor %}
+          {% else %}
+            N/A
+          {% endif %}
+        </td>
         <td>{{ student.total_points }}</td>
       </tr>
       {% empty %}
       <tr>
-        <td colspan="3">No data available.</td>
+        <td colspan="4">No data available.</td>
       </tr>
       {% endfor %}
     </tbody>
@@ -815,6 +862,7 @@
     {% endif %}
   </div>
 </div>
+
 
       
      <!-- Leaderboard by Class -->
