@@ -1,10 +1,16 @@
 {% load static %}
+{% load compress %}
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Teacher Dashboard</title>
+
+{% compress css %}
+
+
   <style>
     /* Global Box-Sizing */
     *, *::before, *::after {
@@ -151,6 +157,11 @@
       max-width: 600px;
     }
     .leaderboard h3 {
+      color: #0aa2ef;
+      margin-bottom: 10px;
+    }
+
+    .class-leaderboard h3 {
       color: #0aa2ef;
       margin-bottom: 10px;
     }
@@ -737,6 +748,9 @@
 
 
   </style>
+
+{% endcompress %}
+
 </head>
 
 <!-- Google tag (gtag.js) -->
@@ -755,7 +769,8 @@
   
   <!-- Sidebar -->
   <div class="sidebar">
-    <img src="{% static 'learning/pavonify_logo.png' %}" alt="Pavonify Logo">
+<img src="{% static 'learning/pavonify_logo.png' %}" alt="Pavonify Logo" width="200" height="100">
+
     <h2>Teacher Dashboard</h2>
     <nav>
       <a href="#" data-pane="overview" class="active">Overview</a>
