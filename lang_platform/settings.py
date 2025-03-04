@@ -118,8 +118,7 @@ STATICFILES_DIRS = [
     os.path.join(BASE_DIR, "static"),  # Ensure your favicon is here
 ]
 
-STATICFILES_STORAGE = "django.contrib.staticfiles.storage.StaticFilesStorage"
-
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 STATICFILES_FINDERS = [
     'django.contrib.staticfiles.finders.FileSystemFinder',
