@@ -59,13 +59,13 @@ def teacher_dashboard(request):
     # Fetch the teacher's generated texts
     reading_lab_texts = ReadingLabText.objects.filter(teacher=request.user).order_by('-created_at')
 
-    # Fetch data
+    # Fetch data for vocabulary lists, classes, and students
     vocab_lists = VocabularyList.objects.filter(teacher=request.user)
-    classes = Class.objects.filter(teachers=request.user)  # Use 'teachers' field instead of 'teacher'
+    classes = Class.objects.filter(teachers=request.user)
     students = Student.objects.filter(classes__in=classes).distinct()
 
+    # Annotate each class with live and expired assignments
     for class_instance in classes:
-        # Annotate live and expired assignments for each class
         class_instance.live_assignments = Assignment.objects.filter(
             class_assigned=class_instance, deadline__gte=datetime.now()
         )
@@ -73,26 +73,42 @@ def teacher_dashboard(request):
             class_assigned=class_instance, deadline__lt=datetime.now()
         )
 
-    # Debugging Output
+    # Debugging output (optional)
     print("Classes:", classes)
     print("Students QuerySet:", students)
     for student in students:
         print(f"Student: {student.first_name} {student.last_name}, Classes: {student.classes.all()}")
 
-    # Attach unattached classes
+    # Attach unattached classes to each vocabulary list
     for vocab_list in vocab_lists:
         vocab_list.unattached_classes = classes.exclude(
             id__in=vocab_list.classes.values_list("id", flat=True)
         )
 
-    """ Renders teacher dashboard with the latest announcements """
+    # Announcements Pagination (3 posts per page)
     announcements_list = Announcement.objects.all()
-    paginator = Paginator(announcements_list, 3)  # Show 3 posts per page
+    announcements_paginator = Paginator(announcements_list, 3)
+    announcements_page_number = request.GET.get("page")
+    announcements = announcements_paginator.get_page(announcements_page_number)
 
-    page_number = request.GET.get("page")
-    announcements = paginator.get_page(page_number)
+    # Overall Leaderboard: Paginate teacher's students ordered by total_points (10 per page)
+    overall_leaderboard_list = students.order_by('-total_points')
+    overall_page_number = request.GET.get('overall_page', 1)
+    overall_paginator = Paginator(overall_leaderboard_list, 10)
+    overall_leaderboard_page = overall_paginator.get_page(overall_page_number)
 
-
+    # Leaderboard by Class: For each class, paginate its student list (10 per page)
+    by_class_leaderboards = []
+    for class_instance in classes:
+        students_in_class = class_instance.students.order_by('-total_points')
+        # Use a unique query parameter for each class based on its id
+        page_number = request.GET.get(f'class_{class_instance.id}_page', 1)
+        paginator = Paginator(students_in_class, 10)
+        leaderboard_page = paginator.get_page(page_number)
+        by_class_leaderboards.append({
+            'class_instance': class_instance,
+            'leaderboard_page': leaderboard_page,
+        })
 
     return render(request, "learning/teacher_dashboard.html", {
         "user": request.user,
@@ -100,9 +116,10 @@ def teacher_dashboard(request):
         "classes": classes,
         "students": students,
         "announcements": announcements,
-        'reading_lab_texts': reading_lab_texts,
+        "reading_lab_texts": reading_lab_texts,
+        "overall_leaderboard_page": overall_leaderboard_page,
+        "by_class_leaderboards": by_class_leaderboards,
     })
-
 
 
 

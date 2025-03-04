@@ -126,6 +126,18 @@
       font-size: 16px;
       color: #333;
     }
+
+.class-leaderboards-container {
+  display: flex;
+  gap: 20px;
+  overflow-x: auto;
+  padding: 10px 0;
+}
+.class-leaderboard {
+  flex: 0 0 auto;
+  min-width: 300px; /* Adjust as needed to fit your design */
+}
+
     .stats ul {
       list-style: none;
       padding: 0;
@@ -762,62 +774,98 @@
         </ul>
       </div>
       
-      <!-- Overall Leaderboard -->
-      <div class="leaderboard">
-        <h3>Overall Leaderboard</h3>
+<!-- Overall Leaderboard -->
+<div class="leaderboard">
+  <h3>Overall Leaderboard</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Rank</th>
+        <th>Student</th>
+        <th>Total Points</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for student in overall_leaderboard_page.object_list %}
+      <tr>
+        <td>{{ forloop.counter0|add:overall_leaderboard_page.start_index }}</td>
+        <td>{{ student.username }}</td>
+        <td>{{ student.total_points }}</td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="3">No data available.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  
+  <!-- Pagination Controls for Overall Leaderboard -->
+  <div class="pagination">
+    {% if overall_leaderboard_page.has_previous %}
+      <a href="?overall_page=1">&laquo; First</a>
+      <a href="?overall_page={{ overall_leaderboard_page.previous_page_number }}">Previous</a>
+    {% endif %}
+    
+    <span>Page {{ overall_leaderboard_page.number }} of {{ overall_leaderboard_page.paginator.num_pages }}</span>
+    
+    {% if overall_leaderboard_page.has_next %}
+      <a href="?overall_page={{ overall_leaderboard_page.next_page_number }}">Next</a>
+      <a href="?overall_page={{ overall_leaderboard_page.paginator.num_pages }}">Last &raquo;</a>
+    {% endif %}
+  </div>
+</div>
+
+      
+     <!-- Leaderboard by Class -->
+<div class="leaderboard-by-class">
+  <h3>Leaderboard by Class</h3>
+  <div class="class-leaderboards-container">
+    {% for class_data in by_class_leaderboards %}
+      <div class="class-leaderboard">
+        <h4>{{ class_data.class_instance.name }}</h4>
         <table>
           <thead>
             <tr>
               <th>Rank</th>
               <th>Student</th>
-              <th>Total Points</th>
+              <th>Points Earned</th>
             </tr>
           </thead>
           <tbody>
-            {% for student in overall_leaderboard %}
+            {% for student in class_data.leaderboard_page.object_list %}
             <tr>
-              <td>{{ forloop.counter }}</td>
+              <td>{{ forloop.counter0|add:class_data.leaderboard_page.start_index }}</td>
               <td>{{ student.username }}</td>
               <td>{{ student.total_points }}</td>
             </tr>
             {% empty %}
             <tr>
-              <td colspan="3">No data available.</td>
+              <td colspan="3">No data available for this class.</td>
             </tr>
             {% endfor %}
           </tbody>
         </table>
+        
+        <!-- Pagination Controls for this Class Leaderboard -->
+        <div class="pagination">
+          {% if class_data.leaderboard_page.has_previous %}
+            <a href="?class_{{ class_data.class_instance.id }}_page=1">&laquo; First</a>
+            <a href="?class_{{ class_data.class_instance.id }}_page={{ class_data.leaderboard_page.previous_page_number }}">Previous</a>
+          {% endif %}
+          
+          <span>Page {{ class_data.leaderboard_page.number }} of {{ class_data.leaderboard_page.paginator.num_pages }}</span>
+          
+          {% if class_data.leaderboard_page.has_next %}
+            <a href="?class_{{ class_data.class_instance.id }}_page={{ class_data.leaderboard_page.next_page_number }}">Next</a>
+            <a href="?class_{{ class_data.class_instance.id }}_page={{ class_data.leaderboard_page.paginator.num_pages }}">Last &raquo;</a>
+          {% endif %}
+        </div>
       </div>
-      
-      <!-- Leaderboard by Class -->
-      <div class="leaderboard-by-class">
-        <h3>Leaderboard by Class</h3>
-        {% for class_data in by_class_leaderboards %}
-          <h4>{{ class_data.class_instance.name }}</h4>
-          <table>
-            <thead>
-              <tr>
-                <th>Rank</th>
-                <th>Student</th>
-                <th>Points Earned</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for student in class_data.leaderboard %}
-              <tr>
-                <td>{{ forloop.counter }}</td>
-                <td>{{ student.username }}</td>
-                <td>{{ student.points }}</td>
-              </tr>
-              {% empty %}
-              <tr>
-                <td colspan="3">No data available for this class.</td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        {% endfor %}
-      </div>
+    {% endfor %}
+  </div>
+</div>
+
       
 <div class="recent-activity">
     <h3>Latest Updates</h3>
