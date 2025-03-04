@@ -50,7 +50,7 @@ INSTALLED_APPS = [
     'blog',  # ✅ Add your new blog app
     'django_q',
     'django_countries',
-    'compressor',
+
 ]
 
 
@@ -119,15 +119,6 @@ STATICFILES_DIRS = [
 ]
 
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
-
-STATICFILES_FINDERS = [
-    'django.contrib.staticfiles.finders.FileSystemFinder',
-    'django.contrib.staticfiles.finders.AppDirectoriesFinder',
-    'compressor.finders.CompressorFinder',
-]
-
-COMPRESS_ENABLED = True
-COMPRESS_OUTPUT_DIR = 'CACHE'
 
 
 # Authentication Settings
