@@ -1,10 +1,122 @@
-{% block content %}
-<article>
-    <h1>{{ post.title }}</h1>
-    <p>By {{ post.author }} | {{ post.created_at|date:"F j, Y" }}</p>
-    {% if post.featured_image %}
-        <img src="{{ post.featured_image.url }}" alt="{{ post.title }}">
-    {% endif %}
-    <p>{{ post.content|linebreaks }}</p>
-</article>
-{% endblock %}
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <title>{{ post.title }} - Pavonify Blog</title>
+    <meta name="description" content="{{ post.content|truncatewords:25 }}">
+
+    <!-- ✅ Import Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <style>
+        /* General Styles */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            background: #e3f2fd;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Blog Header */
+        .blog-header {
+            background-color: #0aa2ef;
+            color: white;
+            text-align: center;
+            padding: 20px;
+            width: 100%;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .blog-header h1 {
+            margin: 0;
+            font-size: 28px;
+        }
+
+        /* Blog Post Container */
+        .blog-container {
+            width: 90%;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            text-align: left;
+        }
+
+        .blog-container h1 {
+            margin-top: 0;
+            color: #0aa2ef;
+            font-size: 28px;
+        }
+
+        .blog-container p {
+            font-size: 16px;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .blog-container .meta {
+            font-size: 14px;
+            color: #555;
+            margin-bottom: 15px;
+        }
+
+        /* Featured Image */
+        .blog-image {
+            width: 100%;
+            height: auto;
+            border-radius: 5px;
+            margin: 15px 0;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Return Button */
+        .return-btn {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 10px 15px;
+            background-color: #ff2c61;
+            color: white;
+            border-radius: 5px;
+            text-decoration: none;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+        }
+
+        .return-btn:hover {
+            background-color: #d4204c;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Blog Header -->
+    <div class="blog-header">
+        <h1>📝 Pavonify Blog</h1>
+    </div>
+
+    <!-- Blog Post Content -->
+    <div class="blog-container">
+        <h1>{{ post.title }}</h1>
+        <p class="meta">By {{ post.author }} | {{ post.created_at|date:"F j, Y" }}</p>
+
+        {% if post.featured_image %}
+            <img src="{{ post.featured_image.url }}" alt="{{ post.title }}" class="blog-image">
+        {% endif %}
+
+        <p>{{ post.content|linebreaks }}</p>
+    </div>
+
+    <!-- Return to Blog Button -->
+    <a href="{% url 'blog_list' %}" class="return-btn"><i class="fas fa-arrow-left"></i> Return to Blog</a>
+
+</body>
+</html>
