@@ -407,18 +407,73 @@
   background-color: #086baf;
 }
 
+/* Cookie Banner */
+.cookie-banner {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: rgba(0, 0, 0, 0.85);
+  color: white;
+  padding: 15px;
+  text-align: center;
+  font-size: 14px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  z-index: 9999;
+}
+
+.cookie-banner button {
+  background-color: #0aa2ef;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.3s;
+}
+
+.cookie-banner button:hover {
+  background-color: #086baf;
+}
+
+.cookie-banner button#reject-cookies {
+  background-color: #d32f2f;
+}
+
+.cookie-banner button#reject-cookies:hover {
+  background-color: #b71c1c;
+}
+
+
 
   </style>
 </head>
 
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-GK2W6LN7Z5"></script>
 <script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', 'G-GK2W6LN7Z5');
+  function loadGoogleAnalytics() {
+    const script = document.createElement('script');
+    script.src = "https://www.googletagmanager.com/gtag/js?id=G-GK2W6LN7Z5";
+    script.async = true;
+    document.head.appendChild(script);
+
+    script.onload = function () {
+      window.dataLayer = window.dataLayer || [];
+      function gtag() { dataLayer.push(arguments); }
+      gtag('js', new Date());
+      gtag('config', 'G-GK2W6LN7Z5');
+    };
+  }
+
+  // Check if user has accepted cookies
+  if (localStorage.getItem('cookieConsent') === 'true') {
+    loadGoogleAnalytics();
+  }
 </script>
+
 
 <body>
   <!-- Sidebar Toggle for Mobile -->
@@ -619,5 +674,41 @@
       sidebar.classList.toggle('active');
     }
   </script>
+
+
+<div id="cookie-banner" class="cookie-banner">
+  <p>This website uses cookies to improve your experience. You can accept or decline analytics tracking.</p>
+  <button id="accept-cookies">Accept</button>
+  <button id="reject-cookies">Reject</button>
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const banner = document.getElementById("cookie-banner");
+    const acceptButton = document.getElementById("accept-cookies");
+    const rejectButton = document.getElementById("reject-cookies");
+
+    // Check if consent was already given
+    if (localStorage.getItem("cookieConsent") !== null) {
+      banner.style.display = "none";
+    }
+
+    // Accept Cookies
+    acceptButton.addEventListener("click", function () {
+      localStorage.setItem("cookieConsent", "true");
+      banner.style.display = "none";
+      loadGoogleAnalytics(); // Load analytics immediately
+    });
+
+    // Reject Cookies
+    rejectButton.addEventListener("click", function () {
+      localStorage.setItem("cookieConsent", "false");
+      banner.style.display = "none";
+    });
+  });
+</script>
+
+
+
 </body>
 </html>
