@@ -1,10 +1,127 @@
-{% block content %}
-<h1>📝 Pavonify Blog</h1>
-{% for post in posts %}
-    <div class="blog-post">
-        <h2><a href="{% url 'blog_detail' post.slug %}">{{ post.title }}</a></h2>
-        <p>By {{ post.author }} | {{ post.created_at|date:"F j, Y" }}</p>
-        <p>{{ post.content|truncatewords:30 }}</p>
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <title>Pavonify Blog</title>
+    <meta name="description" content="Read the latest updates, teaching tips, and insights from Pavonify.">
+    
+    <!-- ✅ Import Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+        /* General Styles */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            background: #e3f2fd;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Header */
+        .blog-header {
+            background-color: #0aa2ef;
+            color: white;
+            text-align: center;
+            padding: 20px;
+            width: 100%;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .blog-header h1 {
+            margin: 0;
+            font-size: 28px;
+        }
+
+        /* Blog Container */
+        .blog-container {
+            width: 90%;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .blog-post {
+            margin-bottom: 20px;
+            padding: 20px;
+            border-bottom: 1px solid #ddd;
+            text-align: left;
+        }
+
+        .blog-post:last-child {
+            border-bottom: none;
+        }
+
+        .blog-post h2 {
+            margin: 0;
+            color: #0aa2ef;
+        }
+
+        .blog-post a {
+            text-decoration: none;
+            color: #0aa2ef;
+            transition: color 0.3s ease-in-out;
+        }
+
+        .blog-post a:hover {
+            color: #086baf;
+        }
+
+        .blog-post p {
+            font-size: 16px;
+            color: #333;
+        }
+
+        /* Back to Homepage Button */
+        .back-btn {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 10px 15px;
+            background-color: #ff2c61;
+            color: white;
+            border-radius: 5px;
+            text-decoration: none;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+        }
+
+        .back-btn:hover {
+            background-color: #d4204c;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Blog Header -->
+    <div class="blog-header">
+        <h1>📝 Pavonify Blog</h1>
     </div>
-{% endfor %}
-{% endblock %}
+
+    <!-- Blog Content -->
+    <div class="blog-container">
+        {% for post in posts %}
+        <div class="blog-post">
+            <h2><a href="{% url 'blog_detail' post.slug %}">{{ post.title }}</a></h2>
+            <p>By {{ post.author }} | {{ post.created_at|date:"F j, Y" }}</p>
+            <p>{{ post.content|truncatewords:30 }}</p>
+        </div>
+        {% empty %}
+        <p>No blog posts yet. Check back soon!</p>
+        {% endfor %}
+    </div>
+
+    <!-- Back to Homepage Button -->
+    <a href="{% url 'homepage' %}" class="back-btn"><i class="fas fa-home"></i> Back to Homepage</a>
+
+</body>
+</html>
