@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Game Lobby{% endblock %}
+
+{% block content %}
+<h1>World Domination Live Game - Lobby</h1>
+<p><strong>Game ID:</strong> {{ game.id }}</p>
+<p><strong>Hosted by:</strong> {{ game.teacher.username }}</p>
+<p><strong>Class:</strong> {{ game.class_instance.name }}</p>
+<p><strong>Vocabulary List:</strong> {{ game.vocabulary_list.name }}</p>
+<p><strong>Time Limit:</strong> {{ game.time_limit }} minutes</p>
+<p><strong>Starts:</strong> {{ game.start_time }}</p>
+<p><strong>Ends:</strong> {{ game.end_time }}</p>
+
+<h2>Teams</h2>
+<ul>
+  {% for team in teams %}
+    <li>{{ team.team_name }} - Score: {{ team.score }}</li>
+  {% endfor %}
+</ul>
+
+<h2>Country Ownership</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Country</th>
+      <th>Population</th>
+      <th>Strength (words required)</th>
+      <th>Controlled By</th>
+      <th>Reinforcement Level</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for ownership in ownerships %}
+    <tr>
+      <td>{{ ownership.country.name }}</td>
+      <td>{{ ownership.country.population }}</td>
+      <td>{{ ownership.country.strength }}</td>
+      <td>
+        {% if ownership.controlled_by %}
+          {{ ownership.controlled_by.team_name }}
+        {% else %}
+          Neutral
+        {% endif %}
+      </td>
+      <td>{{ ownership.reinforcement_level }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<h2>Secret Weapons</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Country</th>
+      <th>Weapon Type</th>
+      <th>Held By</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for weapon in secret_weapons %}
+    <tr>
+      <td>{{ weapon.country.name }}</td>
+      <td>{{ weapon.get_weapon_type_display }}</td>
+      <td>
+        {% if weapon.held_by %}
+          {{ weapon.held_by.team_name }}
+        {% else %}
+          Neutral
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<h2>Game Chat / Updates</h2>
+<div id="chat-log" style="border: 1px solid #ccc; padding: 10px; height: 200px; overflow-y: scroll;">
+</div>
+<input type="text" id="chat-input" placeholder="Type a message..." style="width: 80%;">
+<button id="chat-send">Send</button>
+
+<script>
+  // Establish a WebSocket connection for real-time updates.
+  const gameId = "{{ game.id }}";
+  const wsScheme = window.location.protocol === "https:" ? "wss" : "ws";
+  const socket = new WebSocket(wsScheme + '://' + window.location.host + '/ws/game/' + gameId + '/');
+
+  socket.onopen = function() {
+      console.log("WebSocket connection established.");
+  };
+
+  socket.onmessage = function(e) {
+      const data = JSON.parse(e.data);
+      const message = data.message;
+      const chatLog = document.getElementById('chat-log');
+      const newMessage = document.createElement('div');
+      newMessage.textContent = message;
+      chatLog.appendChild(newMessage);
+      chatLog.scrollTop = chatLog.scrollHeight;
+  };
+
+  socket.onerror = function(e) {
+      console.error("WebSocket error:", e);
+  };
+
+  document.getElementById('chat-send').addEventListener('click', function() {
+      const input = document.getElementById('chat-input');
+      const message = input.value;
+      if (message) {
+          socket.send(JSON.stringify({"message": message}));
+          input.value = '';
+      }
+  });
+
+  document.getElementById('chat-input').addEventListener('keypress', function(e) {
+      if (e.key === "Enter") {
+          document.getElementById('chat-send').click();
+      }
+  });
+</script>
+{% endblock %}

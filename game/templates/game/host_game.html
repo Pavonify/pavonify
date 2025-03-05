@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Host a New Game{% endblock %}
+
+{% block content %}
+<h1>Host a New World Domination Live Game</h1>
+<form method="POST">
+  {% csrf_token %}
+  
+  <label for="class_instance">Select Class:</label>
+  <select name="class_instance" id="class_instance" required>
+    {% for class in teacher_classes %}
+      <option value="{{ class.id }}">{{ class.name }}</option>
+    {% endfor %}
+  </select>
+  <br><br>
+  
+  <label for="vocabulary_list">Vocabulary List:</label>
+  <select name="vocabulary_list" id="vocabulary_list" required>
+    {% for vocab in vocabulary_lists %}
+      <option value="{{ vocab.id }}">{{ vocab.name }}</option>
+    {% endfor %}
+  </select>
+  <br><br>
+  
+  <label for="time_limit">Time Limit (minutes):</label>
+  <input type="number" name="time_limit" id="time_limit" value="10" required>
+  <br><br>
+  
+  <label for="number_of_teams">Number of Teams (2–4):</label>
+  <input type="number" name="number_of_teams" id="number_of_teams" value="2" min="2" max="4" required>
+  <br><br>
+  
+  <button type="submit">Start Game</button>
+</form>
+{% endblock %}

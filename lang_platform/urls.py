@@ -102,6 +102,7 @@ urlpatterns = [
     path("pavicoins-success/", pavicoins_success, name="pavicoins_success"),
     path("blog/", include("blog.urls")),  # ✅ Add this
     path("delete-account/", delete_teacher_account, name="delete_teacher_account"),
+    path('game/', include('game.urls')),  # This includes the URLs from your game app
 
 ]
 
