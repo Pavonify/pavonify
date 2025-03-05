@@ -50,6 +50,8 @@ INSTALLED_APPS = [
     'blog',  # ✅ Add your new blog app
     'django_q',
     'django_countries',
+    'game',
+    'channels',	
 
 ]
 
@@ -88,6 +90,17 @@ TEMPLATES = [
 
 # WSGI Application
 WSGI_APPLICATION = 'lang_platform.wsgi.application'
+
+ASGI_APPLICATION = "lang_platform.asgi.application"
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [("127.0.0.1", 6379)],
+        },
+    },
+}
 
 # Database Configuration
 DATABASES = {
