@@ -13,8 +13,13 @@ def host_game(request):
         number_of_teams = int(request.POST.get("number_of_teams", 2))
         vocabulary_list = get_object_or_404(VocabularyList, id=vocabulary_list_id)
 
+        # For POST, you need to get the selected class as well.
+        class_id = request.POST.get("class_instance")
+        class_instance = get_object_or_404(Class, id=class_id)
+
         game = LiveGame.objects.create(
             teacher=request.user,
+            class_instance=class_instance,
             vocabulary_list=vocabulary_list,
             time_limit=time_limit,
             number_of_teams=number_of_teams,
@@ -34,9 +39,15 @@ def host_game(request):
         # Redirect to the game lobby page (adjust URL name as needed)
         return redirect("game_lobby", game_id=game.id)
 
-    # On GET, show available vocabulary lists to choose from.
+    # On GET, show available vocabulary lists and teacher's classes.
     vocabulary_lists = VocabularyList.objects.filter(teacher=request.user)
-    return render(request, "game/host_game.html", {"vocabulary_lists": vocabulary_lists})
+    # Using the related name defined on the Class model:
+    teacher_classes = request.user.shared_classes.all()
+    return render(request, "game/host_game.html", {
+        "vocabulary_lists": vocabulary_lists,
+        "teacher_classes": teacher_classes,
+    })
+
 
 @login_required
 def game_lobby(request, game_id):
