@@ -50,7 +50,7 @@ INSTALLED_APPS = [
     'blog',  # ✅ Add your new blog app
     'django_q',
     'django_countries',
-
+    'game',
 ]
 
 
