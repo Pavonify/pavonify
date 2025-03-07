@@ -317,33 +317,125 @@
         align-self: center;
       }
     }
+
+
+.shimmer {
+  /* Set up the gradient with a narrow white highlight in the center */
+  background: linear-gradient(
+    135deg,
+    #F2A03D 0%,
+    #F2A03D 45%,
+    #fff 50%,
+    #F2A03D 55%,
+    #F2A03D 100%
+  );
+  /* Double the background width so we can animate the highlight across */
+  background-size: 200% 200%; /* Adjusted for diagonal movement */
+  /* Hide the actual text color so that the gradient shows through */
+  color: transparent;
+  background-clip: text;
+  -webkit-background-clip: text;
+  animation: shimmer 5s linear infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -100% center;
+  }
+  100% {
+    background-position: 100% center;
+  }
+}
+
+.feature-strip {
+  position: relative;
+  height: 40px; /* Adjust based on your design */
+  overflow: hidden;
+}
+
+.feature {
+  position: absolute;
+  white-space: nowrap;
+  transform: translateX(100%);
+  opacity: 0;
+  animation: fly-in-out 18s linear infinite;
+}
+
+/* Stagger each feature’s active window by 3 seconds */
+.feature:nth-child(1) { animation-delay: 0s; }
+.feature:nth-child(2) { animation-delay: 3s; }
+.feature:nth-child(3) { animation-delay: 6s; }
+.feature:nth-child(4) { animation-delay: 9s; }
+.feature:nth-child(5) { animation-delay: 12s; }
+.feature:nth-child(6) { animation-delay: 15s; }
+
+@keyframes fly-in-out {
+  /* 0s (0% of 18s): feature is off-screen right */
+  0% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  /* 0.5s (2.78% of 18s): feature has flown in */
+  2.78% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  /* 2s (11.11% of 18s): feature is still at center */
+  11.11% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  /* 2.5s (13.89% of 18s): feature has flown out to the left */
+  13.89% {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  /* 3s (16.67% of 18s) and onward: feature remains hidden */
+  16.67% {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+}
+
+
+
   </style>
 </head>
 <body>
 
+
   <!-- TOP BAR (Login Buttons) -->
   <div class="top-bar">
-    <button onclick="window.location.href='{% url 'student_login' %}'">Student Login</button>
-    <button onclick="window.location.href='{% url 'login' %}'">Teacher Login</button>
-    <button onclick="window.location.href='{% url 'register_teacher' %}'">Teacher Register</button>
+    <button onclick="window.location.href='{% url 'student_login' %}'">🧑‍🎓 Student Login</button>
+    <button onclick="window.location.href='{% url 'login' %}'">👩‍🏫 Teacher Login</button>
+    <button onclick="window.location.href='{% url 'register_teacher' %}'">📄 Teacher Register</button>
   </div>
 
   <!-- Hero Section -->
-  <header>
-    <div class="hero-container">
-      <div class="hero-left">
-        <h1>WELCOME TO PAVONIFY</h1>
-        <p>The Ultimate AI-Powered Language Teaching Platform</p>
-        <div class="feature-strip">
-          Set Assignments | Track Student Progress | Worksheet Designer | AI Parallel Text Designer | Live Games | Student Leaderboards & Trophies
-        </div>
-      </div>
-      <div class="hero-right">
-        <img src="{% static 'pavonify_bird_jumping_circle.png' %}" alt="Jumping Pavonify Bird">
-        <!-- <div class="speech-bubble">Let's learn together!</div> -->
+<header>
+  <div class="hero-container">
+    <div class="hero-left">
+      <h1>WELCOME TO <span class="shimmer">PAVONIFY</span></h1>
+      <p>The Ultimate AI-Powered Language Teaching Platform</p>
+      <div class="feature-strip">
+        <span class="feature">Vocabulary Learning</span>
+        <span class="feature">Track Student Progress</span>
+        <span class="feature">Worksheet Designer</span>
+        <span class="feature">AI Parallel Text Designer</span>
+        <span class="feature">Live Games</span>
+        <span class="feature">Student Leaderboards & Trophies</span>
       </div>
     </div>
-  </header>
+    <div class="hero-right">
+      <img src="{% static 'pavonify_bird_jumping_circle.png' %}" alt="Jumping Pavonify Bird">
+      <!-- <div class="speech-bubble">Let's learn together!</div> -->
+    </div>
+  </div>
+</header>
   <!-- Navigation -->
   <nav>
     <a href="#features">Features</a>
@@ -495,7 +587,7 @@
   <!-- Contact Section -->
   <section id="contact">
     <h2>Contact Us</h2>
-    <p>Have questions or feedback? Feel free to reach out via email: <a href="mailto:contact@pavonify.com">contact@pavonify.com</a></p>
+    <p>Have questions or feedback? Feel free to reach out via email: <a href="mailto:sam@pavonify.com">sam@pavonify.com</a></p>
   </section>
 
   <!-- Footer -->

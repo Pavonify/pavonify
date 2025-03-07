@@ -1,807 +1,345 @@
 {% load static %}
-
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Teacher Dashboard</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Teacher Dashboard - Pavonify</title>
+
+  <!-- Meta Tags -->
+  <meta name="description" content="Manage your classes, assignments, and students with Pavonify's AI-powered teacher dashboard.">
+  <meta name="keywords" content="teacher dashboard, language teaching, AI education, classroom management">
+  <meta name="author" content="Pavonify">
+
+  <!-- Favicon -->
+  <link rel="icon" href="{% static 'images/favicon.ico' %}" type="image/x-icon">
+
+  <!-- Google Fonts: Poppins and Fredoka One -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Fredoka+One&display=swap" rel="stylesheet">
+
+  <!-- Font Awesome for Icons -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 
   <style>
-    /* Global Box-Sizing */
-    *, *::before, *::after {
+    :root {
+      --primary: #1A73E8;           /* Bright Blue */
+      --accent: #F2A03D;            /* Orange */
+      --secondary-accent: #34A853;  /* Green */
+      --background: #F2EFE9;        /* Soft Off-White */
+      --dark: #0D0D0D;              /* Dark Gray */
+      --highlight: #A6173D;         /* Reddish Accent */
+    }
+
+    /* Global Reset & Base */
+    * {
       box-sizing: border-box;
-    }
-    /* Import Font Awesome for icons */
-    @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css');
-    
-    /* Global Styles */
-    body {
-      font-family: Arial, sans-serif;
       margin: 0;
-      min-height: 100vh;
-      background: #e3f2fd;
-      display: flex;
+      padding: 0;
     }
-    
-    /* Sidebar */
-    .sidebar {
-      background-color: #0aa2ef;
-      color: white;
-      padding: 15px;
-      width: 250px;
-      box-shadow: 2px 0 5px rgba(0,0,0,0.1);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      text-align: center;
-      position: fixed;
-      left: 0;
-      top: 0;
-      height: 100vh;
-      transition: transform 0.3s ease-in-out;
+    body {
+      font-family: 'Poppins', sans-serif;
+      background-color: var(--background);
+      color: var(--dark);
+      line-height: 1.6;
+      scroll-behavior: smooth;
     }
-    .sidebar img {
-      width: 80%;
-      border-radius: 10px;
-      margin-bottom: 20px;
-    }
-    .sidebar h2 {
-      margin: 0 0 10px;
-      font-size: 14px;
-    }
-    .sidebar nav {
-      width: 100%;
-      display: flex;
-      flex-direction: column;
-      align-items: stretch;
-    }
-    .sidebar nav a {
-      display: block;
-      width: 100%;
-      color: white;
+    a {
+      color: var(--accent);
       text-decoration: none;
-      padding: 8px 12px;
-      margin: 3px 0;
-      border-radius: 5px;
-      background-color: #0a8fd9;
-      text-align: center;
-      transition: background-color 0.3s ease;
+      transition: color 0.3s ease;
     }
-    .sidebar nav a:hover,
-    .sidebar nav a.active {
-      background-color: #086baf;
+    a:hover {
+      color: var(--highlight);
     }
-    /* Upgrade prompt in the sidebar for Basic users (gold) */
-    {% if not request.user.is_premium %}
-    .upgrade-prompt {
-      background-color: #FFD700;
-      color: #333;
-      padding: 10px;
-      border-radius: 5px;
-      margin-top: 20px;
-      text-align: center;
-      font-size: 14px;
+    h1, h2, h3, h4, h5, h6 {
+      font-weight: 700;
+      margin-bottom: 0.5em;
+    }
+    h1 {
+      font-family: 'Fredoka One', cursive;
+      font-size: 3.5rem;
+      color: #fff;
+    }
+    p {
+      margin-bottom: 1em;
+    }
+
+    /* Top Navigation Bar */
+    .top-nav {
+      background-color: var(--primary);
+      color: #fff;
+      padding: 8px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .top-nav .nav-left {
+      display: flex;
+      align-items: center;
+    }
+    .top-nav .nav-left img {
+      height: 40px;
+      margin-right: 10px;
+    }
+    .top-nav .nav-left span {
+      font-size: 1.5rem;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .top-nav .nav-right {
+      display: flex;
+      align-items: center;
+    }
+    .top-nav .nav-right a,
+    .top-nav .nav-right button {
+      margin-left: 20px;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: #fff;
+      background: none;
+      border: none;
       cursor: pointer;
     }
-    .upgrade-prompt:hover {
-      background-color: #e6c200;
+    .top-nav .nav-right a:hover,
+    .top-nav .nav-right button:hover {
+      color: var(--accent);
+    }
+    /* Upgrade button if not premium */
+    {% if not request.user.is_premium %}
+    .top-nav .nav-right .upgrade-link {
+      color: var(--accent);
+      font-weight: 700;
     }
     {% endif %}
-    
+
+    /* Main Navigation (Pane Links + Dropdown for Labs) in top bar */
+    .nav-bar {
+      background-color: #fff;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      padding: 10px 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .nav-bar a {
+      margin: 0 20px;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: var(--dark);
+    }
+    .nav-bar a:hover {
+      color: var(--accent);
+    }
+
+    /* Dropdown for Labs */
+    .dropdown {
+      position: relative;
+      display: inline-block;
+    }
+    .dropdown .dropbtn {
+      font-weight: 600;
+      text-transform: uppercase;
+      color: var(--dark);
+      background: none;
+      border: none;
+      cursor: pointer;
+    }
+    .dropdown-content {
+      display: none;
+      position: absolute;
+      background-color: #fff;
+      min-width: 150px;
+      box-shadow: 0px 8px 16px rgba(0,0,0,0.2);
+      z-index: 100;
+      right: 0;
+    }
+    .dropdown-content a {
+      color: var(--dark) !important;
+      padding: 10px 16px;
+      text-decoration: none;
+      display: block;
+      text-transform: none;
+    }
+    .dropdown-content a:hover {
+      background-color: var(--background);
+    }
+    .dropdown:hover .dropdown-content {
+      display: block;
+    }
+
     /* Main Content */
     .main-content {
-      margin-left: 250px;
-      flex-grow: 1;
-      padding: 40px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      text-align: center;
+      margin: 20px;
+      padding: 20px;
     }
     .pane {
       display: none;
-      background-color: white;
+      background-color: #fff;
       border-radius: 10px;
       padding: 20px;
       box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-      max-width: 800px;
+      max-width: 1200px;
       width: 100%;
-      margin-bottom: 20px;
-      animation: fadeIn 1s ease-in-out;
-      color: #333;
+      margin: 20px auto;
+      animation: fadeIn 0.5s ease-in-out;
     }
     .pane.active {
       display: block;
     }
     .pane h2 {
       margin-top: 0;
-      color: #0aa2ef;
+      color: var(--primary);
       font-size: 28px;
     }
-    
-    /* Overview Pane: Statistics, Leaderboards, and Upgrade Prompts */
-    .stats {
-      text-align: left;
-      margin: 0 auto 20px;
-      max-width: 600px;
-      font-size: 16px;
-      color: #333;
-    }
 
-.class-leaderboards-container {
-  display: flex;
-  gap: 20px;
-  overflow-x: auto;
-  padding: 10px 0;
+/* Reset any extra margin/padding and force a consistent box model */
+a.btn, button.btn {
+  display: inline-flex;             /* Use inline-flex for both */
+  align-items: center;              /* Vertically center text */
+  justify-content: center;          /* Horizontally center text */
+  width: 180px;                     /* Fixed width so they match */
+  white-space: nowrap;              /* Prevent text wrapping */
+  padding: 10px 16px;
+  margin: 0;                        /* Remove any default margins */
+  border-radius: 6px;
+  box-sizing: border-box;           /* Include padding/border in width */
+  cursor: pointer;
+  font-weight: 600;
+  text-transform: uppercase;
+  background-color: var(--primary);
+  color: #fff;
+  border: none;
+  line-height: 1;                   /* Normalize line-height */
 }
-.class-leaderboard {
-  flex: 0 0 auto;
-  min-width: 300px; /* Adjust as needed to fit your design */
+
+a.btn:hover, button.btn:hover {
+  background-color: var(--accent);
+  transform: translateY(-2px);
 }
 
-    .stats ul {
-      list-style: none;
-      padding: 0;
-    }
-    .stats li {
-      margin: 5px 0;
-    }
-    .leaderboard {
-      text-align: left;
-      margin: 20px auto;
-      max-width: 600px;
-    }
-    .leaderboard h3 {
-      color: #0aa2ef;
-      margin-bottom: 10px;
+    .btn:active {
+      transform: translateY(0);
     }
 
-    .class-leaderboard h3 {
-      color: #0aa2ef;
-      margin-bottom: 10px;
+    /* Action Buttons (Off-white, Blue Border) */
+    .btn-action {
+      background-color: #fff; /* Off-white */
+      border: 2px solid var(--primary); 
+      color: var(--primary);
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 0.9rem;
+      margin: 2px;
+      cursor: pointer;
+      transition: background-color 0.3s ease, color 0.3s ease, transform 0.2s ease;
     }
-    .leaderboard table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-    .leaderboard th, .leaderboard td {
-      border: 1px solid #ddd;
-      padding: 8px;
-      text-align: center;
-      font-size: 14px;
-    }
-    .leaderboard th {
-      background-color: #0aa2ef;
+    .btn-action:hover {
+      background-color: var(--accent);
       color: #fff;
+      transform: translateY(-2px);
     }
-    .leaderboard tbody tr:nth-child(even) {
-      background-color: #f9f9f9;
+    .btn-action:active {
+      transform: translateY(0);
     }
-    .upgrade-message {
-      margin-top: 10px;
-      font-size: 14px;
-      color: #FFD700;
-    }
-    
-    /* Table Styling for other panes */
+
+    /* Tables */
     table {
-      margin: 20px auto;
-      border-collapse: collapse;
       width: 100%;
-      max-width: 600px;
-      background: white;
+      border-collapse: collapse;
+      margin: 20px 0;
+      background-color: #fff;
       border-radius: 10px;
       overflow: hidden;
       box-shadow: 0 4px 8px rgba(0,0,0,0.1);
     }
-    table th {
+    table th, table td {
       padding: 12px;
-      background-color: #0aa2ef;
-      color: white;
       text-align: center;
-      font-size: 16px;
       border: 1px solid #ddd;
     }
-    table td {
-      padding: 10px;
-      border: 1px solid #ddd;
-      text-align: center;
-      font-size: 14px;
-      color: #333;
+    table th {
+      background-color: var(--primary);
+      color: #fff;
     }
-    table tbody tr:nth-child(even) {
+    table tr:nth-child(even) {
       background-color: #f9f9f9;
     }
-    
-    /* Flag Styles */
+
+    /* Flags: small round icons */
     .flag {
-      width: 24px;
-      height: 24px;
+      width: 20px;
+      height: 20px;
       border-radius: 50%;
       object-fit: cover;
-      vertical-align: middle;
+      display: inline-block;
+      margin-right: 5px;
     }
-    .vocab-languages {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 5px;
-      margin-top: 5px;
-    }
-    
-    /* Button Styles */
-    .btn {
-      background-color: #ff2c61;
-      color: white;
-      border: none;
-      padding: 6px 10px;
-      border-radius: 5px;
-      text-decoration: none;
-      cursor: pointer;
-      transition: background-color 0.3s ease;
-      font-size: 14px;
-      white-space: nowrap;
-    }
-    .btn:hover {
-      background-color: #d4204c;
-    }
-    /* Change upgrade buttons to gold */
-    .upgrade-btn {
-      background-color: #FFD700;
-      color: #333;
-      border: none;
-      padding: 6px 10px;
-      border-radius: 5px;
-      text-decoration: none;
-      cursor: pointer;
-      transition: background-color 0.3s ease;
-      font-size: 14px;
-      white-space: nowrap;
-    }
-    .upgrade-btn:hover {
-      background-color: #e6c200;
-    }
-    /* Button groups for inline buttons */
-    .btn-group, .vocab-actions, .action-buttons {
-      display: flex;
-      gap: 5px;
-      justify-content: center;
-      align-items: center;
-      flex-wrap: nowrap;
-    }
-    .inline-form {
-      display: inline-flex;
-      gap: 5px;
-      align-items: center;
-    }
-    
-    /* Class Item Styling */
-    .class-item {
-      background-color: white;
-      color: #333;
-      padding: 15px;
-      margin: 10px 0;
-      border-radius: 10px;
-      display: flex;
-      flex-direction: column;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-      transition: transform 0.3s ease-in-out;
-    }
-    .class-item > .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      width: 100%;
-    }
-    .class-item:hover {
-      transform: scale(1.02);
-    }
-    
-    /* Assignments Container */
-    .assignments-container {
-      display: none;
-      margin-top: 15px;
-      background: #fff;
-      padding: 20px;
-      border-radius: 10px;
-      border: 1px solid #e0e0e0;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-      color: #333;
-      text-align: left;
-    }
-    .assignments-header {
-      background-color: #0aa2ef;
-      color: white;
-      padding: 8px 12px;
-      border-radius: 5px;
-      margin-bottom: 10px;
-      font-size: 18px;
-      font-weight: bold;
-    }
-    .assignment-item {
-      margin: 10px 0;
-      padding: 10px;
-      border-bottom: 1px solid #ddd;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .assignment-item:last-child {
-      border-bottom: none;
-    }
-    
-    /* Fade In Animation */
+
+    /* Animations */
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(-20px); }
       to { opacity: 1; transform: translateY(0); }
     }
 
-    /* New: Logout & Account Buttons */
-    .nav-buttons {
-      display: flex;
-      justify-content: space-between;
-      width: 100%;
-      margin-top: 20px;
-    }
-    .btn-logout, .btn-account {
-      flex: 1;
-      text-align: center;
-      padding: 10px;
-      border-radius: 5px;
-      color: white;
-      cursor: pointer;
-      transition: 0.3s;
-      font-size: 14px;
-    }
-    .btn-logout {
-      background-color: #ff2c61;
-    }
-    .btn-logout:hover {
-      background-color: #d4204c;
-    }
-    .btn-account {
-      background-color: #ffd700;
-      color: #333;
-    }
-    .btn-account:hover {
-      background-color: #e6c200;
-    }
-    /* Account Pane */
-    .account-pane {
-      display: none;
-      background: white;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-      width: 100%;
-      max-width: 600px;
-      text-align: left;
-    }
-    .account-pane.active {
-      display: block;
-    }
-    .account-pane h2 {
-      text-align: center;
-      color: #0aa2ef;
-    }
-    .account-pane label {
-      font-weight: bold;
-      display: block;
-      margin-top: 10px;
-    }
-    .account-pane input {
-      width: 100%;
-      padding: 8px;
-      margin-top: 5px;
-      border: 1px solid #ddd;
-      border-radius: 5px;
-    }
-    .btn-save {
-      background-color: #0aa2ef;
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 5px;
-      cursor: pointer;
-      font-size: 16px;
-      margin-top: 10px;
-      width: 100%;
-    }
-    .btn-save:hover {
-      background-color: #086baf;
-    }
-
-/* Delete Account Button */
-.btn-delete-account {
-  background-color: #d32f2f; /* Red */
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 5px;
-  cursor: pointer;
-  font-size: 16px;
-  font-weight: bold;
-  text-transform: uppercase;
-  transition: background-color 0.3s ease, transform 0.1s ease;
-  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-.btn-delete-account:hover {
-  background-color: #b71c1c; /* Darker red */
-  transform: scale(1.05); /* Slight zoom effect */
-}
-
-.btn-delete-account:active {
-  background-color: #9a0007;
-  transform: scale(0.98); /* Pressed effect */
-}
-
-
-    /* Premium Status */
-    .premium-status {
-      margin-top: 20px;
-      padding: 10px;
-      border-radius: 5px;
-      text-align: center;
-    }
-    .premium-active {
-      background-color: #c8e6c9;
-      color: #2e7d32;
-    }
-    .premium-inactive {
-      background-color: #ffcdd2;
-      color: #c62828;
-    }
-    .btn-upgrade, .btn-cancel {
-      display: block;
-      text-align: center;
-      padding: 10px;
-      border-radius: 5px;
-      color: white;
-      margin-top: 10px;
-      cursor: pointer;
-      transition: 0.3s;
-      font-size: 16px;
-    }
-    .btn-upgrade {
-      background-color: #ffd700;
-      color: #333;
-    }
-    .btn-upgrade:hover {
-      background-color: #e6c200;
-    }
-    .btn-cancel {
-      background-color: #ff2c61;
-    }
-    .btn-cancel:hover {
-      background-color: #d4204c;
-    }
-
-    /* Make the Account Pane behave like other panes */
-    .account-pane {
-      display: none;
-      background: white;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-      width: 100%;
-      max-width: 800px;
-      text-align: center;
-    }
-
-    .account-pane.active {
-      display: block;
-    }
-
-    /* Space out the input fields */
-    .input-box {
-      width: 100%;
-      padding: 10px;
-      margin-top: 5px;
-      margin-bottom: 15px;
-      border: 1px solid #ddd;
-      border-radius: 5px;
-    }
-
-    /* Feature Comparison Table */
-    .feature-table {
-      width: 100%;
-      margin-top: 20px;
-      border-collapse: collapse;
-      border-radius: 10px;
-      overflow: hidden;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    }
-    .feature-table th {
-      background-color: #0aa2ef;
-      color: white;
-      padding: 12px;
-      text-align: center;
-    }
-    .feature-table td {
-      padding: 10px;
-      text-align: center;
-      border: 1px solid #ddd;
-    }
-    .feature-table tr:nth-child(even) {
-      background-color: #f9f9f9;
-    }
-
-    /* Mobile Responsive Styles */
+    /* Responsive Adjustments */
     @media (max-width: 768px) {
-      /* Sidebar adjustments */
-      .sidebar {
-        position: fixed;
-        left: 0;
-        top: 0;
-        height: 100vh;
-        width: 250px;
-        transform: translateX(-100%);
-        z-index: 1000;
+      .top-nav {
+        flex-direction: column;
+        align-items: flex-start;
       }
-      .sidebar.active {
-        transform: translateX(0);
-      }
-      /* Sidebar toggle button */
-      .sidebar-toggle {
-        display: block;
-        position: fixed;
-        top: 10px;
-        left: 10px;
-        font-size: 24px;
-        background: #0aa2ef;
-        color: white;
-        padding: 10px;
-        border-radius: 5px;
-        z-index: 1100;
-        cursor: pointer;
-      }
-      /* Adjust main content */
-      .main-content {
-        margin-left: 0;
-        padding: 20px;
-      }
-      /* Make tables responsive */
-      table {
-        display: block;
-        overflow-x: auto;
-        white-space: nowrap;
+      .top-nav .nav-right {
+        margin-top: 10px;
       }
     }
-
-
-.recent-activity {
-    background: white;
-    padding: 20px;
-    border-radius: 10px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    max-width: 700px; /* ✅ Restricts width for readability */
-    margin: 20px auto;
-    text-align: left; /* ✅ Ensures left alignment */
-}
-
-/* Individual Announcement Styling */
-.announcement {
-    margin-bottom: 20px;
-    padding-bottom: 15px;
-    border-bottom: 1px solid #ddd;
-}
-
-.announcement h4 {
-    color: #0aa2ef;
-    margin-bottom: 10px;
-    font-size: 22px;
-}
-
-.announcement p {
-    font-size: 16px;
-    color: #333;
-    line-height: 1.6; /* ✅ Improves readability */
-    text-indent: 20px; /* ✅ Adds indentation to first line */
-    white-space: pre-line; /* ✅ Preserves newlines in text */
-}
-
-/* Announcement Image Styling */
-.announcement-image {
-    max-width: 100%;
-    height: auto;
-    display: block; /* ✅ Prevents inline issues */
-    margin: 15px auto; /* ✅ Centers the image */
-    border-radius: 5px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-}
-
-/* Pagination Styling */
-.pagination {
-    text-align: center;
-    margin-top: 20px;
-}
-
-.pagination a {
-    padding: 5px 10px;
-    margin: 0 5px;
-    background: #0aa2ef;
-    color: white;
-    text-decoration: none;
-    border-radius: 5px;
-    transition: background 0.3s ease-in-out;
-}
-
-.pagination a:hover {
-    background: #086baf;
-}
-
-.pagination span {
-    font-weight: bold;
-}
-
-/* Reading Lab Pane */
-/* Fix for Reading Lab Pane Overflow */
-#reading-lab {
-  max-width: 1000px;
-  margin: 50px auto; /* Adds proper spacing from top and center alignment */
-  padding: 20px;
-  min-height: 500px; /* Prevents it from being too small */
-}
-
-.ai-credits {
-  margin-bottom: 20px;
-  padding: 15px;
-  background-color: #f9f9f9;
-  border-radius: 10px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-}
-
-.ai-credits p {
-  margin: 0;
-  font-size: 16px;
-  color: #333;
-}
-
-#purchase-credits-btn {
-  margin-top: 10px;
-  background-color: #0aa2ef;
-  color: white;
-}
-
-#purchase-credits-btn:hover {
-  background-color: #086baf;
-}
-
-/* Ensure the class leaderboard div matches the overall leaderboard styling */
-.class-leaderboard {
-  flex: 0 0 auto;
-  margin: 20px auto;
-  max-width: 600px;
-  min-width: 300px; /* Adjust this value as needed */
-}
-
-.class-leaderboard h4 {
-  color: #0aa2ef;
-  margin-bottom: 10px;
-  text-align: center;
-}
-
-.class-leaderboard table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.class-leaderboard th,
-.class-leaderboard td {
-  border: 1px solid #ddd;
-  padding: 8px;
-  text-align: center;
-  font-size: 14px;
-}
-
-.class-leaderboard th {
-  background-color: #0aa2ef;
-  color: #fff;
-}
-
-.class-leaderboard tbody tr:nth-child(even) {
-  background-color: #f9f9f9;
-}
-
-
-/* Tooltip Effect */
-.tooltip {
-    position: relative;
-    cursor: pointer;
-    color: #0aa2ef; /* Pavonify blue */
-    font-weight: bold;
-    text-decoration: underline;
-}
-
-/* Tooltip Hover Effect */
-.tooltip:hover::after {
-    content: "Pavonicoins are used to generate Parallel Texts in the Reading Lab. As we use an external AI provider, it costs every time that we generate a text for you.  Premium teachers receive 5 Pavonicoins every month!";
-    position: absolute;
-    top: -60px; /* Moves tooltip higher above text */
-    left: 50%;
-    transform: translateX(-50%);
-    background: #333;
-    color: white;
-    font-size: 12px;
-    padding: 8px 12px;
-    border-radius: 5px;
-    white-space: normal; /* Allows text wrapping */
-    opacity: 1;
-    z-index: 1000;
-    width: 280px; /* Increases width for readability */
-    text-align: center;
-    line-height: 1.4;
-    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2); /* Adds a shadow for better visibility */
-}
-
-/* Prevents tooltip from causing scrollbars */
-.tooltip:hover::after {
-    overflow: hidden;
-    display: block;
-}
-
-
   </style>
 </head>
-
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-GK2W6LN7Z5"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-GK2W6LN7Z5');
-</script>
-
 <body>
-  <!-- Mobile Sidebar Toggle -->
-  <div class="sidebar-toggle" onclick="toggleSidebar()">&#9776;</div>
-  
-  <!-- Sidebar -->
-  <div class="sidebar">
-<img src="{% static 'learning/pavonify_logo.png' %}" alt="Pavonify Logo" width="200" height="100">
-
-    <h2>Teacher Dashboard</h2>
-    <nav>
+  <!-- TOP NAVIGATION BAR -->
+  <div class="top-nav">
+    <div class="nav-left">
+      <img src="{% static 'pavonify_bird.png' %}" alt="Pavonify Logo">
+      <span>Pavonify</span>
+    </div>
+    <div class="nav-right">
+      {% if not request.user.is_premium %}
+      <a href="#" data-pane="teacher-upgrade" class="upgrade-link btn">Upgrade</a>
+      {% endif %}
       <a href="#" data-pane="overview" class="active">Overview</a>
       <a href="#" data-pane="classes">Classes</a>
-      <a href="#" data-pane="vocabulary">Vocabulary Lists</a>
+      <a href="#" data-pane="vocabulary">Vocabulary</a>
       <a href="#" data-pane="assignments">Assignments</a>
       <a href="#" data-pane="students">Students</a>
-      <a href="#" data-pane="worksheet-lab">✨Worksheet Lab✨</a>
-      <a href="#" data-pane="reading-lab">📚Reading Lab📚</a> 
-      {% if not request.user.is_premium %}
-      <a href="#" data-pane="teacher-upgrade" class="btn-upgrade">Upgrade to Premium</a>
-      {% endif %}
-      <div class="nav-buttons">
-        <form method="post" action="{% url 'teacher_logout' %}">
-          {% csrf_token %}
-          <button type="submit" class="btn-logout">Logout</button>
-        </form>
-        <button class="btn-account" data-pane="account-pane">Account</button>
+      <div class="dropdown">
+        <button class="dropbtn">Labs 🧪</button>
+        <div class="dropdown-content">
+          <a href="#" data-pane="worksheet-lab">Worksheet Lab</a>
+          <a href="#" data-pane="reading-lab">Reading Lab</a>
+        </div>
       </div>
-    </nav>
+      <a href="#" data-pane="account-pane">Account</a>
+      <form method="post" action="{% url 'teacher_logout' %}" style="display:inline;">
+        {% csrf_token %}
+        <button type="submit" class="btn">Logout</button>
+      </form>
+    </div>
   </div>
-  
-  <!-- Main Content -->
+
+  <!-- MAIN CONTENT -->
   <div class="main-content">
     <!-- Overview Pane -->
     <div class="pane active" id="overview">
       <h2>Overview</h2>
-      <!-- Upgrade Message for Basic Users -->
       {% if not request.user.is_premium %}
-      <p class="upgrade-message">You're currently on the Basic plan. Upgrade to Premium for more features!</p>
-      <a href="#" data-pane="teacher-upgrade" class="upgrade-btn">Upgrade to Premium</a>
+      <p class="upgrade-message">You're currently on the Basic plan. 
+        <a href="#" data-pane="teacher-upgrade" class="btn">Upgrade to Premium</a>
+      </p>
       {% endif %}
-      <!-- Statistics -->
       <div class="stats">
         <ul>
           <li>
-            <strong>Total Classes:</strong> 
+            <strong>Total Classes:</strong>
             {% if request.user.is_premium %}
               {{ classes|length }}
             {% else %}
@@ -809,7 +347,7 @@
             {% endif %}
           </li>
           <li>
-            <strong>Total Vocabulary Lists:</strong> 
+            <strong>Total Vocabulary Lists:</strong>
             {% if request.user.is_premium %}
               {{ vocab_lists|length }}
             {% else %}
@@ -819,152 +357,61 @@
           <li><strong>Total Students:</strong> {{ students|length }}</li>
         </ul>
       </div>
-      
-<!-- Overall Leaderboard -->
-<div class="leaderboard">
-  <h3>Overall Leaderboard</h3>
-  <table>
-    <thead>
-      <tr>
-        <th>Rank</th>
-        <th>Student</th>
-        <th>Class Name</th>
-        <th>Total Points</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for student in overall_leaderboard_page.object_list %}
-      <tr>
-        <td>{{ forloop.counter0|add:overall_leaderboard_page.start_index }}</td>
-        <td>{{ student.username }}</td>
-        <td>
-          {% if student.classes.all %}
-            {% for class in student.classes.all %}
-              {{ class.name }}{% if not forloop.last %}, {% endif %}
-            {% endfor %}
-          {% else %}
-            N/A
-          {% endif %}
-        </td>
-        <td>{{ student.total_points }}</td>
-      </tr>
-      {% empty %}
-      <tr>
-        <td colspan="4">No data available.</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-  
-  <!-- Pagination Controls for Overall Leaderboard -->
-  <div class="pagination">
-    {% if overall_leaderboard_page.has_previous %}
-      <a href="?overall_page=1">&laquo; First</a>
-      <a href="?overall_page={{ overall_leaderboard_page.previous_page_number }}">Previous</a>
-    {% endif %}
-    
-    <span>Page {{ overall_leaderboard_page.number }} of {{ overall_leaderboard_page.paginator.num_pages }}</span>
-    
-    {% if overall_leaderboard_page.has_next %}
-      <a href="?overall_page={{ overall_leaderboard_page.next_page_number }}">Next</a>
-      <a href="?overall_page={{ overall_leaderboard_page.paginator.num_pages }}">Last &raquo;</a>
-    {% endif %}
-  </div>
-</div>
-
-
-      
-     <!-- Leaderboard by Class -->
-<div class="leaderboard-by-class">
-  <h3>Leaderboard by Class</h3>
-  <div class="class-leaderboards-container">
-    {% for class_data in by_class_leaderboards %}
-      <div class="class-leaderboard">
-        <h4>{{ class_data.class_instance.name }}</h4>
+      <div class="leaderboard">
+        <h3>Overall Leaderboard</h3>
         <table>
           <thead>
             <tr>
               <th>Rank</th>
               <th>Student</th>
-              <th>Points Earned</th>
+              <th>Class Name</th>
+              <th>Total Points</th>
             </tr>
           </thead>
           <tbody>
-            {% for student in class_data.leaderboard_page.object_list %}
+            {% for student in overall_leaderboard_page.object_list %}
             <tr>
-              <td>{{ forloop.counter0|add:class_data.leaderboard_page.start_index }}</td>
+              <td>{{ forloop.counter0|add:overall_leaderboard_page.start_index }}</td>
               <td>{{ student.username }}</td>
+              <td>
+                {% if student.classes.all %}
+                  {% for class in student.classes.all %}
+                    {{ class.name }}{% if not forloop.last %}, {% endif %}
+                  {% endfor %}
+                {% else %}
+                  N/A
+                {% endif %}
+              </td>
               <td>{{ student.total_points }}</td>
             </tr>
             {% empty %}
             <tr>
-              <td colspan="3">No data available for this class.</td>
+              <td colspan="4">No data available.</td>
             </tr>
             {% endfor %}
           </tbody>
         </table>
-        
-        <!-- Pagination Controls for this Class Leaderboard -->
         <div class="pagination">
-          {% if class_data.leaderboard_page.has_previous %}
-            <a href="?class_{{ class_data.class_instance.id }}_page=1">&laquo; First</a>
-            <a href="?class_{{ class_data.class_instance.id }}_page={{ class_data.leaderboard_page.previous_page_number }}">Previous</a>
+          {% if overall_leaderboard_page.has_previous %}
+            <a href="?overall_page=1">&laquo; First</a>
+            <a href="?overall_page={{ overall_leaderboard_page.previous_page_number }}">Previous</a>
           {% endif %}
-          
-          <span>Page {{ class_data.leaderboard_page.number }} of {{ class_data.leaderboard_page.paginator.num_pages }}</span>
-          
-          {% if class_data.leaderboard_page.has_next %}
-            <a href="?class_{{ class_data.class_instance.id }}_page={{ class_data.leaderboard_page.next_page_number }}">Next</a>
-            <a href="?class_{{ class_data.class_instance.id }}_page={{ class_data.leaderboard_page.paginator.num_pages }}">Last &raquo;</a>
+          <span>Page {{ overall_leaderboard_page.number }} of {{ overall_leaderboard_page.paginator.num_pages }}</span>
+          {% if overall_leaderboard_page.has_next %}
+            <a href="?overall_page={{ overall_leaderboard_page.next_page_number }}">Next</a>
+            <a href="?overall_page={{ overall_leaderboard_page.paginator.num_pages }}">Last &raquo;</a>
           {% endif %}
         </div>
       </div>
-    {% endfor %}
-  </div>
-</div>
-
-      
-<div class="recent-activity">
-    <h3>Latest Updates</h3>
-
-    {% for post in announcements %}
-    <div class="announcement">
-        <h4>{{ post.title }}</h4>
-        <p>{{ post.text_body|linebreaks }}</p>
-        
-        {% if post.image %}
-        <img src="{{ post.image.url }}" alt="{{ post.title }}" class="announcement-image">
-        {% endif %}
-
-        <p><small>Posted on {{ post.created_at|date:"F d, Y" }}</small></p>
     </div>
-    {% empty %}
-    <p>No announcements yet.</p>
-    {% endfor %}
 
-    <!-- Pagination Controls -->
-    <div class="pagination">
-        {% if announcements.has_previous %}
-            <a href="?page=1">&laquo; First</a>
-            <a href="?page={{ announcements.previous_page_number }}">Previous</a>
-        {% endif %}
-
-        <span>Page {{ announcements.number }} of {{ announcements.paginator.num_pages }}</span>
-
-        {% if announcements.has_next %}
-            <a href="?page={{ announcements.next_page_number }}">Next</a>
-            <a href="?page={{ announcements.paginator.num_pages }}">Last &raquo;</a>
-        {% endif %}
-    </div>
-</div>
-
-    </div>
-    
     <!-- Classes Pane -->
     <div class="pane" id="classes">
       <h2>Classes</h2>
       {% if not request.user.is_premium and classes|length >= 2 %}
-      <p class="upgrade-message">You can create a maximum of 2 classes as a Basic User. <a href="#" data-pane="teacher-upgrade" class="upgrade-btn">Upgrade to Premium</a></p>
+      <p class="upgrade-message">You can create a maximum of 2 classes as a Basic User. 
+        <a href="#" data-pane="teacher-upgrade" class="btn">Upgrade to Premium</a>
+      </p>
       {% else %}
       <a href="{% url 'create_class' %}" class="btn">Add Class</a>
       {% endif %}
@@ -985,16 +432,14 @@
               <img class="flag" src="{% static 'flags/'|add:class_instance.language|add:'.png' %}" alt="{{ class_instance.language }}">
             </td>
             <td>
-              <div class="btn-group">
-                <a href="{% url 'edit_class' class_instance.id %}" class="btn">Edit</a>
-                {% if not request.user.is_premium and class_instance.students.all|length >= 15 %}
-                  <span class="upgrade-message">Max 15 students reached (Upgrade required)</span>
-                {% else %}
-                  <a href="{% url 'add_students' class_instance.id %}" class="btn">Add Students</a>
-                {% endif %}
-                <a href="{% url 'delete_class' class_instance.id %}" class="btn" onclick="return confirm('Are you sure?');">Delete</a>
-                <a href="{% url 'view_attached_vocab' class_instance.id %}" class="btn">View Attached Lists</a>
-              </div>
+              <a href="{% url 'edit_class' class_instance.id %}" class="btn-action">Edit</a>
+              {% if not request.user.is_premium and class_instance.students.all|length >= 15 %}
+                <span class="upgrade-message">Max 15 students reached (Upgrade required)</span>
+              {% else %}
+                <a href="{% url 'add_students' class_instance.id %}" class="btn-action">Add Students</a>
+              {% endif %}
+              <a href="{% url 'delete_class' class_instance.id %}" class="btn-action" onclick="return confirm('Are you sure?');">Delete</a>
+              <a href="{% url 'view_attached_vocab' class_instance.id %}" class="btn-action">Vocab Lists</a>
             </td>
           </tr>
             {% endif %}
@@ -1002,12 +447,15 @@
         </tbody>
       </table>
     </div>
-    
+
     <!-- Vocabulary Pane -->
     <div class="pane" id="vocabulary">
       <h2>Vocabulary Lists</h2>
       {% if not request.user.is_premium and vocab_lists|length >= 3 %}
-      <p class="upgrade-message">You can create a maximum of 3 vocabulary lists as a Basic User. <a href="#" data-pane="teacher-upgrade" class="upgrade-btn">Upgrade to Premium</a></p>
+      <p class="upgrade-message">
+        You can create a maximum of 3 vocabulary lists as a Basic User. 
+        <a href="#" data-pane="teacher-upgrade" class="btn">Upgrade to Premium</a>
+      </p>
       {% else %}
       <a href="{% url 'add_vocabulary_list' %}" class="btn">Create List</a>
       {% endif %}
@@ -1023,36 +471,33 @@
             {% if request.user.is_premium or forloop.counter0 < 3 %}
           <tr>
             <td>
-              <div>{{ vocab_list.name }}</div>
-              <div class="vocab-languages">
+              <div><strong>{{ vocab_list.name }}</strong></div>
+              <div class="vocab-languages" style="margin-top: 5px;">
                 <img class="flag" src="{% static 'flags/'|add:vocab_list.source_language|add:'.png' %}" alt="{{ vocab_list.source_language }}">
                 <i class="fas fa-arrow-right"></i>
                 <img class="flag" src="{% static 'flags/'|add:vocab_list.target_language|add:'.png' %}" alt="{{ vocab_list.target_language }}">
               </div>
             </td>
             <td>
-              <div class="vocab-actions">
-                <a href="{% url 'edit_vocabulary_list_details' vocab_list.id %}" class="btn">Edit</a>
-                <a href="{% url 'view_vocabulary_words' vocab_list.id %}" class="btn">View</a>
-                <a href="{% url 'add_words_to_list' vocab_list.id %}" class="btn">Add Words</a>
-                <a href="{% url 'delete_vocabulary_list' vocab_list.id %}" class="btn">Delete</a>
-                <!-- Inline form for attaching this vocab list to a class -->
-                <form method="post" action="{% url 'attach_vocab_list' vocab_list.id %}" class="inline-form">
-                  {% csrf_token %}
-                  <select name="class_id" {% if vocab_list.unattached_classes|length == 0 %} disabled {% endif %}>
-                    {% if vocab_list.unattached_classes|length == 0 %}
-                      <option>All classes attached</option>
-                    {% else %}
-                      {% for available_class in vocab_list.unattached_classes %}
-                        <option value="{{ available_class.id }}">{{ available_class.name }}</option>
-                      {% endfor %}
-                    {% endif %}
-                  </select>
-                  <button type="submit" class="btn" {% if vocab_list.unattached_classes|length == 0 %} disabled {% endif %}>
-                    Attach to Class
-                  </button>
-                </form>
-              </div>
+              <a href="{% url 'edit_vocabulary_list_details' vocab_list.id %}" class="btn-action">Edit</a>
+              <a href="{% url 'view_vocabulary_words' vocab_list.id %}" class="btn-action">View</a>
+              <a href="{% url 'add_words_to_list' vocab_list.id %}" class="btn-action">Add Words</a>
+              <a href="{% url 'delete_vocabulary_list' vocab_list.id %}" class="btn-action">Delete</a>
+              <form method="post" action="{% url 'attach_vocab_list' vocab_list.id %}" class="inline-form" style="display:inline-block;">
+                {% csrf_token %}
+                <select name="class_id" {% if vocab_list.unattached_classes|length == 0 %} disabled {% endif %}>
+                  {% if vocab_list.unattached_classes|length == 0 %}
+                    <option>All classes attached</option>
+                  {% else %}
+                    {% for available_class in vocab_list.unattached_classes %}
+                      <option value="{{ available_class.id }}">{{ available_class.name }}</option>
+                    {% endfor %}
+                  {% endif %}
+                </select>
+                <button type="submit" class="btn-action" {% if vocab_list.unattached_classes|length == 0 %} disabled {% endif %}>
+                  Attach to Class
+                </button>
+              </form>
             </td>
           </tr>
             {% endif %}
@@ -1060,17 +505,17 @@
         </tbody>
       </table>
     </div>
-    
+
     <!-- Students Pane -->
     <div class="pane" id="students">
       <h2>Students</h2>
       <table id="students-table">
         <thead>
           <tr>
-            <th data-column="name" data-order="asc">Full Name</th>
-            <th data-column="year" data-order="asc">Year</th>
-            <th data-column="last_login" data-order="asc">Last Login</th>
-            <th data-column="total_points" data-order="asc">Total Points</th>
+            <th>Full Name</th>
+            <th>Year</th>
+            <th>Last Login</th>
+            <th>Total Points</th>
           </tr>
         </thead>
         <tbody>
@@ -1085,19 +530,19 @@
         </tbody>
       </table>
     </div>
-    
+
     <!-- Assignments Pane -->
     <div class="pane" id="assignments">
       <h2>Your Classes</h2>
       <div id="classes-container">
         {% for class_instance in classes %}
           {% if request.user.is_premium or forloop.counter0 < 1 %}
-        <div class="class-item">
-          <div class="header">
+        <div class="class-item" style="margin-bottom: 20px;">
+          <div class="header" style="margin-bottom:10px;">
             <strong>{{ class_instance.name }}</strong>
           </div>
-          <div class="action-buttons">
-            <button class="toggle-assignments" data-class-id="{{ class_instance.id }}">Show Assignments</button>
+          <div class="action-buttons" style="margin-bottom:10px;">
+            <button class="btn toggle-assignments" data-class-id="{{ class_instance.id }}">Show Assignments</button>
             {% if request.user.is_premium %}
               <a href="{% url 'create_assignment' class_instance.id %}" class="btn">Create Assignment</a>
             {% else %}
@@ -1109,12 +554,12 @@
             {% endif %}
           </div>
           <div class="assignments-container" id="assignments-{{ class_instance.id }}">
-            <div class="assignments-header">Live Assignments</div>
+            <h3>Live Assignments</h3>
             {% for assignment in class_instance.live_assignments %}
-            <div class="assignment-item">
+            <div class="assignment-item" style="margin: 5px 0;">
               <span>{{ assignment.name }} – Due: {{ assignment.deadline|date:"M d, Y H:i" }}</span>
               {% if request.user.is_premium %}
-                <a href="{% url 'assignment_analytics' assignment.id %}" class="btn">Analytics</a>
+                <a href="{% url 'assignment_analytics' assignment.id %}" class="btn-action" style="margin-left:10px;">Analytics</a>
               {% else %}
                 <span class="upgrade-message">Upgrade for Analytics</span>
               {% endif %}
@@ -1122,13 +567,13 @@
             {% empty %}
             <p>No live assignments.</p>
             {% endfor %}
-            
-            <div class="assignments-header">Expired Assignments</div>
+
+            <h3>Expired Assignments</h3>
             {% for assignment in class_instance.expired_assignments %}
-            <div class="assignment-item">
+            <div class="assignment-item" style="margin: 5px 0;">
               <span>{{ assignment.name }} – Expired on: {{ assignment.deadline|date:"M d, Y H:i" }}</span>
               {% if request.user.is_premium %}
-                <a href="{% url 'assignment_analytics' assignment.id %}" class="btn">Analytics</a>
+                <a href="{% url 'assignment_analytics' assignment.id %}" class="btn-action" style="margin-left:10px;">Analytics</a>
               {% else %}
                 <span class="upgrade-message">Upgrade for Analytics</span>
               {% endif %}
@@ -1143,65 +588,36 @@
       </div>
     </div>
 
-    <!-- Worksheet Lab Pane -->
-    <div class="pane" id="worksheet-lab">
-      <h2>Worksheet Lab</h2>
-      <form method="GET" action="{% url 'worksheet_lab' %}">
-        <label for="vocab-list">Select Vocabulary List:</label>
-        <select name="vocab_list" id="vocab-list" required>
-          <option value="">-- Select a List --</option>
-          {% for vocab_list in vocab_lists %}
-          <option value="{{ vocab_list.id }}">{{ vocab_list.name }}</option>
-          {% endfor %}
-        </select>
-        <button type="submit" class="btn">Create 🪄</button>
-      </form>
-    </div>
-    
     <!-- Account Pane -->
     <div class="pane account-pane" id="account-pane">
       <h2>Account Settings</h2>
-<form method="POST" action="{% url 'teacher_account' %}">
-    {% csrf_token %}
-    
-    <label>First Name:</label>
-    <input type="text" name="first_name" value="{{ request.user.first_name }}" class="input-box">
-    
-    <label>Last Name:</label>
-    <input type="text" name="last_name" value="{{ request.user.last_name }}" class="input-box">
-    
-    <label>Email:</label>
-    <input type="email" name="email" value="{{ request.user.email }}" class="input-box">
-    
-    <label>Change Password:</label>
-    <input type="password" name="password" class="input-box">
-    
-    <button type="submit" class="btn-save">Save Changes</button>
-</form>
-
-    <!-- Delete Account Button -->
-<div style="margin-top: 20px; text-align: center;">
-    <button id="delete-account-btn" class="btn-delete-account">Delete My Account</button>
-</div>
-
-      <!-- Premium Subscription Section -->
+      <form method="POST" action="{% url 'teacher_account' %}">
+        {% csrf_token %}
+        <label>First Name:</label>
+        <input type="text" name="first_name" value="{{ request.user.first_name }}" class="input-box">
+        <label>Last Name:</label>
+        <input type="text" name="last_name" value="{{ request.user.last_name }}" class="input-box">
+        <label>Email:</label>
+        <input type="email" name="email" value="{{ request.user.email }}" class="input-box">
+        <label>Change Password:</label>
+        <input type="password" name="password" class="input-box">
+        <button type="submit" class="btn btn-save">Save Changes</button>
+      </form>
+      <div style="margin-top: 20px; text-align: center;">
+        <button id="delete-account-btn" class="btn btn-delete-account">Delete My Account</button>
+      </div>
       <div class="premium-status {% if request.user.is_premium %}premium-active{% else %}premium-inactive{% endif %}">
-{% if request.user.is_premium %}
-  <p>Premium Member until <strong>{{ request.user.premium_expiration|date:"M d, Y" }}</strong></p>
-  {% if request.user.subscription_cancelled %}
-    <p style="color: #c62828;">You have cancelled your subscription and your premium benefits will end on <strong>{{ request.user.premium_expiration|date:"M d, Y" }}</strong>.</p>
-  {% else %}
-    <a href="{% url 'teacher_cancel_subscription' %}" class="btn-cancel" 
-       onclick="return confirm('Are you sure you want to cancel your subscription? You will retain premium access until the end of the current period.');">
-      Cancel Subscription
-    </a>
-  {% endif %}
-{% else %}
-  <p>You are on the Basic plan.</p>
-  <a href="#" data-pane="teacher-upgrade" class="upgrade-btn">Upgrade to Premium</a>
-  <!-- Feature Comparison Table -->
-          <!-- Feature Comparison Table -->
-          <table class="feature-table">
+        {% if request.user.is_premium %}
+          <p>Premium Member until <strong>{{ request.user.premium_expiration|date:"M d, Y" }}</strong></p>
+          {% if request.user.subscription_cancelled %}
+            <p style="color: #c62828;">You have cancelled your subscription and your premium benefits will end on <strong>{{ request.user.premium_expiration|date:"M d, Y" }}</strong>.</p>
+          {% else %}
+            <a href="{% url 'teacher_cancel_subscription' %}" class="btn btn-cancel" onclick="return confirm('Are you sure you want to cancel your subscription? You will retain premium access until the end of the current period.');">Cancel Subscription</a>
+          {% endif %}
+        {% else %}
+          <p>You are on the Basic plan.</p>
+          <a href="#" data-pane="teacher-upgrade" class="btn upgrade-btn">Upgrade to Premium</a>
+          <table class="feature-table" style="margin-top: 20px;">
             <tr>
               <th>Feature</th>
               <th>Basic</th>
@@ -1241,13 +657,11 @@
         {% endif %}
       </div>
     </div>
-    
+
+    <!-- Teacher Upgrade Pane -->
     <div class="pane" id="teacher-upgrade">
       <h2>Upgrade to Premium</h2>
-    
       <p>Get full access to all features for just <strong>£2.99 per month</strong>.</p>
-    
-      <!-- Feature Comparison Table -->
       <table class="feature-table">
         <tr>
           <th>Feature</th>
@@ -1285,15 +699,11 @@
           <td>✔</td>
         </tr>
       </table>
-    
-      <button id="upgrade-btn" class="btn-upgrade">Upgrade to Premium</button>
-    
+      <button id="upgrade-btn" class="btn btn-upgrade">Upgrade to Premium</button>
       <script>
       document.querySelector(".btn-upgrade").addEventListener("click", async function(event) {
           event.preventDefault();
-      
           const csrftoken = document.querySelector("[name=csrfmiddlewaretoken]").value;
-      
           const response = await fetch("{% url 'create_checkout_session' %}", {
               method: "POST",
               headers: {
@@ -1301,7 +711,6 @@
                   "Content-Type": "application/json"
               },
           });
-      
           const data = await response.json();
           if (data.sessionId) {
               window.location.href = `https://checkout.stripe.com/pay/${data.sessionId}`;
@@ -1309,227 +718,92 @@
               alert("Error: " + data.error);
           }
       });
-      
       </script>
+    </div>
+
+    <!-- Reading Lab Pane -->
+    <div class="pane" id="reading-lab">
+      <h2>Reading Lab 📚</h2>
+      <div class="ai-credits">
+        <p><strong>Pavonicoins Remaining 🪙:</strong> {{ request.user.ai_credits }} <span class="tooltip">What are Pavonicoins?</span></p>
+        <form action="{% url 'buy_pavicoins' %}" method="POST">
+          {% csrf_token %}
+          <button type="submit" class="btn">💰 Buy 20 Pavonicoins</button>
+        </form>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Topic</th>
+            <th>Exam Board</th>
+            <th>Level</th>
+            <th>Word Count</th>
+            <th>Created At</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for text in reading_lab_texts %}
+          <tr>
+            <td>{{ text.topic }}</td>
+            <td>{{ text.exam_board }}</td>
+            <td>{{ text.level }}</td>
+            <td>{{ text.word_count }}</td>
+            <td>{{ text.created_at|date:"Y-m-d H:i" }}</td>
+            <td>
+              <a href="{% url 'reading_lab_display' text.id %}" class="btn-action">View</a>
+              <button class="btn-action btn-delete" data-text-id="{{ text.id }}">Delete</button>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="6">No texts generated yet.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <a href="{% url 'reading_lab' %}" class="btn">Generate New Text</a>
+    </div>
+
+    <!-- Worksheet Lab Pane -->
+    <div class="pane" id="worksheet-lab">
+      <h2>Worksheet Lab</h2>
+      <form method="GET" action="{% url 'worksheet_lab' %}">
+        <label for="vocab-list">Select Vocabulary List:</label>
+        <select name="vocab_list" id="vocab-list" required>
+          <option value="">-- Select a List --</option>
+          {% for vocab_list in vocab_lists %}
+          <option value="{{ vocab_list.id }}">{{ vocab_list.name }}</option>
+          {% endfor %}
+        </select>
+        <button type="submit" class="btn">Create 🪄</button>
+      </form>
     </div>
   </div>
 
-<!-- Reading Lab Pane -->
-<div class="pane" id="reading-lab">
-  <h2>Reading Lab 📚</h2>
-  
-<!-- AI Credits Section -->
-<div class="ai-credits">
-    <p>
-        <strong>Pavonicoins Remaining 🪙:</strong> {{ request.user.ai_credits }} 
-        <span class="tooltip">What are Pavonicoins?</span>
-    </p>
-<form action="{% url 'buy_pavicoins' %}" method="POST">
-    {% csrf_token %}
-    <button type="submit" class="btn">💰 Buy 20 Pavonicoins</button>
-</form>
-</div>
+  <!-- Decorative Pavonify Bird (original) placed below -->
+  <div class="bird-below" style="text-align: center; margin: 40px 0;">
+    <img src="{% static 'pavonify_bird.png' %}" alt="Decorative Pavonify Bird" style="max-width: 300px;">
+  </div>
 
-
-
-  <!-- Generated Texts Table -->
-  <table>
-    <thead>
-      <tr>
-        <th>Topic</th>
-        <th>Exam Board</th>
-        <th>Level</th>
-        <th>Word Count</th>
-        <th>Created At</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for text in reading_lab_texts %}
-      <tr>
-        <td>{{ text.topic }}</td>
-        <td>{{ text.exam_board }}</td>
-        <td>{{ text.level }}</td>
-        <td>{{ text.word_count }}</td>
-        <td>{{ text.created_at|date:"Y-m-d H:i" }}</td>
-        <td>
-          <a href="{% url 'reading_lab_display' text.id %}" class="btn">View</a>
-<button class="btn btn-delete" data-text-id="{{ text.id }}">Delete</button>
-        </td>
-      </tr>
-      {% empty %}
-      <tr>
-        <td colspan="6">No texts generated yet.</td>
-      </tr>
-      {% endfor %}
-
-
-    </tbody>
-  </table>
-
-
-  <!-- Generate New Text Button -->
-  <a href="{% url 'reading_lab' %}" class="btn">Generate New Text</a>
-
-</div>
-  
   <script>
-    // Sidebar Navigation: Switch content panes
-    const navLinks = document.querySelectorAll(".sidebar nav a, .btn-account, .upgrade-btn, .btn-upgrade");
+    // Navigation: Switch content panes when clicking on nav links (top-nav and dropdown)
+    const navLinks = document.querySelectorAll(".top-nav .nav-right a, .dropdown-content a");
     const panes = document.querySelectorAll(".pane");
-    
+
     navLinks.forEach(link => {
-        link.addEventListener("click", e => {
-            e.preventDefault();
-            
-            // Remove "active" from all links and panes
-            navLinks.forEach(l => l.classList.remove("active"));
-            panes.forEach(pane => pane.classList.remove("active"));
-    
-            // Get target pane from data-pane attribute
-            const targetPane = link.getAttribute("data-pane");
-            if (targetPane) {
-                document.getElementById(targetPane).classList.add("active");
-                link.classList.add("active");
-            }
-        });
-    });
-    
-    // Sort Students Table Columns
-    const table = document.getElementById("students-table");
-    const headers = table.querySelectorAll("th");
-    headers.forEach(header => {
-      header.addEventListener("click", () => {
-        const column = header.getAttribute("data-column");
-        const order = header.getAttribute("data-order");
-        const rows = Array.from(table.querySelector("tbody").rows);
-        rows.sort((rowA, rowB) => {
-          const cellA = rowA.querySelector(`td:nth-child(${header.cellIndex + 1})`).textContent.trim();
-          const cellB = rowB.querySelector(`td:nth-child(${header.cellIndex + 1})`).textContent.trim();
-          if (column === "last_login") {
-            const dateA = new Date(cellA);
-            const dateB = new Date(cellB);
-            return order === "asc" ? dateA - dateB : dateB - dateA;
-          }
-          if (column === "total_points" || column === "year") {
-            return order === "asc" ? cellA - cellB : cellB - cellA;
-          }
-          return order === "asc" ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
-        });
-        rows.forEach(row => table.querySelector("tbody").appendChild(row));
-        header.setAttribute("data-order", order === "asc" ? "desc" : "asc");
-      });
-    });
-    
-    // Toggle Assignments for Classes
-    const toggleButtons = document.querySelectorAll(".toggle-assignments");
-    toggleButtons.forEach(button => {
-      button.addEventListener("click", () => {
-        const classId = button.getAttribute("data-class-id");
-        const container = document.getElementById(`assignments-${classId}`);
-        if (container.style.display === "block") {
-          container.style.display = "none";
-          button.textContent = "Show Assignments";
-        } else {
-          container.style.display = "block";
-          button.textContent = "Hide Assignments";
+      link.addEventListener("click", e => {
+        e.preventDefault();
+        navLinks.forEach(l => l.classList.remove("active"));
+        panes.forEach(pane => pane.classList.remove("active"));
+
+        const targetPane = link.getAttribute("data-pane");
+        if (targetPane) {
+          document.getElementById(targetPane).classList.add("active");
+          link.classList.add("active");
         }
       });
     });
-    
-    // Sidebar Toggle for Mobile
-    function toggleSidebar() {
-      const sidebar = document.querySelector('.sidebar');
-      sidebar.classList.toggle('active');
-    }
   </script>
-
-<script src="https://js.stripe.com/v3/"></script>
-
-<script>
-  // Initialize Stripe with your publishable key
-  var stripe = Stripe("pk_live_51QoMKjJYDgv8Jx3VXa5Vl07vwlhb0xMnrK0Jm9pO4T2YxGX9Wb3WN48LWWEAkGnXguh9Z6hC5kAygaqncQchbzJe00huvjYgCH");
-  
-  document.querySelector(".btn-upgrade").addEventListener("click", async function(event) {
-      event.preventDefault();
-      const csrftoken = document.querySelector("[name=csrfmiddlewaretoken]").value;
-      
-      const response = await fetch("{% url 'create_checkout_session' %}", {
-          method: "POST",
-          headers: {
-              "X-CSRFToken": csrftoken,
-              "Content-Type": "application/json"
-          },
-      });
-      
-      const data = await response.json();
-      if (data.sessionId) {
-          // Use Stripe's redirectToCheckout method
-          stripe.redirectToCheckout({ sessionId: data.sessionId });
-      } else {
-          alert("Error: " + data.error);
-      }
-  });
-
-
-document.getElementById("purchase-credits-btn").addEventListener("click", function(event) {
-  event.preventDefault();
-  alert("Purchase more credits functionality coming soon!");
-});
-
-    document.addEventListener("DOMContentLoaded", function () {
-        document.querySelectorAll(".btn-delete").forEach(button => {
-            button.addEventListener("click", function () {
-                let textId = this.getAttribute("data-text-id");
-                
-                if (confirm("Are you sure you want to delete this text? This action cannot be undone.")) {
-                    fetch(`/delete-reading-lab-text/${textId}/`, {
-                        method: "POST",
-                        headers: {
-                            "X-CSRFToken": "{{ csrf_token }}", 
-                            "Content-Type": "application/json"
-                        }
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            document.getElementById(`text-row-${textId}`).remove();
-                        } else {
-                            alert("Error deleting text.");
-                        }
-                    })
-                    .catch(error => console.error("Error:", error));
-                }
-            });
-        });
-    });
-
-</script>
-
-<script>
-document.getElementById("delete-account-btn").addEventListener("click", function() {
-    if (confirm("Are you sure you want to delete your account? This action cannot be undone.")) {
-        fetch("{% url 'delete_teacher_account' %}", {
-            method: "POST",
-            headers: {
-                "X-CSRFToken": "{{ csrf_token }}",
-                "Content-Type": "application/json"
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert("Your account has been successfully deleted.");
-                window.location.href = "{% url 'landing_page' %}"; // Redirect to homepage
-            } else {
-                alert("An error occurred. Please try again.");
-            }
-        })
-        .catch(error => console.error("Error:", error));
-    }
-});
-</script>
-
-
 </body>
 </html>
