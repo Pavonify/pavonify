@@ -3,85 +3,112 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Student Login - Pavonify</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  
+  <!-- Meta Tags -->
+  <meta name="description" content="Student Login to Pavonify - Interactive Language Learning Platform">
+  <meta name="keywords" content="Pavonify, student login, language learning, AI teaching">
+  <meta name="author" content="Pavonify">
+  
+  <!-- Favicon -->
+  <link rel="icon" href="{% static 'images/favicon.ico' %}" type="image/x-icon">
+  
+  <!-- Google Fonts: Poppins and Fredoka One -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Fredoka+One&display=swap" rel="stylesheet">
+
   <style>
-    @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css');
+    /* Theme Colors */
+    :root {
+      --primary: #1A73E8;         /* Bright Blue */
+      --accent: #F2A03D;          /* Orange */
+      --secondary-accent: #34A853; /* Green */
+      --background: #F2EFE9;       /* Soft Off-White */
+      --dark: #0D0D0D;            /* Dark Gray */
+      --highlight: #A6173D;       /* Reddish Accent */
+    }
 
-    /* Global Styles */
-    body {
-      font-family: Arial, sans-serif;
+    /* Global Reset & Base */
+    * {
+      box-sizing: border-box;
       margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: 'Poppins', sans-serif;
+      background-color: var(--background);
+      color: var(--dark);
+      line-height: 1.6;
+      scroll-behavior: smooth;
       min-height: 100vh;
-      background: #e3f2fd;
-      display: flex;
+    }
+    a {
+      color: var(--accent);
+      text-decoration: none;
+      transition: color 0.3s ease;
+    }
+    a:hover {
+      color: var(--highlight);
+    }
+    h1, h2, h3, h4, h5, h6 {
+      font-weight: 700;
+      margin-bottom: 0.5em;
+    }
+    h1 {
+      font-family: 'Fredoka One', cursive;
+      font-size: 3.5rem;
+      color: #fff;
+    }
+    p {
+      margin-bottom: 1em;
     }
 
-    /* Sidebar */
-    .sidebar {
-      background-color: #0aa2ef;
-      color: white;
-      padding: 20px;
-      width: 250px;
-      box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+    /* Top Navigation Bar */
+    .top-nav {
+      background-color: var(--primary);
+      color: #fff;
+      padding: 8px 20px;
       display: flex;
-      flex-direction: column;
       align-items: center;
-      text-align: center;
-      position: fixed;
-      left: 0;
-      top: 0;
-      height: 100vh;
+      justify-content: center;
     }
-
-    .sidebar img {
-      width: 80%;
-      border-radius: 10px;
-      margin-bottom: 20px;
+    .top-nav .nav-left {
+      display: flex;
+      align-items: center;
     }
-
-    .sidebar h2 {
-      margin: 0 0 10px;
-      font-size: 24px;
+    .top-nav .nav-left img {
+      height: 40px;
+      margin-right: 10px;
     }
-
-    .sidebar p {
-      font-size: 14px;
-      line-height: 1.5;
+    .top-nav .nav-left span {
+      font-size: 1.5rem;
+      font-weight: 700;
+      text-transform: uppercase;
     }
 
     /* Main Content */
     .main-content {
-      flex-grow: 1;
-      padding: 40px;
-      text-align: center;
-      margin-left: 250px;
       display: flex;
-      flex-direction: column;
       align-items: center;
-    }
-
-    .pane {
-      background-color: white;
-      border-radius: 10px;
+      justify-content: center;
+      min-height: calc(100vh - 60px);
       padding: 20px;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-      max-width: 800px;
+    }
+    .pane {
+      background-color: #fff;
+      border-radius: 10px;
+      padding: 30px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      max-width: 400px;
       width: 100%;
       text-align: center;
-      animation: fadeIn 1s ease-in-out;
-      margin-bottom: 20px;
+      animation: fadeIn 0.5s ease-in-out;
     }
-
     .pane h1 {
-      margin-top: 0;
-      color: #0aa2ef;
+      font-family: 'Fredoka One', cursive;
+      color: var(--primary);
       font-size: 28px;
-    }
-
-    .pane p {
-      font-size: 16px;
-      color: #333;
+      margin-bottom: 20px;
     }
 
     /* Form Styling */
@@ -90,22 +117,14 @@
       flex-direction: column;
       gap: 15px;
       margin: 20px 0;
+      text-align: left;
     }
-
-    form div {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-    }
-
-    label {
+    form label {
       font-size: 16px;
-      color: #333;
+      color: var(--dark);
       margin-bottom: 5px;
     }
-
-    input[type="text"],
-    input[type="password"] {
+    form input {
       padding: 10px;
       border: 1px solid #ddd;
       border-radius: 5px;
@@ -113,35 +132,46 @@
       width: 100%;
     }
 
-    button {
+    /* Buttons */
+    .action-btn {
       padding: 10px 15px;
-      background-color: #0aa2ef;
+      background-color: var(--primary);
       border: none;
       border-radius: 5px;
-      color: white;
+      color: #fff;
       font-size: 16px;
       cursor: pointer;
-      transition: background-color 0.3s ease;
+      transition: background-color 0.3s ease, transform 0.3s ease;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      text-transform: uppercase;
+      font-weight: 600;
     }
-
-    button:hover {
-      background-color: #0882c1;
+    .action-btn:hover {
+      background-color: var(--accent);
+      transform: translateY(-2px);
     }
-
-    /* Back Button Styling */
     .back-button {
-      background-color: #ccc;
-      color: black;
+      margin-top: 20px;
       padding: 10px 15px;
+      background-color: #ccc;
       border: none;
       border-radius: 5px;
+      color: #000;
+      font-size: 16px;
       cursor: pointer;
-      transition: background-color 0.3s ease;
-      margin-top: 20px;
+      transition: background-color 0.3s ease, transform 0.3s ease;
+      text-transform: uppercase;
+      font-weight: 600;
     }
-
     .back-button:hover {
       background-color: #aaa;
+      transform: translateY(-2px);
+    }
+
+    /* Animations */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
     /* Message Styles */
@@ -150,7 +180,6 @@
       padding: 0;
       margin: 20px 0;
     }
-
     .messages li {
       background: #ffdddd;
       padding: 10px;
@@ -159,44 +188,52 @@
       color: #a94442;
     }
 
-    /* Animations */
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(-20px); }
-      to { opacity: 1; transform: translateY(0); }
+    /* Responsive Styles */
+    @media (max-width: 768px) {
+      .top-nav {
+        flex-direction: column;
+        text-align: center;
+      }
+      .main-content {
+        padding: 20px;
+      }
     }
   </style>
 </head>
 <body>
-  <!-- Sidebar Section -->
-  <div class="sidebar">
-    <img src="{% static 'learning/pavonify_logo.png' %}" alt="Pavonify Logo">
-    <h2>Welcome to Pavonify</h2>
-    <p>
-      🌍 Your <strong>ultimate interactive language learning platform!</strong><br>
-      🎮 Play engaging games, <strong>build vocabulary</strong>, and track your progress.
-    </p>
+  <!-- Top Navigation Bar -->
+  <div class="top-nav">
+    <div class="nav-left">
+      <img src="{% static 'pavonify_bird.png' %}" alt="Pavonify Logo">
+      <span>Pavonify</span>
+    </div>
   </div>
 
   <!-- Main Content Section -->
   <div class="main-content">
     <div class="pane">
       <h1>Student Login</h1>
+
+      <!-- Display Messages (if any) -->
+      {% if messages %}
+        <ul class="messages">
+          {% for message in messages %}
+            <li>{{ message }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+
       <form method="POST" action="{% url 'student_login' %}?next={{ next }}">
         {% csrf_token %}
-        <div>
-          <label for="username">Username:</label>
-          <input type="text" id="username" name="username" required>
-        </div>
-        <div>
-          <label for="password">Password:</label>
-          <input type="password" id="password" name="password" required>
-        </div>
-        <input type="hidden" name="next" value="{{ next }}">
-        <button type="submit">Login</button>
-      </form>
+        <label for="username">Username:</label>
+        <input type="text" id="username" name="username" required>
 
-      <!-- Back Button -->
-      <button type="button" class="back-button" onclick="window.history.back();">Back</button>
+        <label for="password">Password:</label>
+        <input type="password" id="password" name="password" required>
+
+        <input type="hidden" name="next" value="{{ next }}">
+        <button type="submit" class="action-btn">Login</button>
+      </form>
     </div>
   </div>
 </body>

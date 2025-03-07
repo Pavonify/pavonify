@@ -31,7 +31,9 @@ class TeacherRegistrationForm(UserCreationForm):
     password1 = forms.CharField(label="Password", widget=forms.PasswordInput(attrs={"class": "form-control"}))
     password2 = forms.CharField(label="Confirm Password", widget=forms.PasswordInput(attrs={"class": "form-control"}))
     country = CountryField(blank_label="Select a country").formfield(
-        widget=CountrySelectWidget(attrs={"class": "form-control"})
+            layout="{country}",
+            choices=CountryField().choices,  # Explicitly set the choices
+            attrs={"class": "form-control"}
     )
 
     class Meta:
