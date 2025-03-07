@@ -402,6 +402,100 @@
 }
 
 
+/* Style for the student bird image */
+.student-bird {
+  display: block;           /* Makes the image a block element */
+  margin: 0 auto;           /* Centers the image horizontally */
+  max-width: 150px;         /* Adjust this value for a smaller size */
+  width: 100%;              /* Responsive width based on the max-width */
+  height: auto;             /* Maintain aspect ratio */
+  padding: 0;               /* Remove any padding */
+  margin-bottom: 0;         /* Ensure there's no gap below the image */
+}
+
+/* Ensure the table stretches to fill the page horizontally */
+.comparison-wrapper {
+  width: 100%;
+  max-width: 1200px; /* Adjust this value as needed */
+  margin: 0 auto; /* Center the table */
+  position: relative;
+}
+
+/* Table styling */
+.comparison {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 20px 0;
+  background-color: #fff;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Table header styling */
+.comparison th {
+  background-color: var(--primary);
+  color: #fff;
+  padding: 12px;
+  text-align: center;
+  border: 1px solid #ddd;
+}
+
+/* Table row and cell styling */
+.comparison td {
+  padding: 10px;
+  text-align: center;
+  border: 1px solid #ddd;
+}
+
+/* Highlight only the last column's contents */
+.comparison td:last-child {
+  background-color: rgba(255, 255, 0, 0.2); /* Light yellow with 20% opacity */
+}
+
+/* Ensure the last column header is not highlighted */
+.comparison th:last-child {
+  background-color: var(--primary); /* Keep the header color consistent */
+  color: #fff; /* Ensure text remains white */
+}
+
+/* Remove any extra spacing around the table */
+.comparison-wrapper {
+  padding: 0;
+  margin: 0;
+}
+
+/* Ensure the image is small and positioned correctly */
+.pavonify-bird-on-trophy {
+  position: absolute;
+  bottom: 100%; /* Place it directly above the table */
+  right: 0; /* Align with the right edge of the table */
+  width: 100px; /* Adjust this value to your desired size */
+  height: auto; /* Maintain aspect ratio */
+  margin: 0; /* Remove any default margin */
+  padding: 0; /* Remove any default padding */
+  z-index: 1; /* Ensure the image is above the table */
+  transform: translateX(50%); /* Center the image over the last column */
+}
+
+.register-btn {
+  background: linear-gradient(45deg, #F2A03D, #F2A03D 50%, #F2A03D);
+  color: var(--dark);
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  text-transform: uppercase;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.3s ease;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.register-btn:hover {
+  background: linear-gradient(45deg, #F2A03D, #F2A03D 50%, #F2A03D);
+  transform: translateY(-2px);
+}
+
 
   </style>
 </head>
@@ -449,110 +543,136 @@
     <div class="features">
       <div class="feature-box">
         <img src="{% static 'Dictionary.png' %}" alt="Dictionary">
-        <h3>Vocabulary Builder</h3>
-        <p>Expand your vocabulary with interactive tools.</p>
+        <h3>Vocabulary</h3>
+        <p>Create lists and set assignments for students.</p>
       </div>
       <div class="feature-box">
-        <img src="{% static 'head_speaking.png' %}" alt="Speaking Practice">
-        <h3>Speaking Practice</h3>
-        <p>Improve pronunciation with AI-powered feedback.</p>
+        <img src="{% static 'games.png' %}" alt="Interactive Learning">
+        <h3>Interactive Learning</h3>
+        <p>Accelarated learning with our range of interactive learning modes through Live Games and Assignments.</p>
       </div>
       <div class="feature-box">
-        <img src="{% static 'globe.png' %}" alt="Global Learning">
-        <h3>Global Learning</h3>
-        <p>Connect with learners worldwide.</p>
+        <img src="{% static 'listening.png' %}" alt="Speaking Practice">
+        <h3>Listening Practice</h3>
+        <p>Live voices read out your vocabulary words for your students to practice spelling and translating.</p>
+      </div>
+      <div class="feature-box">
+        <img src="{% static 'trophy.png' %}" alt="Global Learning">
+        <h3>Leaderboards and Statistics</h3>
+        <p>Deep analytical data for teachers to see student progress.</p>
       </div>
       <div class="feature-box">
         <img src="{% static 'worksheet.png' %}" alt="Worksheet Maker">
-        <h3>Worksheet Maker</h3>
-        <p>Create custom worksheets in minutes.</p>
+        <h3>Worksheet Lab 🧪</h3>
+        <p>Create custom worksheets in seconds from your vocabulary lists.</p>
+      </div>
+      <div class="feature-box">
+        <img src="{% static 'parallel_texts.png' %}" alt="AI Generated Reading">
+        <h3>Reading Lab 🧪</h3>
+        <p>Use our AI tools to quickly generate reading texts and activities based on your vocabulary lists.</p>
       </div>
     </div>
   </section>
 
   <!-- Comparison Section -->
-  <section id="comparison">
-    <h2>Features Comparison</h2>
-    <p>Compare Pavonify with other leading language teaching platforms.</p>
-    <div class="comparison">
-      <table>
-        <thead>
-          <tr>
-            <th>Feature</th>
-            <th>Pavonify</th>
-            <th>Quizlet</th>
-            <th>Memrise</th>
-            <th>Duolingo for Schools</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>Interactive Games</td>
-            <td>✔️</td>
-            <td>✔️</td>
-            <td>✔️</td>
-            <td>✔️</td>
-          </tr>
-          <tr>
-            <td>Vocabulary Building</td>
-            <td>✔️</td>
-            <td>✔️</td>
-            <td>✔️</td>
-            <td>✔️</td>
-          </tr>
-          <tr>
-            <td>Progress Tracking</td>
-            <td>✔️</td>
-            <td>–</td>
-            <td>–</td>
-            <td>✔️</td>
-          </tr>
-          <tr>
-            <td>Class Leaderboards</td>
-            <td>✔️</td>
-            <td>✖️</td>
-            <td>✖️</td>
-            <td>✖️</td>
-          </tr>
-          <tr>
-            <td>Teacher Dashboard</td>
-            <td>✔️</td>
-            <td>✔️</td>
-            <td>✖️</td>
-            <td>✔️</td>
-          </tr>
-          <tr>
-            <td>Student Management</td>
-            <td>✔️</td>
-            <td>✖️</td>
-            <td>✖️</td>
-            <td>✖️</td>
-          </tr>
-          <tr>
-            <td>Custom Content Creation</td>
-            <td>✔️</td>
-            <td>✔️</td>
-            <td>✔️</td>
-            <td>✖️</td>
-          </tr>
-          <tr>
-            <td>Worksheet Maker</td>
-            <td>✔️</td>
-            <td>✖️</td>
-            <td>✖️</td>
-            <td>✖️</td>
-          </tr>
-          <tr>
-            <td>Cost for Teachers</td>
-            <td>£2.99/month</td>
-            <td>$35.99/year</td>
-            <td>$8.99/month</td>
-            <td>Free</td>
-          </tr>
-        </tbody>
-      </table>
+ <!-- Comparison Section -->
+<section id="comparison">
+  <h2>Features Comparison</h2>
+  <p>Compare Pavonify with other leading language teaching platforms.</p>
+
+  <div class="comparison-wrapper">
+    <!-- Trophy bird image directly above the table -->
+    <img class="pavonify-bird-on-trophy" src="{% static 'pavonify_bird_on_trophy.png' %}" alt="Pavonify Trophy Bird">
+    
+    <table class="comparison">
+      <thead>
+        <tr>
+          <th>Feature</th>
+          <th>Quizlet</th>
+          <th>Memrise</th>
+          <th>Duolingo for Schools</th>
+          <th>Pavonify</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Interactive Games</td>
+          <td>✔️</td>
+          <td>✔️</td>
+          <td>✔️</td>
+          <td>✔️</td>
+        </tr>
+        <tr>
+          <td>Vocabulary Building</td>
+          <td>✔️</td>
+          <td>✔️</td>
+          <td>✔️</td>
+          <td>✔️</td>
+        </tr>
+        <tr>
+          <td>Progress Tracking</td>
+          <td>✔️</td>
+          <td>–</td>
+          <td>–</td>
+          <td>✔️</td>
+        </tr>
+        <tr>
+          <td>Class Leaderboards</td>
+          <td>✖️</td>
+          <td>✖️</td>
+          <td>✖️</td>
+          <td>✔️</td>
+        </tr>
+        <tr>
+          <td>Teacher Dashboard</td>
+          <td>✔️</td>
+          <td>✖️</td>
+          <td>✔️</td>
+          <td>✔️</td>
+        </tr>
+        <tr>
+          <td>Student Management</td>
+          <td>✖️</td>
+          <td>✖️</td>
+          <td>✖️</td>
+          <td>✔️</td>
+        </tr>
+        <tr>
+          <td>Custom Content Creation</td>
+          <td>✔️</td>
+          <td>✔️</td>
+          <td>✖️</td>
+          <td>✔️</td>
+        </tr>
+        <tr>
+          <td>Worksheet Maker</td>
+          <td>✖️</td>
+          <td>✖️</td>
+          <td>✖️</td>
+          <td>✔️</td>
+        </tr>
+        <tr>
+          <td>AI Reading Generator</td>
+          <td>✖️</td>
+          <td>✖️</td>
+          <td>✖️</td>
+          <td>✔️</td>
+        </tr>
+        <tr>
+          <td>Cost for Teachers</td>
+          <td>$35.99/year</td>
+          <td>$8.99/month</td>
+          <td>Free</td>
+          <td>£2.99/month</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+
+
       <div style="text-align: left; margin-top: 20px;">
-        <button class="btn" onclick="window.location.href='{% url 'register_teacher' %}'">Register Now</button>
+        Register and try our features for ✨Free!✨ <button class="register-btn" onclick="window.location.href='{% url 'register_teacher' %}'">Register Now</button>
       </div>
     </div>
   </section>
@@ -562,10 +682,6 @@
     <h2>Roadmap</h2>
     <div class="timeline">
       <div class="timeline-item">
-        <h3>More Game Modes</h3>
-        <p>New listening and phonics challenges coming soon.</p>
-      </div>
-      <div class="timeline-item">
         <h3>Live Competitions</h3>
         <p>Engage in real-time contests and earn rewards.</p>
       </div>
@@ -574,12 +690,8 @@
         <p>Unlock badges and track achievements effortlessly.</p>
       </div>
       <div class="timeline-item">
-        <h3>Worksheet Maker</h3>
-        <p>Create custom, AI-powered worksheets in minutes.</p>
-      </div>
-      <div class="timeline-item">
-        <h3>Advanced AI Tools</h3>
-        <p>Personalized learning solutions with next-gen AI.</p>
+        <h3>Deeper Student Analytics</h3>
+        <p>Know more about where your students need help.</p>
       </div>
     </div>
   </section>
@@ -589,6 +701,7 @@
     <h2>Contact Us</h2>
     <p>Have questions or feedback? Feel free to reach out via email: <a href="mailto:sam@pavonify.com">sam@pavonify.com</a></p>
   </section>
+<img class="student-bird" src="{% static 'pavonify_bird_student.png' %}" alt="Pavonify Learning">
 
   <!-- Footer -->
   <footer>
