@@ -2,6 +2,7 @@
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
+from learning.models import Class, User, VocabularyList
 
 User = settings.AUTH_USER_MODEL
 
@@ -20,6 +21,7 @@ class Country(models.Model):
 # --- Live Game Session ---
 class LiveGame(models.Model):
     teacher = models.ForeignKey(User, on_delete=models.CASCADE, related_name="hosted_games")
+    class_instance = models.ForeignKey(Class, on_delete=models.CASCADE)
     # Assuming VocabularyList is in your existing "learning" app:
     vocabulary_list = models.ForeignKey('learning.VocabularyList', on_delete=models.CASCADE)
     start_time = models.DateTimeField(default=timezone.now)

@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Game Lobby: {{ game.vocabulary_list.name }}</h1>
+
+{% if is_teacher %}
+  <p>Waiting for students to join...</p>
+
+<form method="POST">
+  {% csrf_token %}
+</form>
+
+<button id="launchGameButton" data-game-id="{{ game.id }}">Launch Game</button>
+{% else %}
+  <p>Waiting for teacher to start the game...</p>
+{% endif %}
+
+<h2>Teams</h2>
+{% for team in teams %}
+  <h3>{{ team.team_name }}</h3>
+  <ul>
+    {% for member in team.members.all %}
+      <li>{{ member.first_name }} {{ member.last_name }}</li>
+    {% endfor %}
+  </ul>
+{% endfor %}
+
+<script>
+document.getElementById("launchGameButton").addEventListener("click", function() {
+    let gameId = this.getAttribute("data-game-id");
+    let csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;  // ✅ Get CSRF token
+
+    fetch(`/game/start/${gameId}/`, {
+        method: "POST",
+        headers: {
+            "X-CSRFToken": csrfToken,  // ✅ Include CSRF token in headers
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({}),  // Empty body
+    })
+    .then(response => {
+        if (response.redirected) {
+            window.location.href = response.url;  // ✅ Follow redirect properly
+        } else {
+            return response.text().then(text => { console.error("Error:", text); });
+        }
+    })
+    .catch(error => console.error("Launch Error:", error));
+});
+</script>
+
+{% endblock %}

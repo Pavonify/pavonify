@@ -1,0 +1,19 @@
+
+{% block content %}
+<h1>Game Overview</h1>
+<p>Time Left: <span id="countdown">{{ game.end_time|timeuntil }}</span></p>
+
+<h2>Team Standings</h2>
+<table>
+  <tr><th>Team</th><th>Countries Owned</th></tr>
+  {% for team in teams %}
+    <tr>
+      <td>{{ team.team_name }}</td>
+      <td>{{ team.countries.count }}</td>
+    </tr>
+  {% endfor %}
+</table>
+
+<h2>Game Map</h2>
+<p>Map feature coming soon!</p>
+{% endblock %}

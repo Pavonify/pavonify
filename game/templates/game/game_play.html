@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>World Domination</h1>
+
+<!-- Game Container -->
+<div id="game-container">
+    <!-- Map Container -->
+    <div id="map"></div>
+
+    <!-- Sidebar -->
+    <div id="sidebar">
+        <div id="challenge-section">
+            <h3>Conquer a Country</h3>
+            <p id="country-info">Click a neighboring country to attack!</p>
+            <div id="translation-challenge" style="display: none;">
+                <p>Translate: <span id="word-to-translate"></span></p>
+                <input type="text" id="translation-answer">
+                <button onclick="submitAnswer()">Submit</button>
+            </div>
+        </div>
+
+        <div id="activity-ticker">
+            <h3>Live Game Updates</h3>
+            <ul id="ticker"></ul>
+        </div>
+    </div>
+</div>
+
+<style>
+    #game-container { display: flex; height: 80vh; }
+    #map { flex: 3; height: 100%; }
+    #sidebar { flex: 1; background: #f4f4f4; padding: 10px; overflow-y: auto; }
+    #challenge-section, #activity-ticker { margin-bottom: 20px; }
+</style>
+
+<script>
+    let map = L.map('map').setView([20, 0], 2); // Default World View
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+    // Fetch country data from API
+    fetch('/game/get_countries/{{ game.id }}/')
+        .then(response => response.json())
+        .then(data => {
+            data.countries.forEach(country => {
+                let polygon = L.polygon(country.coordinates, {color: country.team_color}).addTo(map);
+                polygon.on('click', () => selectCountry(country));
+            });
+        });
+
+    function selectCountry(country) {
+        document.getElementById('country-info').innerText = `Country: ${country.name}, Strength: ${country.strength}`;
+        
+        if (country.is_adjacent) {
+            document.getElementById('translation-challenge').style.display = 'block';
+            document.getElementById('word-to-translate').innerText = country.challenge_word;
+        } else {
+            document.getElementById('translation-challenge').style.display = 'none';
+        }
+    }
+
+    function submitAnswer() {
+        let answer = document.getElementById('translation-answer').value;
+        fetch('/game/attack_country/{{ game.id }}/', {
+            method: 'POST',
+            body: JSON.stringify({country_id: selectedCountry.id, answer: answer}),
+            headers: {'Content-Type': 'application/json'}
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Country conquered!');
+                location.reload();
+            } else {
+                alert('Incorrect answer!');
+            }
+        });
+    }
+
+    function updateTicker() {
+        fetch('/game/get_game_updates/{{ game.id }}/')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('ticker').innerHTML = data.updates.map(u => `<li>${u}</li>`).join('');
+            });
+    }
+
+    setInterval(updateTicker, 5000);
+</script>
+
+<script>
+    let map = L.map('map').setView([20, 0], 2);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+    fetch('/game/get_countries/{{ game.id }}/')
+        .then(response => response.json())
+        .then(data => {
+            data.countries.forEach(country => {
+                let polygon = L.polygon(country.coordinates, {color: country.team_color}).addTo(map);
+                polygon.on('click', () => selectCountry(country));
+            });
+        });
+
+    function selectCountry(country) {
+        document.getElementById('country-info').innerText = `Country: ${country.name}, Strength: ${country.strength}`;
+
+        if (country.is_adjacent) {
+            document.getElementById('translation-challenge').style.display = 'block';
+            document.getElementById('word-to-translate').innerText = country.challenge_word;
+        } else {
+            document.getElementById('translation-challenge').style.display = 'none';
+        }
+    }
+
+    function submitAnswer() {
+        let answer = document.getElementById('translation-answer').value;
+        fetch('/game/attack_country/{{ game.id }}/', {
+            method: 'POST',
+            body: JSON.stringify({country_id: selectedCountry.id, answer: answer}),
+            headers: {'Content-Type': 'application/json'}
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Country conquered!');
+                location.reload();
+            } else {
+                alert('Incorrect answer!');
+            }
+        });
+    }
+</script>
+
+
+{% endblock %}
