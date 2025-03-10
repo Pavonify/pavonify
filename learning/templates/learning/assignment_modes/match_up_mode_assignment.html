@@ -8,26 +8,22 @@
         body {
             font-family: Arial, sans-serif;
         }
-
         h1 {
             text-align: center;
             font-size: 24px;
             color: #0aa2ef;
         }
-
         .container {
             display: flex;
             justify-content: center;
             gap: 50px;
             margin: 20px;
         }
-
         .column {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             gap: 10px;
         }
-
         .tile, .target {
             width: 120px;
             height: 60px;
@@ -39,13 +35,11 @@
             cursor: pointer;
             transition: background-color 0.3s;
         }
-
         .target.correct {
             background-color: #28a745;
             color: white;
             font-weight: bold;
         }
-
         .completed-message {
             display: none;
             text-align: center;
@@ -53,17 +47,14 @@
             font-size: 24px;
             color: green;
         }
-
         .completed-message.visible {
             display: block;
         }
-
         .restart-button {
             display: none;
             text-align: center;
             margin-top: 20px;
         }
-
         .restart-button button {
             background-color: #007bff;
             color: white;
@@ -73,7 +64,6 @@
             font-size: 18px;
             border-radius: 5px;
         }
-
         .restart-button button:hover {
             background-color: #0056b3;
         }
@@ -104,8 +94,8 @@
         document.addEventListener("DOMContentLoaded", () => {
             const sourceWordsContainer = document.getElementById("source-words");
             const targetWordsContainer = document.getElementById("target-words");
-            const tiles = document.querySelectorAll(".tile");
-            const targets = document.querySelectorAll(".target");
+            let tiles = document.querySelectorAll(".tile");
+            let targets = document.querySelectorAll(".target");
             const completedMessage = document.getElementById("completed-message");
             const restartButton = document.getElementById("restart-button");
 
@@ -129,8 +119,6 @@
                 .then(data => {
                     if (data.success) {
                         console.log(`Points updated successfully: ${data.new_total_points}`);
-
-                        // Send points update to parent window (assignment page)
                         if (window.parent) {
                             window.parent.postMessage({
                                 type: "activity_complete",
@@ -145,6 +133,7 @@
                 .catch(error => console.error("Error updating points:", error));
             }
 
+            // Initial event listeners for tiles and targets
             tiles.forEach(tile => {
                 tile.addEventListener("dragstart", e => {
                     e.dataTransfer.setData("text", e.target.dataset.id);
@@ -163,21 +152,22 @@
                     const targetId = e.target.dataset.id;
 
                     if (sourceId === targetId) {
-                        // Mark as correct
+                        // Mark as correct and update target text
                         e.target.classList.add("correct");
                         e.target.textContent = `${sourceWord} = ${e.target.textContent}`;
 
+                        // Remove the matching tile
                         const tile = document.querySelector(`.tile[data-id='${sourceId}']`);
                         if (tile) tile.remove();
 
-                        // Update points dynamically
+                        // Update points for this match
                         updatePoints(pointsPerMatch);
 
                         // Check if all tiles are matched
                         const remainingTiles = document.querySelectorAll(".tile");
                         if (remainingTiles.length === 0) {
                             completedMessage.classList.add("visible");
-                            restartButton.style.display = "block"; // Show Restart Button
+                            restartButton.style.display = "block";
                         }
                     }
                 });
@@ -185,15 +175,15 @@
 
             // Function to restart the game
             window.restartGame = function() {
-                // Shuffle the words
-                const sourceTiles = [...sourceWordsContainer.children];
-                const targetTiles = [...targetWordsContainer.children];
-                
+                // Get current tiles and targets from the containers
+                let sourceTiles = [...sourceWordsContainer.children];
+                let targetTiles = [...targetWordsContainer.children];
+
                 // Clear containers
                 sourceWordsContainer.innerHTML = "";
                 targetWordsContainer.innerHTML = "";
 
-                // Shuffle and reappend tiles
+                // Shuffle arrays and reattach elements
                 shuffleArray(sourceTiles);
                 shuffleArray(targetTiles);
                 sourceTiles.forEach(tile => {
@@ -202,6 +192,10 @@
                 });
                 targetTiles.forEach(target => {
                     target.classList.remove("correct");
+                    // Optionally, restore original text if it was modified
+                    if (target.dataset.original) {
+                        target.textContent = target.dataset.original;
+                    }
                     targetWordsContainer.appendChild(target);
                 });
 
@@ -209,7 +203,7 @@
                 completedMessage.classList.remove("visible");
                 restartButton.style.display = "none";
 
-                // Reattach event listeners
+                // Reattach event listeners to the new elements
                 attachTileEvents();
             };
 
@@ -223,14 +217,17 @@
 
             // Function to reattach event listeners to shuffled elements
             function attachTileEvents() {
-                document.querySelectorAll(".tile").forEach(tile => {
+                tiles = document.querySelectorAll(".tile");
+                targets = document.querySelectorAll(".target");
+
+                tiles.forEach(tile => {
                     tile.addEventListener("dragstart", e => {
                         e.dataTransfer.setData("text", e.target.dataset.id);
                         e.dataTransfer.setData("text-tile", e.target.textContent);
                     });
                 });
 
-                document.querySelectorAll(".target").forEach(target => {
+                targets.forEach(target => {
                     target.addEventListener("dragover", e => {
                         e.preventDefault();
                     });
@@ -246,6 +243,15 @@
 
                             const tile = document.querySelector(`.tile[data-id='${sourceId}']`);
                             if (tile) tile.remove();
+
+                            // Update points after a correct match
+                            updatePoints(pointsPerMatch);
+
+                            const remainingTiles = document.querySelectorAll(".tile");
+                            if (remainingTiles.length === 0) {
+                                completedMessage.classList.add("visible");
+                                restartButton.style.display = "block";
+                            }
                         }
                     });
                 });

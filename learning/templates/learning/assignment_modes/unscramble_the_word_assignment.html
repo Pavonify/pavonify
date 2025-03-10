@@ -11,7 +11,6 @@
             padding: 0;
             text-align: center;
         }
-
         .container {
             background-color: white;
             padding: 20px;
@@ -21,25 +20,22 @@
             max-width: 500px;
             margin: 0 auto;
         }
-
         h1 {
             font-size: 22px;
             color: #0aa2ef;
             margin-bottom: 10px;
         }
-
         #scrambled-word {
             font-size: 24px;
             font-weight: bold;
             margin: 20px 0;
         }
-
-        #hint {
+        /* Changed "hint" to "clue" for clarity */
+        #clue {
             font-size: 18px;
             margin-bottom: 15px;
             color: #555;
         }
-
         input[type="text"] {
             padding: 10px;
             font-size: 16px;
@@ -48,7 +44,6 @@
             border: 2px solid #ccc;
             border-radius: 5px;
         }
-
         button {
             background-color: #0aa2ef;
             color: white;
@@ -60,7 +55,6 @@
             transition: background-color 0.3s ease;
             margin-top: 10px;
         }
-
         button:hover {
             background-color: #086baf;
         }
@@ -70,7 +64,8 @@
     <div class="container">
         <h1>Unscramble the Word: {{ assignment.vocab_list.name }}</h1>
         <div id="scrambled-word">Loading...</div>
-        <p id="hint">Hint: <span id="word-hint">Loading...</span></p>
+        <!-- Display the clue (source word) here -->
+        <p id="clue">Clue: <span id="word-clue">Loading...</span></p>
         <input type="text" id="answer" placeholder="Type the word here">
         <button id="submit">Submit</button>
     </div>
@@ -78,13 +73,13 @@
     <script>
         const words = JSON.parse('{{ words_json|safe }}');
         const scrambledWordElement = document.getElementById("scrambled-word");
-        const hintElement = document.getElementById("word-hint");
+        const clueElement = document.getElementById("word-clue");
         const answerInput = document.getElementById("answer");
         const submitButton = document.getElementById("submit");
 
         let currentIndex = 0;
 
-        // Function to shuffle a word ensuring it's different
+        // Function to shuffle a word ensuring it's different from the original
         function shuffleWord(word) {
             let scrambled;
             do {
@@ -93,30 +88,41 @@
             return scrambled;
         }
 
-        // Display the current word
+        // Display the current word.
+        // The clue is the source word, and the scrambled word is generated from the target word.
         function displayWord() {
             const currentWord = words[currentIndex];
-            scrambledWordElement.textContent = shuffleWord(currentWord.word);
-            hintElement.textContent = currentWord.translation;
+            // Display the source word as the clue
+            clueElement.textContent = currentWord.word;
+            // Scramble the target word (translation) and display it
+            scrambledWordElement.textContent = shuffleWord(currentWord.translation);
             answerInput.value = '';
             answerInput.focus();
         }
 
-        // Handle Submit Button
+        // Handle Submit Button click
         submitButton.addEventListener("click", () => {
             const userAnswer = answerInput.value.trim();
-            const correctAnswer = words[currentIndex].word;
+            const correctAnswer = words[currentIndex].translation; // Correct answer is the target word
 
             if (userAnswer.toLowerCase() === correctAnswer.toLowerCase()) {
+                // Update points using the per-interaction points passed from the view
                 fetch("{% url 'update_assignment_points' %}", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
                         "X-CSRFToken": "{{ csrf_token }}",
                     },
-                    body: JSON.stringify({ assignment_id: {{ assignment.id }}, points: 5 }),
+                    body: JSON.stringify({ assignment_id: {{ assignment.id }}, points: {{ points }} }),
                 });
-
+                // Also post a message to the parent window for live updates
+                if (window.parent) {
+                    window.parent.postMessage({
+                        type: "activity_complete",
+                        assignmentId: {{ assignment.id }},
+                        pointsEarned: {{ points }}
+                    }, "*");
+                }
                 currentIndex++;
                 if (currentIndex < words.length) {
                     displayWord();
@@ -128,7 +134,7 @@
             }
         });
 
-        // Allow Enter key to submit
+        // Allow the Enter key to submit the answer
         answerInput.addEventListener("keypress", (event) => {
             if (event.key === "Enter") {
                 submitButton.click();

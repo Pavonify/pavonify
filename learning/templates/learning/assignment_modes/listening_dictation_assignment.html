@@ -15,9 +15,9 @@
       justify-content: center;
       align-items: flex-start; /* Aligns content to the top */
       padding-top: 20px;
-    overflow-x: hidden; /* Prevent horizontal scroll */
-    overflow-y: auto; /* Allow only necessary vertical scrolling */
-    height: 100%;
+      overflow-x: hidden; /* Prevent horizontal scroll */
+      overflow-y: auto; /* Allow only necessary vertical scrolling */
+      height: 100%;
     }
 
     /* Main Container */
@@ -129,7 +129,6 @@
       margin-top: 15px;
       font-weight: bold;
     }
-
   </style>
 </head>
 <body>
@@ -165,9 +164,11 @@
     let targetLanguage = "{{ target_language }}";
     let currentIndex = 0;
     let assignmentId = {{ assignment.id }};
-    let pointsPerCorrect = 5;
+    // Use the points value passed from the view
+    let pointsPerCorrect = {{ points }};
     let csrfToken = "{{ csrf_token }}";
 
+    // Randomize word order
     words = words.sort(() => Math.random() - 0.5);
 
     function getLanguageCode(lang) {
@@ -243,7 +244,11 @@
         })
         .then(() => {
             if (window.parent) {
-                window.parent.postMessage({ type: "activity_complete", assignmentId: assignmentId, pointsEarned: points }, "*");
+                window.parent.postMessage({
+                    type: "activity_complete",
+                    assignmentId: assignmentId,
+                    pointsEarned: points
+                }, "*");
             }
         });
     }

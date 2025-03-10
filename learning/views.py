@@ -1058,12 +1058,12 @@ def gap_fill_mode_assignment(request, assignment_id):
     student = get_object_or_404(Student, id=request.session.get("student_id"))
 
     vocab_list = assignment.vocab_list
-    vocab_words = list(VocabularyWord.objects.filter(list=vocab_list))  # ✅ Correct model used
+    vocab_words = list(VocabularyWord.objects.filter(list=vocab_list))
 
     # Convert words into a JSON-safe format
     words_list = [{"word": w.word, "translation": w.translation} for w in vocab_words]
 
-    print("DEBUG: Words List:", words_list)  # ✅ Debug to see if words exist
+    print("DEBUG: Words List:", words_list)  # Debug to verify words list
 
     # Fetch assignment progress separately for correct tracking
     assignment_progress = AssignmentProgress.objects.filter(assignment=assignment, student=student).first()
@@ -1071,12 +1071,14 @@ def gap_fill_mode_assignment(request, assignment_id):
 
     return render(request, "learning/assignment_modes/gap_fill_mode_assignment.html", {
         "assignment": assignment,
-        "words_json": json.dumps(words_list),  # ✅ Pass JSON-encoded words
+        "words_json": json.dumps(words_list),  # Pass JSON-encoded words
         "student": student,
         "total_points": assignment.target_points,
         "current_points": current_points,
         "source_language": vocab_list.source_language,
         "target_language": vocab_list.target_language,
+        # Pass the per-interaction points value for gap fill mode
+        "points": assignment.points_per_fill_gap,
     })
 
 
@@ -1127,13 +1129,18 @@ def match_up_mode_assignment(request, vocab_list_id=None, assignment_id=None):
     target_words = words[:]
     random.shuffle(target_words)
 
-    return render(request, "learning/assignment_modes/match_up_mode_assignment.html", {
+    context = {
         "vocab_list": vocab_list,
         "source_words": source_words,
         "target_words": target_words,
         "student": student,
         "assignment": assignment,  # Pass the assignment to the template
-    })
+        # If an assignment is provided, pass its per-match points value explicitly.
+        "points": assignment.points_per_matchup if assignment else 0,
+    }
+
+    return render(request, "learning/assignment_modes/match_up_mode_assignment.html", context)
+
 
 def check_and_award_trophies(student):
     """Check if a student qualifies for new trophies and award them."""
@@ -1244,7 +1251,9 @@ def unscramble_the_word_assignment(request, assignment_id):
         "assignment": assignment,
         "words_json": json.dumps(words),  # Serialize words for JavaScript
         "student": student,
+        "points": assignment.points_per_unscramble,  # Pass the points value for Unscramble mode
     })
+
 
 
 @student_login_required
@@ -1427,7 +1436,7 @@ def listening_dictation_assignment(request, assignment_id):
     # Fetch the associated vocabulary list
     vocab_list = assignment.vocab_list
 
-    # Ensure student has access to this assignment
+    # Ensure student has access to this vocabulary list
     if not student.classes.filter(vocabulary_lists=vocab_list).exists():
         return HttpResponseForbidden("You do not have access to this vocabulary list.")
 
@@ -1439,7 +1448,9 @@ def listening_dictation_assignment(request, assignment_id):
         "vocab_list": vocab_list,
         "words_json": json.dumps(words),  # Serialize for JavaScript
         "target_language": vocab_list.target_language,
+        "points": assignment.points_per_listening_dictation,  # Per-interaction points for Listening Dictation
     })
+
 
 
 @student_login_required
@@ -1451,24 +1462,24 @@ def listening_translation_assignment(request, assignment_id):
     student = get_object_or_404(Student, id=request.session.get("student_id"))
 
     # Get the vocabulary list assigned to this assignment
-    vocab_list = assignment.vocab_list  # ✅ FIXED: Now vocab_list is defined
+    vocab_list = assignment.vocab_list  # Now vocab_list is defined
 
-    # Fetch words and randomize them **server-side**
+    # Fetch words and randomize them server-side
     words_queryset = list(VocabularyWord.objects.filter(list=vocab_list).values("word", "translation"))
-
-    random.shuffle(words_queryset)  # ✅ Shuffle words
-
+    random.shuffle(words_queryset)  # Shuffle words
     words_json = json.dumps(words_queryset)  # Convert to JSON for frontend
 
-    return render(request, 'learning/assignment_modes/listening_translation_assignment.html', {  # ✅ FIXED TEMPLATE NAME
-        'assignment': assignment,  # ✅ Pass assignment
-        'vocab_list': vocab_list,  # ✅ Pass vocabulary list
-        'words_json': words_json,  # ✅ JSON of words
-        'target_language': vocab_list.target_language,  # ✅ Ensure vocab_list has this field
-        'student': student,  # ✅ Pass student object
-        'weekly_points': student.weekly_points,  # ✅ Pass correct weekly points
-        'total_points': student.total_points,  # ✅ Pass correct total points
+    return render(request, 'learning/assignment_modes/listening_translation_assignment.html', {
+        'assignment': assignment,      # Pass assignment
+        'vocab_list': vocab_list,      # Pass vocabulary list
+        'words_json': words_json,      # JSON of words
+        'target_language': vocab_list.target_language,  # Ensure vocab_list has this field
+        'student': student,            # Pass student object
+        'weekly_points': student.weekly_points,   # Pass correct weekly points
+        'total_points': student.total_points,       # Pass correct total points
+        'points': assignment.points_per_listening_translation,  # Per-interaction points
     })
+
 
 def custom_404_view(request, exception):
     return render(request, '404.html', status=404)
