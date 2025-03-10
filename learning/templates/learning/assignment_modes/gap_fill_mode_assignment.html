@@ -13,11 +13,10 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            min-height: 100vh; /* Allows content to expand naturally */
-            justify-content: flex-start; /* Ensures content starts at the top */
-            overflow: hidden; /* Prevents scrolling */
+            min-height: 100vh;
+            justify-content: flex-start;
+            overflow: hidden;
         }
-
         .container {
             background-color: white;
             padding: 20px;
@@ -26,28 +25,24 @@
             text-align: center;
             width: 80%;
             max-width: 600px;
-            margin-top: 20px; /* Adds spacing at the top */
-            flex-grow: 1; /* Allows the container to take necessary space */
+            margin-top: 20px;
+            flex-grow: 1;
         }
-
         h1 {
             font-size: 24px;
             color: #0aa2ef;
         }
-
         #word-prompt {
             font-size: 20px;
             font-weight: bold;
             margin: 20px 0;
         }
-
         .gap-fill-input-container {
             display: flex;
             flex-direction: column;
             align-items: center;
             gap: 10px;
         }
-
         input[type="text"] {
             padding: 10px;
             font-size: 16px;
@@ -56,7 +51,6 @@
             border: 2px solid #ccc;
             border-radius: 5px;
         }
-
         .button-container {
             display: flex;
             flex-direction: column;
@@ -64,19 +58,16 @@
             gap: 10px;
             margin-top: 10px;
         }
-
         .main-buttons {
             display: flex;
             gap: 10px;
         }
-
         .accent-buttons {
             display: flex;
             flex-wrap: wrap;
             gap: 5px;
             justify-content: center;
         }
-
         .accent-buttons button {
             padding: 5px;
             font-size: 16px;
@@ -85,11 +76,9 @@
             cursor: pointer;
             border-radius: 5px;
         }
-
         .accent-buttons button:hover {
             background-color: #bbb;
         }
-
         button {
             background-color: #0aa2ef;
             color: white;
@@ -100,29 +89,23 @@
             cursor: pointer;
             transition: background-color 0.3s ease;
         }
-
         button:hover {
             background-color: #086baf;
         }
-
         .skip-button {
             background-color: #ff9f1c;
         }
-
         .skip-button:hover {
             background-color: #e88d17;
         }
-
         #status-message {
             font-size: 18px;
             font-weight: bold;
             margin-top: 10px;
         }
-
         .hidden {
             display: none;
         }
-
         #correct-answer-container {
             background-color: #0aa2ef;
             color: white;
@@ -135,7 +118,6 @@
     </style>
 </head>
 <body>
-
     <div class="container">
         <h1>Gap-Fill Mode: {{ vocab_list.name }}</h1>
         <div id="word-prompt">Loading...</div>
@@ -164,7 +146,7 @@
 
             let currentIndex = -1;
             const assignmentId = {{ assignment.id }};
-            const pointsPerCorrect = {{ points }};  // Use the points value passed from the view
+            const pointsPerCorrect = {{ points }};  // Points awarded per correct attempt.
             const csrfToken = "{{ csrf_token }}";
 
             const wordPrompt = document.getElementById("word-prompt");
@@ -186,18 +168,18 @@
                 "it": ["à", "è", "é", "ì", "ò", "ù"]
             };
 
+            // Display a random word from the list.
             function displayWord() {
                 if (words.length === 0) return;
-
                 currentIndex = Math.floor(Math.random() * words.length);
                 const word = words[currentIndex].translation;
                 wordPrompt.textContent = `${words[currentIndex].word} = ${maskLetters(word)}`;
                 gapFillInput.value = "";
                 gapFillInput.focus();
-
                 showAccentButtons();
             }
 
+            // Mask a few letters in the translation for a hint.
             function maskLetters(word) {
                 let masked = word.split("");
                 for (let i = 0; i < Math.min(3, word.length); i++) {
@@ -227,6 +209,51 @@
                 gapFillInput.focus();
             }
 
+            // Log the attempt via AJAX to record analytics.
+            function logAttempt(wordId, isCorrect) {
+                fetch("{% url 'log_assignment_attempt' %}", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", "X-CSRFToken": csrfToken },
+                    body: JSON.stringify({
+                        assignment_id: assignmentId,
+                        word_id: wordId,
+                        is_correct: isCorrect
+                    }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log("Attempt logged:", data);
+                })
+                .catch(error => {
+                    console.error("Error logging attempt:", error);
+                });
+            }
+
+            // On form submission, check answer and log the attempt.
+            document.getElementById("gap-fill-form").addEventListener("submit", (event) => {
+                event.preventDefault();
+                let userAnswer = gapFillInput.value.trim();
+                let correctAnswer = words[currentIndex].translation;
+                // Compare answers case-insensitively.
+                if (userAnswer.toLowerCase() === correctAnswer.toLowerCase()) {
+                    statusMessage.textContent = "✅ Correct!";
+                    statusMessage.style.color = "green";
+                    // Log a correct attempt for the target word.
+                    logAttempt(words[currentIndex].id, true);
+                    updatePoints(pointsPerCorrect);
+                    setTimeout(() => {
+                        statusMessage.classList.add("hidden");
+                        displayWord();
+                    }, 500);
+                } else {
+                    statusMessage.textContent = "❌ Try Again!";
+                    statusMessage.style.color = "red";
+                    // Log an incorrect attempt for the target word.
+                    logAttempt(words[currentIndex].id, false);
+                }
+                statusMessage.classList.remove("hidden");
+            });
+
             skipButton.addEventListener("click", () => {
                 correctAnswerText.textContent = words[currentIndex].translation;
                 correctAnswerContainer.style.display = "block";
@@ -237,26 +264,7 @@
                 displayWord();
             });
 
-            document.getElementById("gap-fill-form").addEventListener("submit", (event) => {
-                event.preventDefault();
-                let userAnswer = gapFillInput.value.trim();
-                let correctAnswer = words[currentIndex].translation;
-
-                if (userAnswer.toLowerCase() === correctAnswer.toLowerCase()) {
-                    statusMessage.textContent = "✅ Correct!";
-                    statusMessage.style.color = "green";
-                    updatePoints(pointsPerCorrect);
-                    setTimeout(() => {
-                        statusMessage.classList.add("hidden");
-                        displayWord();
-                    }, 500);
-                } else {
-                    statusMessage.textContent = "❌ Try Again!";
-                    statusMessage.style.color = "red";
-                }
-                statusMessage.classList.remove("hidden");
-            });
-
+            // Update assignment points (existing functionality)
             function updatePoints(points) {
                 fetch("{% url 'update_assignment_points' %}", {
                     method: "POST",

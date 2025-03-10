@@ -1056,31 +1056,35 @@ def access_denied(request):
 def gap_fill_mode_assignment(request, assignment_id):
     assignment = get_object_or_404(Assignment, id=assignment_id)
     student = get_object_or_404(Student, id=request.session.get("student_id"))
-
     vocab_list = assignment.vocab_list
+
+    # Include the id along with the word and translation
     vocab_words = list(VocabularyWord.objects.filter(list=vocab_list))
+    words_list = [
+        {"id": w.id, "word": w.word, "translation": w.translation}
+        for w in vocab_words
+    ]
 
-    # Convert words into a JSON-safe format
-    words_list = [{"word": w.word, "translation": w.translation} for w in vocab_words]
+    # Debug print to verify words list
+    print("DEBUG: Words List:", words_list)
 
-    print("DEBUG: Words List:", words_list)  # Debug to verify words list
-
-    # Fetch assignment progress separately for correct tracking
-    assignment_progress = AssignmentProgress.objects.filter(assignment=assignment, student=student).first()
+    # Fetch assignment progress for current points (if any)
+    assignment_progress = AssignmentProgress.objects.filter(
+        assignment=assignment, student=student
+    ).first()
     current_points = assignment_progress.points_earned if assignment_progress else 0
 
     return render(request, "learning/assignment_modes/gap_fill_mode_assignment.html", {
         "assignment": assignment,
-        "words_json": json.dumps(words_list),  # Pass JSON-encoded words
+        "words_json": json.dumps(words_list),  # Pass JSON-encoded words (with id)
         "student": student,
         "total_points": assignment.target_points,
         "current_points": current_points,
         "source_language": vocab_list.source_language,
         "target_language": vocab_list.target_language,
-        # Pass the per-interaction points value for gap fill mode
+        # Points awarded per correct gap-fill attempt.
         "points": assignment.points_per_fill_gap,
     })
-
 
 @student_login_required
 def destroy_wall_mode_assignment(request, assignment_id):
