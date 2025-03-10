@@ -6,7 +6,7 @@ from datetime import timedelta
 from django.utils.html import format_html
 from .models import (
     School, User, Class, Student, VocabularyList, VocabularyWord,
-    Progress, Assignment, AssignmentProgress, Trophy, StudentTrophy, Announcement, ReadingLabText
+    Progress, Assignment, AssignmentProgress, Trophy, StudentTrophy, Announcement, ReadingLabText, AssignmentAttempt
 
 )
 
@@ -225,3 +225,8 @@ class ReadingLabTextAdmin(admin.ModelAdmin):
         }),
     )
 
+@admin.register(AssignmentAttempt)
+class AssignmentAttemptAdmin(admin.ModelAdmin):
+    list_display = ('student', 'assignment', 'vocabulary_word', 'is_correct', 'timestamp')
+    list_filter = ('is_correct', 'assignment', 'student')
+    search_fields = ('student__username', 'assignment__name', 'vocabulary_word__word')
