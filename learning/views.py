@@ -999,11 +999,17 @@ def assignment_page(request, assignment_id):
     if not student_id:
         return redirect("student_login")
 
-    assignment = get_object_or_404(Assignment, id=assignment_id)
+    # Fetch the student and assignment
     student = get_object_or_404(Student, id=student_id)
+    assignment = get_object_or_404(Assignment, id=assignment_id)
+
+    # Check if the assignment is assigned to the student's class
+    if not assignment.classes.filter(students=student).exists():
+        # If the assignment is not assigned to the student, redirect or show an error
+        return render(request, "learning/access_denied.html", status=403)
 
     # Calculate assignment progress
-    total_points = assignment.target_points  # Ensure the `target_points` exists in your Assignment model
+    total_points = assignment.target_points
     current_points = AssignmentProgress.objects.filter(
         assignment=assignment, student=student
     ).aggregate(total=Sum('points_earned')).get('total', 0) or 0
@@ -1039,6 +1045,11 @@ def assignment_page(request, assignment_id):
         "current_points": current_points,
     })
 
+def access_denied(request):
+    """
+    Renders the access denied page when a student tries to access an unauthorized assignment.
+    """
+    return render(request, "learning/access_denied.html")
 
 
 @student_login_required
