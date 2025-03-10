@@ -108,8 +108,6 @@ urlpatterns = [
     path('leaderboard/<uuid:class_id>/refresh/', refresh_leaderboard, name='refresh_leaderboard'),
 ]
 
-]
-
 
 
 urlpatterns += [

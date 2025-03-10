@@ -396,7 +396,7 @@ a.btn:hover, button.btn:hover {
             {% for student in overall_leaderboard_page.object_list %}
             <tr>
               <td>{{ forloop.counter0|add:overall_leaderboard_page.start_index }}</td>
-              <td>{{ student.username }}</td>
+              <td>{{student.first_name}}</td>
               <td>
                 {% if student.classes.all %}
                   {% for class in student.classes.all %}
