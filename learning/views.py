@@ -1004,7 +1004,7 @@ def assignment_page(request, assignment_id):
     assignment = get_object_or_404(Assignment, id=assignment_id)
 
     # Check if the assignment is assigned to the student's class
-    if not assignment.classes.filter(students=student).exists():
+    if not assignment.class_assigned.students.filter(id=student.id).exists():
         # If the assignment is not assigned to the student, redirect or show an error
         return render(request, "learning/access_denied.html", status=403)
 
