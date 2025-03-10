@@ -69,36 +69,37 @@
     }
 
     /* TOP BAR for Login Buttons */
-.top-bar {
-  background-color: #fff;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  padding: 10px 20px;
-  gap: 15px;
-}
-.top-bar button {
-  background-color: var(--primary); /* Bright Blue */
-  color: #fff;
-  border: none;
-  padding: 10px 16px;
-  font-weight: 600;
-  text-transform: uppercase;
-  cursor: pointer;
-  border-radius: 6px;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-.top-bar button:hover {
-  background-color: var(--accent); /* Orange */
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-}
-.top-bar button:active {
-  transform: translateY(0);
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
+    .top-bar {
+      background-color: #fff;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      align-items: center;
+      padding: 10px 20px;
+      gap: 15px;
+    }
+    .top-bar button {
+      background-color: var(--primary); /* Bright Blue */
+      color: #fff;
+      border: none;
+      padding: 10px 16px;
+      font-weight: 600;
+      text-transform: uppercase;
+      cursor: pointer;
+      border-radius: 6px;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .top-bar button:hover {
+      background-color: var(--accent); /* Orange */
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    .top-bar button:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
 
     /* Hero Section */
     header {
@@ -306,7 +307,145 @@
       text-transform: none;
     }
 
-    /* Responsive Adjustments */
+    /* Additional Styles */
+    .shimmer {
+      background: linear-gradient(
+        135deg,
+        #F2A03D 0%,
+        #F2A03D 45%,
+        #fff 50%,
+        #F2A03D 55%,
+        #F2A03D 100%
+      );
+      background-size: 200% 200%;
+      color: transparent;
+      background-clip: text;
+      -webkit-background-clip: text;
+      animation: shimmer 5s linear infinite;
+    }
+    @keyframes shimmer {
+      0% {
+        background-position: -100% center;
+      }
+      100% {
+        background-position: 100% center;
+      }
+    }
+    .feature-strip {
+      position: relative;
+      height: 40px;
+      overflow: hidden;
+    }
+    .feature {
+      position: absolute;
+      white-space: nowrap;
+      transform: translateX(100%);
+      opacity: 0;
+      animation: fly-in-out 18s linear infinite;
+    }
+    .feature:nth-child(1) { animation-delay: 0s; }
+    .feature:nth-child(2) { animation-delay: 3s; }
+    .feature:nth-child(3) { animation-delay: 6s; }
+    .feature:nth-child(4) { animation-delay: 9s; }
+    .feature:nth-child(5) { animation-delay: 12s; }
+    .feature:nth-child(6) { animation-delay: 15s; }
+    @keyframes fly-in-out {
+      0% {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+      2.78% {
+        transform: translateX(0);
+        opacity: 1;
+      }
+      11.11% {
+        transform: translateX(0);
+        opacity: 1;
+      }
+      13.89% {
+        transform: translateX(-100%);
+        opacity: 0;
+      }
+      16.67% {
+        transform: translateX(-100%);
+        opacity: 0;
+      }
+      100% {
+        transform: translateX(-100%);
+        opacity: 0;
+      }
+    }
+    .student-bird {
+      display: block;
+      margin: 0 auto;
+      max-width: 150px;
+      width: 100%;
+      height: auto;
+      padding: 0;
+      margin-bottom: 0;
+    }
+    .comparison-wrapper {
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+      position: relative;
+      padding: 0;
+      overflow: visible;
+
+    }
+
+/* Container for the table to allow horizontal scrolling if it's too wide. */
+.table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  margin-top: 20px; /* spacing between the bird and the table */
+}
+
+/* Ensure the table has a minimum width so it can scroll horizontally on small screens. */
+table.comparison {
+  min-width: 700px; /* Adjust as needed */
+  border-collapse: collapse;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+/* Trophy bird styling for larger screens. */
+.pavonify-bird-on-trophy {
+  position: absolute;
+  bottom: 100%;
+  right: 0;
+  width: 100px;
+  height: auto;
+  margin: 0;
+  padding: 0;
+  z-index: 1;
+  transform: translateX(50%);
+}
+
+/* Hide the trophy bird on mobile */
+@media (max-width: 768px) {
+  .pavonify-bird-on-trophy {
+    display: none;
+  }
+}
+    .register-btn {
+      background: linear-gradient(45deg, #F2A03D, #F2A03D 50%, #F2A03D);
+      color: var(--dark);
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      text-transform: uppercase;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background-color 0.3s ease, transform 0.3s ease;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .register-btn:hover {
+      background: linear-gradient(45deg, #F2A03D, #F2A03D 50%, #F2A03D);
+      transform: translateY(-2px);
+    }
+
+    /* Responsive Adjustments for Mobile */
     @media (max-width: 768px) {
       .hero-container {
         flex-direction: column;
@@ -317,191 +456,21 @@
         align-self: center;
       }
     }
-
-
-.shimmer {
-  /* Set up the gradient with a narrow white highlight in the center */
-  background: linear-gradient(
-    135deg,
-    #F2A03D 0%,
-    #F2A03D 45%,
-    #fff 50%,
-    #F2A03D 55%,
-    #F2A03D 100%
-  );
-  /* Double the background width so we can animate the highlight across */
-  background-size: 200% 200%; /* Adjusted for diagonal movement */
-  /* Hide the actual text color so that the gradient shows through */
-  color: transparent;
-  background-clip: text;
-  -webkit-background-clip: text;
-  animation: shimmer 5s linear infinite;
-}
-
-@keyframes shimmer {
-  0% {
-    background-position: -100% center;
-  }
-  100% {
-    background-position: 100% center;
-  }
-}
-
-.feature-strip {
-  position: relative;
-  height: 40px; /* Adjust based on your design */
-  overflow: hidden;
-}
-
-.feature {
-  position: absolute;
-  white-space: nowrap;
-  transform: translateX(100%);
-  opacity: 0;
-  animation: fly-in-out 18s linear infinite;
-}
-
-/* Stagger each feature’s active window by 3 seconds */
-.feature:nth-child(1) { animation-delay: 0s; }
-.feature:nth-child(2) { animation-delay: 3s; }
-.feature:nth-child(3) { animation-delay: 6s; }
-.feature:nth-child(4) { animation-delay: 9s; }
-.feature:nth-child(5) { animation-delay: 12s; }
-.feature:nth-child(6) { animation-delay: 15s; }
-
-@keyframes fly-in-out {
-  /* 0s (0% of 18s): feature is off-screen right */
-  0% {
-    transform: translateX(100%);
-    opacity: 0;
-  }
-  /* 0.5s (2.78% of 18s): feature has flown in */
-  2.78% {
-    transform: translateX(0);
-    opacity: 1;
-  }
-  /* 2s (11.11% of 18s): feature is still at center */
-  11.11% {
-    transform: translateX(0);
-    opacity: 1;
-  }
-  /* 2.5s (13.89% of 18s): feature has flown out to the left */
-  13.89% {
-    transform: translateX(-100%);
-    opacity: 0;
-  }
-  /* 3s (16.67% of 18s) and onward: feature remains hidden */
-  16.67% {
-    transform: translateX(-100%);
-    opacity: 0;
-  }
-  100% {
-    transform: translateX(-100%);
-    opacity: 0;
-  }
-}
-
-
-/* Style for the student bird image */
-.student-bird {
-  display: block;           /* Makes the image a block element */
-  margin: 0 auto;           /* Centers the image horizontally */
-  max-width: 150px;         /* Adjust this value for a smaller size */
-  width: 100%;              /* Responsive width based on the max-width */
-  height: auto;             /* Maintain aspect ratio */
-  padding: 0;               /* Remove any padding */
-  margin-bottom: 0;         /* Ensure there's no gap below the image */
-}
-
-/* Ensure the table stretches to fill the page horizontally */
-.comparison-wrapper {
-  width: 100%;
-  max-width: 1200px; /* Adjust this value as needed */
-  margin: 0 auto; /* Center the table */
-  position: relative;
-}
-
-/* Table styling */
-.comparison {
-  width: 100%;
-  border-collapse: collapse;
-  margin: 20px 0;
-  background-color: #fff;
-  border-radius: 10px;
-  overflow: hidden;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-/* Table header styling */
-.comparison th {
-  background-color: var(--primary);
-  color: #fff;
-  padding: 12px;
-  text-align: center;
-  border: 1px solid #ddd;
-}
-
-/* Table row and cell styling */
-.comparison td {
-  padding: 10px;
-  text-align: center;
-  border: 1px solid #ddd;
-}
-
-/* Highlight only the last column's contents */
-.comparison td:last-child {
-  background-color: rgba(255, 255, 0, 0.2); /* Light yellow with 20% opacity */
-}
-
-/* Ensure the last column header is not highlighted */
-.comparison th:last-child {
-  background-color: var(--primary); /* Keep the header color consistent */
-  color: #fff; /* Ensure text remains white */
-}
-
-/* Remove any extra spacing around the table */
-.comparison-wrapper {
-  padding: 0;
-  margin: 0;
-}
-
-/* Ensure the image is small and positioned correctly */
-.pavonify-bird-on-trophy {
-  position: absolute;
-  bottom: 100%; /* Place it directly above the table */
-  right: 0; /* Align with the right edge of the table */
-  width: 100px; /* Adjust this value to your desired size */
-  height: auto; /* Maintain aspect ratio */
-  margin: 0; /* Remove any default margin */
-  padding: 0; /* Remove any default padding */
-  z-index: 1; /* Ensure the image is above the table */
-  transform: translateX(50%); /* Center the image over the last column */
-}
-
-.register-btn {
-  background: linear-gradient(45deg, #F2A03D, #F2A03D 50%, #F2A03D);
-  color: var(--dark);
-  padding: 12px 24px;
-  border: none;
-  border-radius: 8px;
-  text-transform: uppercase;
-  font-weight: 700;
-  cursor: pointer;
-  transition: background-color 0.3s ease, transform 0.3s ease;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-}
-
-.register-btn:hover {
-  background: linear-gradient(45deg, #F2A03D, #F2A03D 50%, #F2A03D);
-  transform: translateY(-2px);
-}
-
-
+    @media (max-width: 600px) {
+      h1 {
+        font-size: 2.5rem;
+      }
+      nav {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      nav a {
+        margin: 5px 0;
+      }
+    }
   </style>
 </head>
 <body>
-
-
   <!-- TOP BAR (Login Buttons) -->
   <div class="top-bar">
     <button onclick="window.location.href='{% url 'student_login' %}'">🧑‍🎓 Student Login</button>
@@ -510,26 +479,27 @@
   </div>
 
   <!-- Hero Section -->
-<header>
-  <div class="hero-container">
-    <div class="hero-left">
-      <h1>WELCOME TO <span class="shimmer">PAVONIFY</span></h1>
-      <p>The Ultimate AI-Powered Language Teaching Platform</p>
-      <div class="feature-strip">
-        <span class="feature">Vocabulary Learning</span>
-        <span class="feature">Track Student Progress</span>
-        <span class="feature">Worksheet Designer</span>
-        <span class="feature">AI Parallel Text Designer</span>
-        <span class="feature">Live Games</span>
-        <span class="feature">Student Leaderboards & Trophies</span>
+  <header>
+    <div class="hero-container">
+      <div class="hero-left">
+        <h1>WELCOME TO <span class="shimmer">PAVONIFY</span></h1>
+        <p>The Ultimate AI-Powered Language Teaching Platform</p>
+        <div class="feature-strip">
+          <span class="feature">Vocabulary Learning</span>
+          <span class="feature">Track Student Progress</span>
+          <span class="feature">Worksheet Designer</span>
+          <span class="feature">AI Parallel Text Designer</span>
+          <span class="feature">Live Games</span>
+          <span class="feature">Student Leaderboards & Trophies</span>
+        </div>
+      </div>
+      <div class="hero-right">
+        <img src="{% static 'pavonify_bird_jumping_circle.png' %}" alt="Jumping Pavonify Bird">
+        <!-- <div class="speech-bubble">Let's learn together!</div> -->
       </div>
     </div>
-    <div class="hero-right">
-      <img src="{% static 'pavonify_bird_jumping_circle.png' %}" alt="Jumping Pavonify Bird">
-      <!-- <div class="speech-bubble">Let's learn together!</div> -->
-    </div>
-  </div>
-</header>
+  </header>
+
   <!-- Navigation -->
   <nav>
     <a href="#features">Features</a>
@@ -537,6 +507,7 @@
     <a href="#roadmap">Roadmap</a>
     <a href="mailto:contact@pavonify.com">Contact</a>
   </nav>
+
   <!-- Features Section -->
   <section id="features">
     <h2>Key Features</h2>
@@ -575,105 +546,106 @@
   </section>
 
   <!-- Comparison Section -->
- <!-- Comparison Section -->
 <section id="comparison">
   <h2>Features Comparison</h2>
   <p>Compare Pavonify with other leading language teaching platforms.</p>
 
   <div class="comparison-wrapper">
-    <!-- Trophy bird image directly above the table -->
-    <img class="pavonify-bird-on-trophy" src="{% static 'pavonify_bird_on_trophy.png' %}" alt="Pavonify Trophy Bird">
+    <!-- Trophy bird image positioned above the table -->
+    <img class="pavonify-bird-on-trophy" 
+         src="{% static 'pavonify_bird_on_trophy.png' %}" 
+         alt="Pavonify Trophy Bird">
     
-    <table class="comparison">
-      <thead>
-        <tr>
-          <th>Feature</th>
-          <th>Quizlet</th>
-          <th>Memrise</th>
-          <th>Duolingo for Schools</th>
-          <th>Pavonify</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>Interactive Games</td>
-          <td>✔️</td>
-          <td>✔️</td>
-          <td>✔️</td>
-          <td>✔️</td>
-        </tr>
-        <tr>
-          <td>Vocabulary Building</td>
-          <td>✔️</td>
-          <td>✔️</td>
-          <td>✔️</td>
-          <td>✔️</td>
-        </tr>
-        <tr>
-          <td>Progress Tracking</td>
-          <td>✔️</td>
-          <td>–</td>
-          <td>–</td>
-          <td>✔️</td>
-        </tr>
-        <tr>
-          <td>Class Leaderboards</td>
-          <td>✖️</td>
-          <td>✖️</td>
-          <td>✖️</td>
-          <td>✔️</td>
-        </tr>
-        <tr>
-          <td>Teacher Dashboard</td>
-          <td>✔️</td>
-          <td>✖️</td>
-          <td>✔️</td>
-          <td>✔️</td>
-        </tr>
-        <tr>
-          <td>Student Management</td>
-          <td>✖️</td>
-          <td>✖️</td>
-          <td>✖️</td>
-          <td>✔️</td>
-        </tr>
-        <tr>
-          <td>Custom Content Creation</td>
-          <td>✔️</td>
-          <td>✔️</td>
-          <td>✖️</td>
-          <td>✔️</td>
-        </tr>
-        <tr>
-          <td>Worksheet Maker</td>
-          <td>✖️</td>
-          <td>✖️</td>
-          <td>✖️</td>
-          <td>✔️</td>
-        </tr>
-        <tr>
-          <td>AI Reading Generator</td>
-          <td>✖️</td>
-          <td>✖️</td>
-          <td>✖️</td>
-          <td>✔️</td>
-        </tr>
-        <tr>
-          <td>Cost for Teachers</td>
-          <td>$35.99/year</td>
-          <td>$8.99/month</td>
-          <td>Free</td>
-          <td>£2.99/month</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-
-
-
-      <div style="text-align: left; margin-top: 20px;">
-        Register and try our features for ✨Free!✨ <button class="register-btn" onclick="window.location.href='{% url 'register_teacher' %}'">Register Now</button>
-      </div>
+    <!-- New wrapper for the table so it can scroll independently -->
+    <div class="table-scroll">
+      <table class="comparison">
+        <thead>
+          <tr>
+            <th>Feature</th>
+            <th>Quizlet</th>
+            <th>Memrise</th>
+            <th>Duolingo for Schools</th>
+            <th>Pavonify</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Interactive Games</td>
+            <td>✔️</td>
+            <td>✔️</td>
+            <td>✔️</td>
+            <td>✔️</td>
+          </tr>
+          <tr>
+            <td>Vocabulary Building</td>
+            <td>✔️</td>
+            <td>✔️</td>
+            <td>✔️</td>
+            <td>✔️</td>
+          </tr>
+          <tr>
+            <td>Progress Tracking</td>
+            <td>✔️</td>
+            <td>–</td>
+            <td>–</td>
+            <td>✔️</td>
+          </tr>
+          <tr>
+            <td>Class Leaderboards</td>
+            <td>✖️</td>
+            <td>✖️</td>
+            <td>✖️</td>
+            <td>✔️</td>
+          </tr>
+          <tr>
+            <td>Teacher Dashboard</td>
+            <td>✔️</td>
+            <td>✖️</td>
+            <td>✔️</td>
+            <td>✔️</td>
+          </tr>
+          <tr>
+            <td>Student Management</td>
+            <td>✖️</td>
+            <td>✖️</td>
+            <td>✖️</td>
+            <td>✔️</td>
+          </tr>
+          <tr>
+            <td>Custom Content Creation</td>
+            <td>✔️</td>
+            <td>✔️</td>
+            <td>✖️</td>
+            <td>✔️</td>
+          </tr>
+          <tr>
+            <td>Worksheet Maker</td>
+            <td>✖️</td>
+            <td>✖️</td>
+            <td>✖️</td>
+            <td>✔️</td>
+          </tr>
+          <tr>
+            <td>AI Reading Generator</td>
+            <td>✖️</td>
+            <td>✖️</td>
+            <td>✖️</td>
+            <td>✔️</td>
+          </tr>
+          <tr>
+            <td>Cost for Teachers</td>
+            <td>$35.99/year</td>
+            <td>$8.99/month</td>
+            <td>Free</td>
+            <td>£2.99/month</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    </div>
+    <div style="text-align: left; margin-top: 20px;">
+      Register and try our features for ✨Free!✨ 
+      <button class="register-btn" onclick="window.location.href='{% url 'register_teacher' %}'">Register Now</button>
     </div>
   </section>
 
@@ -701,13 +673,12 @@
     <h2>Contact Us</h2>
     <p>Have questions or feedback? Feel free to reach out via email: <a href="mailto:sam@pavonify.com">sam@pavonify.com</a></p>
   </section>
-<img class="student-bird" src="{% static 'pavonify_bird_student.png' %}" alt="Pavonify Learning">
+  <img class="student-bird" src="{% static 'pavonify_bird_student.png' %}" alt="Pavonify Learning">
 
   <!-- Footer -->
   <footer>
     <p>&copy; 2025 Pavonify. All rights reserved.</p>
     <p><a href="{% static 'Privacy Policy for Pavonify.pdf' %}" target="_blank">Privacy Policy</a></p>
   </footer>
-
 </body>
 </html>

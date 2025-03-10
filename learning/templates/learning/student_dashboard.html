@@ -1,112 +1,141 @@
 {% load static custom_filters %}
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Student Dashboard</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Student Dashboard - Pavonify</title>
+  
+  <!-- Meta Tags -->
+  <meta name="description" content="Manage your progress, classes, assignments, and practice with Pavonify's interactive student dashboard.">
+  <meta name="keywords" content="student dashboard, Pavonify, language learning">
+  <meta name="author" content="Pavonify">
+  
+  <!-- Favicon -->
+  <link rel="icon" href="{% static 'images/favicon.ico' %}" type="image/x-icon">
+  
+  <!-- Google Fonts: Poppins and Fredoka One -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Fredoka+One&display=swap" rel="stylesheet">
+  
+  <!-- Font Awesome for Icons -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  
   <style>
-    /* Global Styles */
-    body {
-      font-family: Arial, sans-serif;
+    :root {
+      --primary: #1A73E8;         /* Bright Blue */
+      --accent: #F2A03D;          /* Orange */
+      --secondary-accent: #34A853; /* Green */
+      --background: #F2EFE9;       /* Soft Off-White */
+      --dark: #0D0D0D;            /* Dark Gray */
+      --highlight: #A6173D;       /* Reddish Accent */
+    }
+    /* Global Reset & Base */
+    * {
+      box-sizing: border-box;
       margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: 'Poppins', sans-serif;
+      background-color: var(--background);
+      color: var(--dark);
+      line-height: 1.6;
+      scroll-behavior: smooth;
       min-height: 100vh;
+    }
+    a {
+      color: var(--accent);
+      text-decoration: none;
+      transition: color 0.3s ease;
+    }
+    a:hover {
+      color: var(--highlight);
+    }
+    h1, h2, h3, h4, h5, h6 {
+      font-weight: 700;
+      margin-bottom: 0.5em;
+    }
+    h1 {
+      font-family: 'Fredoka One', cursive;
+      font-size: 3.5rem;
+      color: #fff;
+    }
+    p {
+      margin-bottom: 1em;
+    }
+    
+    /* TOP NAVIGATION BAR */
+    .top-nav {
+      background-color: var(--primary);
+      color: #fff;
+      padding: 8px 20px;
       display: flex;
-      background: #e3f2fd;
+      align-items: center;
+      justify-content: space-between;
     }
-    .btn {
-      display: inline-block;
-      background-color: #0aa2ef;
-      color: white;
-      padding: 10px 15px;
-      text-decoration: none;
-      border-radius: 5px;
-      margin: 5px;
-      text-align: center;
-      font-weight: bold;
-      transition: background-color 0.3s ease;
+    .top-nav .nav-left {
+      display: flex;
+      align-items: center;
     }
-    .btn:hover {
-      background-color: #086baf;
+    .top-nav .nav-left img {
+      height: 40px;
+      margin-right: 10px;
     }
-
-    /* Sidebar Styles */
-    .sidebar {
-      background-color: #0aa2ef;
-      color: white;
-      padding: 20px;
-      width: 250px;
-      box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
-      flex: 0 0 250px;
-      overflow-y: auto;
+    .top-nav .nav-left span {
+      font-size: 1.5rem;
+      font-weight: 700;
+      text-transform: uppercase;
     }
-    .sidebar img {
-      display: block;
-      margin: 0 auto 20px;
-      max-width: 100%;
-      width: calc(100% - 30px);
-      border-radius: 5px;
+    .top-nav .nav-right {
+      display: flex;
+      align-items: center;
     }
-    .sidebar h2 {
-      text-align: center;
-      margin-bottom: 20px;
+    .top-nav .nav-right a,
+    .top-nav .nav-right button {
+      margin-left: 20px;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: #fff;
+      background: none;
+      border: none;
+      cursor: pointer;
     }
-    .sidebar nav a {
-      display: block;
-      color: white;
-      text-decoration: none;
-      padding: 10px 15px;
-      margin: 5px 0;
-      border-radius: 5px;
-      background-color: #0a8fd9;
-      text-align: center;
-      transition: background-color 0.3s ease;
+    .top-nav .nav-right a:hover,
+    .top-nav .nav-right button:hover {
+      color: var(--accent);
     }
-    .sidebar nav a:hover {
-      background-color: #086baf;
-    }
-    /* Logout link styling */
-    .sidebar nav a.button,
-    .sidebar nav a.logout {
-      background-color: #ff2c61;
-    }
-    .sidebar nav a.button:hover,
-    .sidebar nav a.logout:hover {
-      background-color: #d4204c;
-    }
-
-    /* Main Content Styles */
+    
+    /* MAIN CONTENT & PANES */
     .main-content {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      overflow-y: auto;
+      margin: 20px;
       padding: 20px;
     }
     .pane {
-      background-color: #fec10e;
+      display: none;
+      background-color: #fff;
       border-radius: 10px;
       padding: 20px;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-      margin-bottom: 20px;
-      color: white;
-      display: none; /* Hidden by default */
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      max-width: 1200px;
+      width: 100%;
+      margin: 20px auto;
+      animation: fadeIn 0.5s ease-in-out;
     }
     .pane.active {
-      display: block; /* Show active pane */
+      display: block;
     }
-    .pane h3, .pane p, .pane ul, .pane a {
-      color: white;
+    .pane h2 {
+      margin-top: 0;
+      color: var(--primary);
+      font-size: 28px;
     }
-
-    /* Points Overview */
+    
+    /* Points Overview Cards */
     .points-container {
       display: flex;
       justify-content: space-between;
       gap: 15px;
       margin-bottom: 20px;
-      width: 100%;
       flex-wrap: wrap;
     }
     .points-card {
@@ -116,523 +145,311 @@
       padding: 15px;
       border-radius: 10px;
       text-align: center;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
     .points-card h4 {
       margin-bottom: 5px;
       font-size: 18px;
-      color: #007bff;
+      color: var(--primary);
     }
     .points-card p {
       font-size: 24px;
       font-weight: bold;
       color: #333;
     }
-
-    /* Trophy Section */
-    .trophy-container {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 15px;
-      width: 100%;
-    }
-    .trophy-card {
-      background: #fffae6;
-      padding: 10px;
-      border-radius: 10px;
-      text-align: center;
-      width: 130px;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    }
-    .trophy-icon {
-      width: 60px;
-      height: 60px;
-      object-fit: contain;
-      margin-bottom: 5px;
-    }
-    .trophy-name {
-      font-size: 14px;
-      font-weight: bold;
-      color: #ff8c00;
-    }
-    .trophy-description {
-      font-size: 12px;
-      color: #555;
-    }
-    .no-trophies {
-      text-align: center;
-      font-size: 16px;
-      font-weight: bold;
-      color: #777;
-      margin-top: 10px;
-    }
-
-    /* Leaderboard Styles */
-    .class-container {
-      background-color: #fff;
-      padding: 15px;
-      border-radius: 10px;
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-      margin-bottom: 20px;
-    }
-    .class-header {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 10px;
-    }
-    .class-flag {
-      width: 35px;
-      height: 35px;
-      border-radius: 50%;
-      object-fit: cover;
-      border: 2px solid #ddd;
-    }
-    .class-name {
-      font-size: 20px;
-      font-weight: bold;
-      color: #333;
-    }
-    .leaderboard-container {
-      display: flex;
-      justify-content: space-between;
-      gap: 15px;
-    }
-    .leaderboard {
-      background-color: #f8f8f8;
-      padding: 15px;
-      border-radius: 8px;
-      flex: 1;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    }
-    .leaderboard h5 {
-      font-size: 16px;
-      font-weight: bold;
-      color: #ff8c00;
-      margin-bottom: 5px;
-      text-align: center;
-    }
-    .leaderboard-divider {
-      height: 2px;
-      background-color: #ddd;
-      border: none;
-      margin-bottom: 10px;
-    }
-    .leaderboard-list {
-      padding: 0;
-      list-style: none;
-    }
-    .leaderboard-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 5px 0;
-      font-size: 14px;
-      font-weight: bold;
-      color: #333;
-    }
-    .medal {
-      font-size: 16px;
-      margin-right: 5px;
-    }
-    .student-name {
-      flex-grow: 1;
-    }
-    .student-score {
-      font-weight: bold;
-      color: #28a745;
-    }
-    .leaderboard-controls {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-top: 10px;
-    }
-    .prev-btn, .next-btn {
-      background-color: #0aa2ef;
-      color: white;
-      padding: 5px 10px;
-      border: none;
-      border-radius: 5px;
-      font-size: 12px;
-      cursor: pointer;
-      transition: background-color 0.3s ease;
-    }
-    .prev-btn:hover, .next-btn:hover {
-      background-color: #086baf;
-    }
-    .page-indicator {
-      font-size: 14px;
-      font-weight: bold;
-      color: #333;
-    }
-    .no-students, .no-leaderboards {
-      text-align: center;
-      font-size: 14px;
-      color: #777;
-    }
-
-    /* Independent Practice Styles */
-    .vocab-container {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 15px;
-      justify-content: center;
-    }
-    .vocab-card {
-      background-color: #fff;
-      padding: 15px;
-      border-radius: 10px;
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-      text-align: center;
-      width: 260px;
-      transition: transform 0.2s ease-in-out;
-    }
-    .vocab-card:hover {
-      transform: translateY(-5px);
-    }
-    .vocab-title {
-      font-size: 18px;
-      font-weight: bold;
-      color: #333;
-    }
-    .language-info {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-      margin: 10px 0;
-    }
-    .flag-icon {
-      width: 30px;
-      height: 30px;
-      border-radius: 50%;
-      object-fit: cover;
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-    }
-    .arrow {
-      font-size: 20px;
-      font-weight: bold;
-    }
-    .practice-modes {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 8px;
-      margin-top: 10px;
-    }
-    .mode-btn {
-      padding: 8px 12px;
-      font-size: 14px;
-      font-weight: bold;
-      border-radius: 5px;
-      text-decoration: none;
-      background-color: #0aa2ef;
-      color: white;
-      transition: background-color 0.3s ease;
-    }
-    .mode-btn:hover {
-      background-color: #086baf;
-    }
-    .no-classes {
-      text-align: center;
-      font-size: 16px;
-      font-weight: bold;
-    }
-
-    /* Assignments Styles */
-    .assignment-table {
+    
+    /* Tables */
+    table {
       width: 100%;
       border-collapse: collapse;
-      text-align: left;
-    }
-    .assignment-table th {
-      background-color: #0aa2ef;
-      color: white;
-      padding: 12px;
-      font-size: 16px;
-      text-align: center;
-    }
-    .assignment-table td {
-      padding: 10px;
-      border: 1px solid white;
-      text-align: center;
-      background-color: #ffd966;
-    }
-    .assignment-section-title {
-      font-size: 18px;
-      font-weight: bold;
-      margin: 15px 0 10px;
-      color: #333;
-    }
-    .assignment-section-title.expired {
-      color: #777;
-    }
-    .expired-table td {
-      background-color: #f5f5f5;
-      color: black;
-    }
-    .status-badge {
-      display: inline-block;
-      padding: 6px 12px;
-      border-radius: 5px;
-      font-weight: bold;
-      text-align: center;
-      min-width: 100px;
-    }
-    .status-incomplete {
-      background-color: #ff2c61;
-      color: white;
-    }
-    .status-complete {
-      background-color: #28a745;
-      color: white;
-    }
-    .status-expired {
-      background-color: #777;
-      color: white;
-    }
-    .progress-container {
-      position: relative;
-      width: 120px;
-      height: 25px;
-      background-color: #ddd;
-      border-radius: 5px;
+      margin: 20px 0;
+      background-color: #fff;
+      border-radius: 10px;
       overflow: hidden;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    table th, table td {
+      padding: 12px;
+      text-align: center;
+      border: 1px solid #ddd;
+    }
+    table th {
+      background-color: var(--primary);
+      color: #fff;
+    }
+    table tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+    
+    /* Buttons */
+    a.btn, button.btn {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      font-weight: bold;
-      color: white;
-    }
-    .progress-bar {
-      position: absolute;
-      height: 100%;
-      background-color: #28a745;
-      transition: width 0.5s ease;
-      border-radius: 5px;
-    }
-    .progress-text {
-      position: relative;
-      z-index: 2;
-    }
-    .btn.disabled {
-      background-color: #aaa !important;
-      pointer-events: none;
-      cursor: default;
-    }
-
-    /* Collapsible Sections */
-    .class-box {
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      margin-bottom: 10px;
-      background-color: #f9f9f9;
-      overflow: hidden;
-    }
-    .class-header {
-      background-color: #ffae00;
-      color: white;
-      font-weight: bold;
-      padding: 12px;
+      width: 180px;
+      white-space: nowrap;
+      padding: 10px 16px;
+      margin: 0;
+      border-radius: 6px;
+      box-sizing: border-box;
       cursor: pointer;
-      display: flex;
-      align-items: center;
-      box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1);
-      transition: background-color 0.3s ease;
-      border-radius: 5px;
-    }
-    .class-header:hover {
-      background-color: #e89e00;
-    }
-    .arrow {
-      font-size: 16px;
-      font-weight: bold;
-      margin-right: 10px;
-      transition: transform 0.3s ease;
-    }
-    .class-name {
-      flex-grow: 1;
-      font-size: 16px;
-      font-weight: bold;
-    }
-    .live-badge {
-      background-color: #28a745;
-      color: white;
-      padding: 4px 10px;
-      border-radius: 5px;
-      font-size: 14px;
-      font-weight: bold;
-    }
-    .assignments-container {
-      padding: 10px;
-      background-color: white;
-      display: none;
-      animation: fadeIn 0.3s ease-in-out;
-    }
-    @keyframes fadeIn {
-      from {
-        opacity: 0;
-        transform: translateY(-5px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-    .no-assignments {
-      text-align: center;
-      font-weight: bold;
-      color: #777;
-      padding: 10px;
-    }
-
-    /* Trophy Popup */
-    .trophy-popup {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: white;
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 5px 10px rgba(0, 0, 0, 0.3);
-      text-align: center;
-      display: none;
-    }
-    .trophy-popup-img {
-      width: 100px;
-      height: 100px;
-      object-fit: contain;
-    }
-    .trophy-popup button {
-      background-color: #0aa2ef;
-      color: white;
-      padding: 8px 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      background-color: var(--primary);
+      color: #fff;
       border: none;
-      border-radius: 5px;
+      line-height: 1;
+      transition: background-color 0.3s ease, transform 0.3s ease;
+    }
+    a.btn:hover, button.btn:hover {
+      background-color: var(--accent);
+      transform: translateY(-2px);
+    }
+    .btn:active {
+      transform: translateY(0);
+    }
+    .btn-action {
+      background-color: #fff;
+      border: 2px solid var(--primary);
+      color: var(--primary);
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 0.9rem;
+      margin: 2px;
       cursor: pointer;
-      margin-top: 10px;
+      transition: background-color 0.3s ease, color 0.3s ease, transform 0.2s ease;
+    }
+    .btn-action:hover {
+      background-color: var(--accent);
+      color: #fff;
+      transform: translateY(-2px);
+    }
+    .btn-action:active {
+      transform: translateY(0);
+    }
+    
+    /* Flags (if used) */
+    .flag {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      object-fit: cover;
+      display: inline-block;
+      margin-right: 5px;
+    }
+    
+    /* Animations */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    /* Responsive Adjustments */
+    @media (max-width: 768px) {
+      .top-nav {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .top-nav .nav-right {
+        margin-top: 10px;
+      }
     }
   </style>
 </head>
-
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-GK2W6LN7Z5"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-GK2W6LN7Z5');
-</script>
-
 <body>
-  <!-- Sidebar -->
-  <div class="sidebar">
-    <img src="{% static 'learning/pavonify_logo.png' %}" alt="Pavonify Logo">
-    <h2>Welcome, {{ student.first_name }}</h2>
-    <nav>
-      <a href="#" data-pane="progress">My Progress</a>
-      <a href="#" data-pane="classes">My Classes</a>
-      <a href="#" data-pane="assignments">My Assignments</a>
-      <a href="#" data-pane="practice">Independent Practice</a>
-      <a href="{% url 'student_logout' %}" class="button">Logout</a>
-    </nav>
+  <!-- TOP NAVIGATION BAR -->
+  <div class="top-nav">
+    <div class="nav-left">
+      <img src="{% static 'pavonify_bird.png' %}" alt="Pavonify Logo">
+      <span>Pavonify</span>
+    </div>
+    <div class="nav-right">
+      <a href="#" data-pane="progress" class="active">Progress</a>
+      <a href="#" data-pane="classes">Classes</a>
+      <a href="#" data-pane="assignments">Assignments</a>
+      <a href="#" data-pane="practice">Practice</a>
+      <a href="{% url 'student_logout' %}" class="btn">Logout</a>
+    </div>
   </div>
-
-  <!-- Main Content -->
+  
+  <!-- MAIN CONTENT -->
   <div class="main-content">
-    <!-- My Progress Pane -->
+    <!-- Progress Pane -->
     <div class="pane active" id="progress">
-      <h3>📊 My Progress</h3>
-      <!-- Points Overview -->
+      <h2>My Progress</h2>
       <div class="points-container">
         <div class="points-card">
-          <h4>Total Points 🔥</h4>
+          <h4>Total Points</h4>
           <p>{{ student.total_points }}</p>
         </div>
         <div class="points-card">
-          <h4>Monthly Points 📅</h4>
+          <h4>Monthly Points</h4>
           <p>{{ student.monthly_points }}</p>
         </div>
         <div class="points-card">
-          <h4>Weekly Points ⏳</h4>
+          <h4>Weekly Points</h4>
           <p>{{ student.weekly_points }}</p>
         </div>
       </div>
-      <!-- Trophy Section -->
-      <h3>🏆 My Trophies</h3>
-      {% if student.trophies.all %}
-        <div class="trophy-container">
-          {% for student_trophy in student.trophies.all %}
-            <div class="trophy-card">
-              {% if student_trophy.trophy.icon and student_trophy.trophy.icon.url %}
-                <img src="{{ student_trophy.trophy.icon.url }}" class="trophy-icon" alt="{{ student_trophy.trophy.name }}">
+      <h3>Overall Leaderboard</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Rank</th>
+            <th>Student</th>
+            <th>Class</th>
+            <th>Total Points</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for student_obj in overall_leaderboard_page.object_list %}
+          <tr>
+            <td>{{ forloop.counter0|add:overall_leaderboard_page.start_index }}</td>
+            <td>{{ student_obj.username }}</td>
+            <td>
+              {% if student_obj.classes.all %}
+                {% for class in student_obj.classes.all %}
+                  {{ class.name }}{% if not forloop.last %}, {% endif %}
+                {% endfor %}
               {% else %}
-                <img src="{% static 'trophies/default_trophy.png' %}" class="trophy-icon" alt="Default Trophy">
+                N/A
               {% endif %}
-              <h4 class="trophy-name">{{ student_trophy.trophy.name }}</h4>
-              <p class="trophy-description">{{ student_trophy.trophy.description }}</p>
-            </div>
+            </td>
+            <td>{{ student_obj.total_points }}</td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="4">No data available.</td>
+          </tr>
           {% endfor %}
-        </div>
-      {% else %}
-        <p class="no-trophies">No trophies earned yet. Keep going! 🚀</p>
-      {% endif %}
+        </tbody>
+      </table>
+      <div class="pagination">
+        {% if overall_leaderboard_page.has_previous %}
+          <a href="?overall_page=1">&laquo; First</a>
+          <a href="?overall_page={{ overall_leaderboard_page.previous_page_number }}">Previous</a>
+        {% endif %}
+        <span>Page {{ overall_leaderboard_page.number }} of {{ overall_leaderboard_page.paginator.num_pages }}</span>
+        {% if overall_leaderboard_page.has_next %}
+          <a href="?overall_page={{ overall_leaderboard_page.next_page_number }}">Next</a>
+          <a href="?overall_page={{ overall_leaderboard_page.paginator.num_pages }}">Last &raquo;</a>
+        {% endif %}
+      </div>
     </div>
-
-    <!-- My Classes Pane -->
-    <div class="pane" id="classes" style="display: none;">
-      <h3>My Classes 🏫</h3>
+    
+    <!-- Classes Pane -->
+    <div class="pane" id="classes">
+      <h2>My Classes</h2>
       {% if classes %}
         {% for class_instance in classes %}
-          <div class="class-container">
-            <div class="class-header" id="class-header-{{ class_instance.id }}">
-              <img src="{% static 'flags/'|add:class_instance.language|add:'.png' %}" class="class-flag" alt="{{ class_instance.language }} flag">
-              <h4 class="class-name">{{ class_instance.name }}</h4>
+          <div class="class-container" style="margin-bottom: 20px;">
+            <div class="class-header" id="class-header-{{ class_instance.id }}" onclick="toggleAssignments('{{ class_instance.id }}')">
+              <img src="{% static 'flags/'|add:class_instance.language|add:'.png' %}" class="flag" alt="{{ class_instance.language }} flag">
+              <span class="class-name">{{ class_instance.name }}</span>
+              {% if class_instance.live_assignments %}
+                <span class="live-badge">Live</span>
+              {% endif %}
             </div>
-            <div class="leaderboard-container">
-              {% for leaderboard in leaderboard_categories %}
-                <div class="leaderboard" data-class="{{ class_instance.id }}" data-category="{{ leaderboard.category }}">
-                  <h5>{{ leaderboard.title }} {{ leaderboard.icon }}</h5>
-                  <hr class="leaderboard-divider">
-                  <ol class="leaderboard-list" id="leaderboard-{{ class_instance.id }}-{{ leaderboard.category }}">
-                    {% for student in class_instance.students.all|dictsortreversed:leaderboard.category %}
-                      <li class="leaderboard-item">
-                        <span class="medal">
-                          {% if forloop.counter == 1 %}🥇{% elif forloop.counter == 2 %}🥈{% elif forloop.counter == 3 %}🥉{% endif %}
-                        </span>
-                        <span class="student-name">{{ student.first_name }} {{ student.last_name }}</span>
-                        <span class="student-score">{{ student.total_points }} pts</span>
-                      </li>
-                    {% empty %}
-                      <li class="no-students">No students available for this leaderboard.</li>
+            <div class="assignments-container" id="assignments-{{ class_instance.id }}" style="display: none;">
+              <h3>Live Assignments</h3>
+              <table class="assignment-table">
+                <thead>
+                  <tr>
+                    <th>Assignment Name</th>
+                    <th>Deadline</th>
+                    <th>Status</th>
+                    <th>Progress</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% if class_instance.live_assignments %}
+                    {% for assignment in class_instance.live_assignments %}
+                      <tr>
+                        <td>{{ assignment.name }}</td>
+                        <td>{{ assignment.deadline|date:"M d, Y H:i" }}</td>
+                        <td>
+                          <span class="status-badge {% if assignment.is_complete %}status-complete{% else %}status-incomplete{% endif %}">
+                            {% if assignment.is_complete %}Completed{% else %}Incomplete{% endif %}
+                          </span>
+                        </td>
+                        <td>
+                          <div class="progress-container">
+                            <div class="progress-bar" style="width: {{ assignment.progress_percentage }}%;"></div>
+                            <span class="progress-text">{{ assignment.student_progress }} / {{ assignment.target_points }}</span>
+                          </div>
+                        </td>
+                        <td>
+                          <a href="{% url 'assignment_page' assignment.id %}" class="btn">Load</a>
+                        </td>
+                      </tr>
                     {% endfor %}
-                  </ol>
-                  <div class="leaderboard-controls">
-                    <button class="prev-btn" onclick="changePage('{{ class_instance.id }}', '{{ leaderboard.category }}', -1)">⬅ Previous</button>
-                    <span class="page-indicator" id="page-{{ class_instance.id }}-{{ leaderboard.category }}">Page 1</span>
-                    <button class="next-btn" onclick="changePage('{{ class_instance.id }}', '{{ leaderboard.category }}', 1)">Next ➡</button>
-                  </div>
-                </div>
-              {% empty %}
-                <p class="no-leaderboards">No leaderboards available.</p>
-              {% endfor %}
+                  {% else %}
+                    <tr>
+                      <td colspan="5" class="no-assignments">No live assignments available.</td>
+                    </tr>
+                  {% endif %}
+                </tbody>
+              </table>
+              <h3 class="assignment-section-title expired">Expired Assignments</h3>
+              <table class="assignment-table expired-table">
+                <thead>
+                  <tr>
+                    <th>Assignment Name</th>
+                    <th>Deadline</th>
+                    <th>Status</th>
+                    <th>Progress</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% if class_instance.expired_assignments %}
+                    {% for assignment in class_instance.expired_assignments %}
+                      <tr>
+                        <td>{{ assignment.name }}</td>
+                        <td>{{ assignment.deadline|date:"M d, Y H:i" }}</td>
+                        <td>
+                          <span class="status-badge status-expired">Expired</span>
+                        </td>
+                        <td>
+                          <div class="progress-container">
+                            <div class="progress-bar" style="width: {{ assignment.progress_percentage|default:0 }}%;"></div>
+                            <span class="progress-text">
+                              {% if assignment.student_progress > 0 %}
+                                {{ assignment.student_progress }} / {{ assignment.target_points }}
+                              {% else %}
+                                0 / {{ assignment.target_points }}
+                              {% endif %}
+                            </span>
+                          </div>
+                        </td>
+                        <td>
+                          <span class="btn disabled">Expired</span>
+                        </td>
+                      </tr>
+                    {% endfor %}
+                  {% else %}
+                    <tr>
+                      <td colspan="5" class="no-assignments">No expired assignments available.</td>
+                    </tr>
+                  {% endif %}
+                </tbody>
+              </table>
             </div>
           </div>
         {% empty %}
-          <p class="no-classes">No classes found for this student.</p>
+          <p class="no-classes">You are not enrolled in any classes yet.</p>
         {% endfor %}
       {% else %}
         <p class="no-classes">You are not enrolled in any classes yet.</p>
       {% endif %}
     </div>
-
-    <!-- Independent Practice Pane -->
-    <div class="pane" id="practice" style="display: none;">
-      <h3>Independent Practice 💪</h3>
+    
+    <!-- Practice Pane -->
+    <div class="pane" id="practice">
+      <h2>Independent Practice</h2>
       {% if vocab_lists %}
         <div class="vocab-container">
           {% for vocab_list in vocab_lists %}
@@ -647,141 +464,26 @@
                 <a href="{% url 'flashcard_mode' vocab_list.id %}" class="btn mode-btn">Flashcards</a>
                 <a href="{% url 'match_up_mode' vocab_list.id %}" class="btn mode-btn">Match-Up</a>
                 <a href="{% url 'gap_fill_mode' vocab_list.id %}" class="btn mode-btn">Gap-Fill</a>
-                <a href="{% url 'destroy_the_wall' vocab_list.id %}" class="btn mode-btn">Destroy the Wall</a>
+                <a href="{% url 'destroy_the_wall' vocab_list.id %}" class="btn mode-btn">Destroy Wall</a>
                 <a href="{% url 'unscramble_the_word' vocab_list.id %}" class="btn mode-btn">Unscramble</a>
-                <a href="{% url 'listening_dictation' vocab_list.id %}" class="btn mode-btn">🎧 Listening Dictation</a>
-                <a href="{% url 'listening_translation' vocab_list.id %}" class="btn mode-btn">🎧 Listening Translation</a>
+                <a href="{% url 'listening_dictation' vocab_list.id %}" class="btn mode-btn">Listening</a>
+                <a href="{% url 'listening_translation' vocab_list.id %}" class="btn mode-btn">Translation</a>
               </div>
             </div>
           {% endfor %}
         </div>
       {% else %}
-        <p class="no-classes">No vocabulary lists available for independent practice.</p>
+        <p class="no-classes">No vocabulary lists available for practice.</p>
       {% endif %}
     </div>
-
-    <!-- Your Assignments Pane -->
-    <div class="pane" id="assignments" style="display: none;">
-      <h3>Your Assignments 🦚</h3>
-      {% for class in classes %}
-        <div class="class-box">
-          <h4 class="class-header" onclick="toggleAssignments('{{ class.id }}')" id="class-header-{{ class.id }}">
-            <span class="arrow">▶</span>
-            <span class="class-name">{{ class.name }}</span>
-            {% if class.live_assignments %}
-              <span class="live-badge">Live Assignment</span>
-            {% endif %}
-          </h4>
-          <div class="assignments-container" id="assignments-{{ class.id }}" style="display: none;">
-            <!-- Live Assignments -->
-            <h5 class="assignment-section-title">🟢 Live Assignments</h5>
-            <table class="assignment-table">
-              <thead>
-                <tr>
-                  <th>Assignment Name</th>
-                  <th>Deadline</th>
-                  <th>Status</th>
-                  <th>Progress</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% if class.live_assignments %}
-                  {% for assignment in class.live_assignments %}
-                    <tr>
-                      <td>{{ assignment.name }}</td>
-                      <td>{{ assignment.deadline|date:"M d, Y H:i" }}</td>
-                      <td>
-                        <span class="status-badge {% if assignment.is_complete %}status-complete{% else %}status-incomplete{% endif %}">
-                          {% if assignment.is_complete %}Completed{% else %}Incomplete{% endif %}
-                        </span>
-                      </td>
-                      <td>
-                        <div class="progress-container">
-                          <div class="progress-bar" style="width: {{ assignment.progress_percentage }}%;"></div>
-                          <span class="progress-text">{{ assignment.student_progress }} / {{ assignment.target_points }}</span>
-                        </div>
-                      </td>
-                      <td>
-                        <a href="{% url 'assignment_page' assignment.id %}" class="btn">Load Assignment</a>
-                      </td>
-                    </tr>
-                  {% endfor %}
-                {% else %}
-                  <tr>
-                    <td colspan="5" class="no-assignments">There are no assignments at the moment!</td>
-                  </tr>
-                {% endif %}
-              </tbody>
-            </table>
-            <!-- Expired Assignments -->
-            <h5 class="assignment-section-title expired">⚪ Expired Assignments</h5>
-            <table class="assignment-table expired-table">
-              <thead>
-                <tr>
-                  <th>Assignment Name</th>
-                  <th>Deadline</th>
-                  <th>Status</th>
-                  <th>Progress</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% if class.expired_assignments %}
-                  {% for assignment in class.expired_assignments %}
-                    <tr>
-                      <td>{{ assignment.name }}</td>
-                      <td>{{ assignment.deadline|date:"M d, Y H:i" }}</td>
-                      <td>
-                        <span class="status-badge status-expired">Expired</span>
-                      </td>
-                      <td>
-                        <div class="progress-container">
-                          <div class="progress-bar" style="width: {{ assignment.progress_percentage|default:0 }}%;"></div>
-                          <span class="progress-text">
-                            {% if assignment.student_progress > 0 %}
-                              {{ assignment.student_progress }} / {{ assignment.target_points }}
-                            {% else %}
-                              0 / {{ assignment.target_points }}
-                            {% endif %}
-                          </span>
-                        </div>
-                      </td>
-                      <td>
-                        <span class="btn disabled">Expired</span>
-                      </td>
-                    </tr>
-                  {% endfor %}
-                {% else %}
-                  <tr>
-                    <td colspan="5" class="no-assignments">There are no expired assignments at the moment!</td>
-                  </tr>
-                {% endif %}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      {% endfor %}
-    </div>
   </div>
-
-  <!-- Trophy Popup -->
-  <div id="trophy-popup" class="trophy-popup" style="display: none;">
-    <div class="trophy-popup-content">
-      <h3>🏆 Trophy Unlocked!</h3>
-      <img id="trophy-popup-img" src="" class="trophy-popup-img" alt="Trophy">
-      <p id="trophy-popup-text"></p>
-      <button onclick="closeTrophyPopup()">Close</button>
-    </div>
-  </div>
-
+  
   <!-- Scripts -->
   <script>
-    // Toggle Assignments
+    // Toggle Assignments for Classes Pane
     function toggleAssignments(classId) {
       let container = document.getElementById("assignments-" + classId);
       let arrow = document.querySelector("#class-header-" + classId + " .arrow");
-
       if (container.style.display === "none" || container.style.display === "") {
         container.style.display = "block";
         arrow.innerHTML = "▼";
@@ -790,43 +492,12 @@
         arrow.innerHTML = "▶";
       }
     }
-
-    // Show Trophy Popup
-    function showTrophyPopup(trophies) {
-      let popup = document.getElementById("trophy-popup");
-      let popupContent = document.getElementById("trophy-popup-content");
-
-      popupContent.innerHTML = ""; // Clear previous content
-
-      trophies.forEach(trophy => {
-        let trophyDiv = document.createElement("div");
-        trophyDiv.classList.add("trophy-popup-item");
-
-        let img = document.createElement("img");
-        img.src = trophy.icon;
-        img.classList.add("trophy-popup-img");
-
-        let text = document.createElement("p");
-        text.innerText = `🏆 You earned the '${trophy.name}' trophy!`;
-
-        trophyDiv.appendChild(img);
-        trophyDiv.appendChild(text);
-        popupContent.appendChild(trophyDiv);
-      });
-
-      popup.style.display = "block";
-    }
-
-    // Close Trophy Popup
-    function closeTrophyPopup() {
-      document.getElementById("trophy-popup").style.display = "none";
-    }
-
-    // Switch Panes (only intercept links with a data-pane attribute)
+    
+    // Switch Panes based on top-nav nav-right links
     document.addEventListener("DOMContentLoaded", function () {
-      const navLinks = document.querySelectorAll(".sidebar nav a");
+      const navLinks = document.querySelectorAll(".top-nav .nav-right a");
       const panes = document.querySelectorAll(".pane");
-
+      
       function switchPane(paneId) {
         panes.forEach(pane => {
           if (pane.id === paneId) {
@@ -838,18 +509,20 @@
           }
         });
       }
-
-      // Default: Show "My Progress" on page load
+      
+      // Default: Show "Progress" pane on page load
       switchPane("progress");
-
+      
       navLinks.forEach(link => {
-        if (link.getAttribute("data-pane")) {
-          link.addEventListener("click", function (e) {
-            e.preventDefault();
-            const paneToShow = link.getAttribute("data-pane");
-            switchPane(paneToShow);
-          });
-        }
+        link.addEventListener("click", function (e) {
+          e.preventDefault();
+          const targetPane = link.getAttribute("data-pane");
+          if (targetPane) {
+            switchPane(targetPane);
+          }
+          navLinks.forEach(l => l.classList.remove("active"));
+          link.classList.add("active");
+        });
       });
     });
   </script>
