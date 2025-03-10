@@ -192,6 +192,30 @@
       font-size: 28px;
     }
 
+/* Ensure logout button looks and behaves like links */
+.top-nav .nav-right form {
+  display: inline; /* Ensures the form doesn't create extra space */
+}
+
+.top-nav .nav-right button {
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #fff;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  margin-left: 20px;
+  display: inline-block; /* Matches link behavior */
+  width: auto; /* Remove the fixed width */
+}
+
+.top-nav .nav-right button:hover {
+  color: var(--accent);
+  background: none; /* Prevents it from getting an orange background */
+}
+
+
 /* Reset any extra margin/padding and force a consistent box model */
 a.btn, button.btn {
   display: inline-flex;             /* Use inline-flex for both */
