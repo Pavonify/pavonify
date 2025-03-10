@@ -1901,7 +1901,7 @@ def delete_teacher_account(request):
         return JsonResponse({"success": True})
     return JsonResponse({"success": False}, status=400)
 
-@teacher_login_required
+@login_required
 def class_leaderboard(request, class_id):
     # Fetch the class instance and verify that the logged-in teacher is assigned to it.
     class_instance = get_object_or_404(Class, id=class_id)
@@ -1917,7 +1917,7 @@ def class_leaderboard(request, class_id):
     }
     return render(request, "teacher/class_leaderboard.html", context)
 
-@teacher_login_required
+@login_required
 def refresh_leaderboard(request, class_id):
     # This view returns only the leaderboard table fragment.
     class_instance = get_object_or_404(Class, id=class_id)
