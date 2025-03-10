@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import login, logout, get_user_model
 from django.db.models import Sum
-from .models import Progress, VocabularyWord, VocabularyList, User, Class, Student, School, Assignment, AssignmentProgress, Trophy, StudentTrophy, ReadingLabText
+from .models import Progress, VocabularyWord, VocabularyList, User, Class, Student, School, Assignment, AssignmentProgress, Trophy, StudentTrophy, ReadingLabText, , AssignmentAttempt
 from .forms import VocabularyListForm, CustomUserCreationForm, BulkAddWordsForm, ClassForm, ShareClassForm, TeacherRegistrationForm
 from django.contrib import messages
 from django.http import HttpResponseRedirect
@@ -1082,14 +1082,14 @@ def gap_fill_mode_assignment(request, assignment_id):
     })
 
 
-# DESTROY THE WALL MODE
+@student_login_required
 def destroy_wall_mode_assignment(request, assignment_id):
     assignment = get_object_or_404(Assignment, id=assignment_id)
     student = get_object_or_404(Student, id=request.session.get("student_id"))
     vocab_list = assignment.vocab_list
 
-    # Get all words from the vocabulary list and randomly select up to 30 words
-    all_words = list(vocab_list.words.values('word', 'translation'))
+    # Include the word's id along with word and translation
+    all_words = list(vocab_list.words.values('id', 'word', 'translation'))
     selected_words = sample(all_words, min(30, len(all_words)))
     shuffle(selected_words)
 
@@ -1097,7 +1097,7 @@ def destroy_wall_mode_assignment(request, assignment_id):
         "assignment": assignment,
         "words_json": json.dumps(selected_words),
         "student": student,
-        # Set points awarded per correct brick click in destroy the wall mode
+        # Points awarded per correct brick click in destroy the wall mode
         "points": assignment.points_per_destroy_wall,
     }
     return render(request, "learning/assignment_modes/destroy_the_wall_assignment.html", context)
@@ -1930,3 +1930,35 @@ def refresh_leaderboard(request, class_id):
          "class_instance": class_instance,
          "students": students,
     })
+
+
+@student_login_required
+@csrf_exempt  # Ensure your AJAX requests include the CSRF token; remove if not needed
+def log_assignment_attempt(request):
+    if request.method != "POST":
+        return HttpResponseBadRequest("Only POST requests are allowed.")
+    
+    try:
+        data = json.loads(request.body)
+        assignment_id = data.get("assignment_id")
+        word_id = data.get("word_id")
+        is_correct = data.get("is_correct")
+        
+        # Validate required fields
+        if assignment_id is None or word_id is None or is_correct is None:
+            return HttpResponseBadRequest("Missing required parameters.")
+        
+        assignment = get_object_or_404(Assignment, id=assignment_id)
+        student = get_object_or_404(Student, id=request.session.get("student_id"))
+        vocab_word = get_object_or_404(VocabularyWord, id=word_id)
+        
+        # Create the assignment attempt record.
+        AssignmentAttempt.objects.create(
+            student=student,
+            assignment=assignment,
+            vocabulary_word=vocab_word,
+            is_correct=is_correct
+        )
+        return JsonResponse({"success": True})
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)})

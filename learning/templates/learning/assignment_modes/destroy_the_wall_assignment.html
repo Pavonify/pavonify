@@ -49,13 +49,16 @@
     <div id="wall"></div>
 
     <script>
+        // Parse the JSON with words; each word now has id, word, and translation.
         const words = JSON.parse(`{{ words_json|safe }}`);
         const targetWordElement = document.getElementById("target-word");
         const wall = document.getElementById("wall");
 
         let currentWordIndex = 0;
+        // Create a shuffled copy for target order.
         const shuffledWords = [...words].sort(() => Math.random() - 0.5);
 
+        // Function to set the next target word.
         const setNextTargetWord = () => {
             targetWordElement.innerText = shuffledWords[currentWordIndex].translation;
         };
@@ -66,20 +69,49 @@
             targetWordElement.innerText = "No words available.";
         }
 
+        // Function to log an attempt via AJAX.
+        function logAttempt(wordId, isCorrect) {
+            fetch("{% url 'log_assignment_attempt' %}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": "{{ csrf_token }}"
+                },
+                body: JSON.stringify({
+                    assignment_id: "{{ assignment.id }}",
+                    word_id: wordId,
+                    is_correct: isCorrect
+                }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log("Attempt logged:", data);
+            })
+            .catch(error => {
+                console.error("Error logging attempt:", error);
+            });
+        }
+
+        // Create bricks for each word.
         words.forEach(word => {
             const brick = document.createElement("div");
             brick.classList.add("brick");
             brick.textContent = word.word;
             brick.dataset.translation = word.translation;
+            // Save the word's ID for analytics.
+            brick.dataset.wordId = word.id;
 
             brick.addEventListener("click", () => {
-                // Prevent awarding points if this brick was already clicked
+                // Prevent awarding points if this brick was already clicked.
                 if (brick.classList.contains("hidden")) return;
 
+                // Check if the clicked brick is correct.
                 if (brick.dataset.translation === shuffledWords[currentWordIndex].translation) {
+                    // Log a correct attempt.
+                    logAttempt(brick.dataset.wordId, true);
                     brick.classList.add("hidden");
 
-                    // Post a message to the parent window for this correct brick click
+                    // Post message to parent window to update points.
                     window.parent.postMessage({
                         type: "activity_complete",
                         assignmentId: "{{ assignment.id }}",
@@ -91,9 +123,11 @@
                         setNextTargetWord();
                     } else {
                         targetWordElement.innerText = "Well done! You've destroyed the wall!";
-                        wall.innerHTML = ""; // Optionally clear any remaining bricks
+                        wall.innerHTML = ""; // Optionally clear remaining bricks.
                     }
                 } else {
+                    // Log an incorrect attempt.
+                    logAttempt(brick.dataset.wordId, false);
                     alert("Incorrect word. Try again!");
                 }
             });

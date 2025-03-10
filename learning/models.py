@@ -292,3 +292,15 @@ class ReadingLabText(models.Model):
     def __str__(self):
         return f"{self.teacher.username} - {self.topic} ({self.created_at.date()})"
 
+class AssignmentAttempt(models.Model):
+    student = models.ForeignKey(Student, on_delete=models.CASCADE)
+    assignment = models.ForeignKey(Assignment, on_delete=models.CASCADE)
+    vocabulary_word = models.ForeignKey(VocabularyWord, on_delete=models.CASCADE)
+    is_correct = models.BooleanField(default=False)
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        status = "Correct" if self.is_correct else "Incorrect"
+        return f"{self.student.username} - {self.vocabulary_word.word}: {status} at {self.timestamp}"
+
+
