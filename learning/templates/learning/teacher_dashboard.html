@@ -532,17 +532,17 @@ a.btn:hover, button.btn:hover {
     </div>
 
     <!-- Assignments Pane -->
-    <div class="pane" id="assignments">
-      <h2>Your Classes</h2>
-      <div id="classes-container">
-        {% for class_instance in classes %}
-          {% if request.user.is_premium or forloop.counter0 < 1 %}
+<div class="pane" id="assignments">
+  <h2>Your Classes</h2>
+  <div id="classes-container">
+    {% for class_instance in classes %}
+      {% if request.user.is_premium or forloop.counter0 < 1 %}
         <div class="class-item" style="margin-bottom: 20px;">
           <div class="header" style="margin-bottom:10px;">
             <strong>{{ class_instance.name }}</strong>
           </div>
           <div class="action-buttons" style="margin-bottom:10px;">
-            <button class="btn toggle-assignments" data-class-id="{{ class_instance.id }}">Show Assignments</button>
+            <button class="btn toggle-assignments" data-class-id="{{ class_instance.id }}" onclick="toggleAssignments('{{ class_instance.id }}')">Show Assignments</button>
             {% if request.user.is_premium %}
               <a href="{% url 'create_assignment' class_instance.id %}" class="btn">Create Assignment</a>
             {% else %}
@@ -553,41 +553,65 @@ a.btn:hover, button.btn:hover {
               {% endif %}
             {% endif %}
           </div>
-          <div class="assignments-container" id="assignments-{{ class_instance.id }}">
+          <div class="assignments-container" id="assignments-{{ class_instance.id }}" style="display: none;">
             <h3>Live Assignments</h3>
             {% for assignment in class_instance.live_assignments %}
-            <div class="assignment-item" style="margin: 5px 0;">
-              <span>{{ assignment.name }} – Due: {{ assignment.deadline|date:"M d, Y H:i" }}</span>
-              {% if request.user.is_premium %}
-                <a href="{% url 'assignment_analytics' assignment.id %}" class="btn-action" style="margin-left:10px;">Analytics</a>
-              {% else %}
-                <span class="upgrade-message">Upgrade for Analytics</span>
-              {% endif %}
-            </div>
+              <div class="assignment-item" style="margin: 5px 0;">
+                <span>{{ assignment.name }} – Due: {{ assignment.deadline|date:"M d, Y H:i" }}</span>
+                {% if request.user.is_premium %}
+                  <a href="{% url 'assignment_analytics' assignment.id %}" class="btn-action" style="margin-left:10px;">Analytics</a>
+                {% else %}
+                  <span class="upgrade-message">Upgrade for Analytics</span>
+                {% endif %}
+              </div>
             {% empty %}
-            <p>No live assignments.</p>
+              <p>No live assignments.</p>
             {% endfor %}
 
             <h3>Expired Assignments</h3>
             {% for assignment in class_instance.expired_assignments %}
-            <div class="assignment-item" style="margin: 5px 0;">
-              <span>{{ assignment.name }} – Expired on: {{ assignment.deadline|date:"M d, Y H:i" }}</span>
-              {% if request.user.is_premium %}
-                <a href="{% url 'assignment_analytics' assignment.id %}" class="btn-action" style="margin-left:10px;">Analytics</a>
-              {% else %}
-                <span class="upgrade-message">Upgrade for Analytics</span>
-              {% endif %}
-            </div>
+              <div class="assignment-item" style="margin: 5px 0;">
+                <span>{{ assignment.name }} – Expired on: {{ assignment.deadline|date:"M d, Y H:i" }}</span>
+                {% if request.user.is_premium %}
+                  <a href="{% url 'assignment_analytics' assignment.id %}" class="btn-action" style="margin-left:10px;">Analytics</a>
+                {% else %}
+                  <span class="upgrade-message">Upgrade for Analytics</span>
+                {% endif %}
+              </div>
             {% empty %}
-            <p>No expired assignments.</p>
+              <p>No expired assignments.</p>
             {% endfor %}
           </div>
         </div>
-          {% endif %}
-        {% endfor %}
-      </div>
-    </div>
+      {% endif %}
+    {% endfor %}
+  </div>
+</div>
 
+
+<style>
+  .assignment-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+    background-color: #fff;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  }
+  .assignment-table th, .assignment-table td {
+    padding: 12px;
+    text-align: center;
+    border: 1px solid #ddd;
+  }
+  .assignment-table th {
+    background-color: var(--primary);
+    color: #fff;
+  }
+  .assignment-table tr:nth-child(even) {
+    background-color: #f9f9f9;
+  }
+</style>
     <!-- Account Pane -->
     <div class="pane account-pane" id="account-pane">
       <h2>Account Settings</h2>
@@ -814,6 +838,20 @@ a.btn:hover, button.btn:hover {
         }
       });
     });
+
+
+  function toggleAssignments(classId) {
+    const container = document.getElementById(`assignments-${classId}`);
+    const button = document.querySelector(`button[data-class-id="${classId}"]`);
+
+    if (container.style.display === "none" || container.style.display === "") {
+      container.style.display = "block";
+      button.textContent = "Hide Assignments";
+    } else {
+      container.style.display = "none";
+      button.textContent = "Show Assignments";
+    }
+  }
   </script>
 </body>
 </html>
