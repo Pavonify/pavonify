@@ -119,7 +119,8 @@
   <!-- Top Navigation Bar -->
   <div class="top-nav">
     <div class="nav-left">
-      <a href="{% url 'teacher_classes' %}">&larr; Back to Classes</a>
+<a href="{% url 'teacher_dashboard' %}?pane=classes" class="btn-action">Back to Classes</a>
+
       <div class="refresh-settings">
         <label for="refresh-interval">Refresh Leaderboard every</label>
         <input type="number" id="refresh-interval" min="10" max="60" value="30">
