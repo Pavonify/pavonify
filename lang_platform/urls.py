@@ -24,7 +24,7 @@ from django.urls import path
 from learning import views  # Import views from the learning app
 from learning.views import flashcard_mode, delete_reading_lab_text
 from django.contrib.auth.decorators import login_required
-from learning.views import update_assignment_points, delete_teacher_account, buy_pavicoins, pavicoins_success, teacher_upgrade, create_checkout_session, worksheet_lab_view, custom_404_view, teacher_account_settings
+from learning.views import update_assignment_points, refresh_leaderboard, delete_teacher_account, class_leaderboard, buy_pavicoins, pavicoins_success, teacher_upgrade, create_checkout_session, worksheet_lab_view, custom_404_view, teacher_account_settings
 from django.conf.urls import handler404
 from learning.webhooks import stripe_webhook
 handler404 = custom_404_view
@@ -104,6 +104,9 @@ urlpatterns = [
     path("delete-account/", delete_teacher_account, name="delete_teacher_account"),
     path("access_denied/", views.access_denied, name="access_denied"),
     path('game/', include('game.urls')),  # This includes the URLs from your game app
+    path('leaderboard/<uuid:class_id>/', class_leaderboard, name='class_leaderboard'),
+    path('leaderboard/<uuid:class_id>/refresh/', refresh_leaderboard, name='refresh_leaderboard'),
+]
 
 ]
 

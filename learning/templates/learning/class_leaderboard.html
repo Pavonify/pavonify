@@ -1,0 +1,183 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Class Leaderboard - {{ class_instance.name }}</title>
+  <link rel="icon" href="{% static 'images/favicon.ico' %}" type="image/x-icon">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Fredoka+One&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #1A73E8;
+      --accent: #F2A03D;
+      --secondary-accent: #34A853;
+      --background: #F2EFE9;
+      --dark: #0D0D0D;
+      --highlight: #A6173D;
+    }
+    /* Global Reset & Base */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: 'Poppins', sans-serif;
+      background-color: var(--background);
+      color: var(--dark);
+      line-height: 1.6;
+    }
+    a {
+      color: var(--accent);
+      text-decoration: none;
+      transition: color 0.3s ease;
+    }
+    a:hover {
+      color: var(--highlight);
+    }
+    /* Top Navigation Bar */
+    .top-nav {
+      background-color: var(--primary);
+      color: #fff;
+      padding: 10px 20px;
+      display: flex;
+      align-items: center;
+    }
+    .top-nav .nav-left {
+      display: flex;
+      align-items: center;
+    }
+    .top-nav a {
+      color: #fff;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 16px;
+    }
+    .refresh-settings {
+      margin-left: 20px;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+    }
+    .refresh-settings input[type="number"] {
+      width: 50px;
+      margin: 0 5px;
+      padding: 2px 4px;
+    }
+    .refresh-settings button {
+      font-size: 12px;
+      padding: 4px 8px;
+      background-color: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .refresh-settings button:hover {
+      background-color: var(--highlight);
+    }
+    /* Main Pane */
+    .pane {
+      background-color: #fff;
+      border-radius: 10px;
+      padding: 20px;
+      margin: 20px auto;
+      max-width: 800px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    .pane h2 {
+      color: var(--primary);
+      font-size: 28px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    .leaderboard {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+    }
+    .leaderboard th, .leaderboard td {
+      padding: 12px;
+      border: 1px solid #ddd;
+      text-align: center;
+    }
+    .leaderboard th {
+      background-color: var(--primary);
+      color: #fff;
+    }
+    .leaderboard tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+    .medal {
+      font-size: 18px;
+      margin-right: 5px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Top Navigation Bar -->
+  <div class="top-nav">
+    <div class="nav-left">
+      <a href="{% url 'teacher_classes' %}">&larr; Back to Classes</a>
+      <div class="refresh-settings">
+        <label for="refresh-interval">Refresh Leaderboard every</label>
+        <input type="number" id="refresh-interval" min="10" max="60" value="30">
+        <span>seconds</span>
+        <button id="set-refresh">Set</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Leaderboard Pane -->
+  <div class="pane">
+    <h2>Leaderboard for {{ class_instance.name }}</h2>
+    <div id="leaderboard-container">
+      {% include "teacher/leaderboard_fragment.html" %}
+    </div>
+  </div>
+
+  <script>
+    // JavaScript to handle periodic refresh of the leaderboard container.
+    const classId = "{{ class_instance.id }}";
+    const refreshIntervalInput = document.getElementById("refresh-interval");
+    const setRefreshButton = document.getElementById("set-refresh");
+    const leaderboardContainer = document.getElementById("leaderboard-container");
+
+    // Default refresh interval (in milliseconds)
+    let refreshInterval = parseInt(refreshIntervalInput.value) * 1000;
+    let refreshTimer = null;
+
+    function startRefreshTimer() {
+      if (refreshTimer) {
+        clearInterval(refreshTimer);
+      }
+      refreshTimer = setInterval(refreshLeaderboard, refreshInterval);
+    }
+
+    function refreshLeaderboard() {
+      fetch("{% url 'refresh_leaderboard' class_instance.id %}")
+        .then(response => response.text())
+        .then(html => {
+          leaderboardContainer.innerHTML = html;
+        })
+        .catch(error => {
+          console.error("Error refreshing leaderboard:", error);
+        });
+    }
+
+    setRefreshButton.addEventListener("click", () => {
+      let intervalValue = parseInt(refreshIntervalInput.value);
+      if (isNaN(intervalValue) || intervalValue < 10 || intervalValue > 60) {
+        alert("Please enter a number between 10 and 60.");
+        return;
+      }
+      refreshInterval = intervalValue * 1000;
+      startRefreshTimer();
+    });
+
+    // Start the timer with the default interval when the page loads.
+    startRefreshTimer();
+  </script>
+</body>
+</html>

@@ -1900,3 +1900,33 @@ def delete_teacher_account(request):
         logout(request)
         return JsonResponse({"success": True})
     return JsonResponse({"success": False}, status=400)
+
+@teacher_login_required
+def class_leaderboard(request, class_id):
+    # Fetch the class instance and verify that the logged-in teacher is assigned to it.
+    class_instance = get_object_or_404(Class, id=class_id)
+    if request.user not in class_instance.teachers.all():
+        return HttpResponseForbidden("You do not have permission to view this class leaderboard.")
+    
+    # Get all students in the class, ordered by total_points descending.
+    students = class_instance.students.all().order_by('-total_points')
+    
+    context = {
+        "class_instance": class_instance,
+        "students": students,
+    }
+    return render(request, "teacher/class_leaderboard.html", context)
+
+@teacher_login_required
+def refresh_leaderboard(request, class_id):
+    # This view returns only the leaderboard table fragment.
+    class_instance = get_object_or_404(Class, id=class_id)
+    if request.user not in class_instance.teachers.all():
+        return HttpResponseForbidden("You do not have permission to view this class leaderboard.")
+    
+    students = class_instance.students.all().order_by('-total_points')
+    
+    return render(request, "teacher/leaderboard_fragment.html", {
+         "class_instance": class_instance,
+         "students": students,
+    })
