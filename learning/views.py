@@ -1080,30 +1080,26 @@ def gap_fill_mode_assignment(request, assignment_id):
     })
 
 
+# DESTROY THE WALL MODE
 def destroy_wall_mode_assignment(request, assignment_id):
-    # Get the assignment
     assignment = get_object_or_404(Assignment, id=assignment_id)
-
-    # Ensure the student is logged in
     student = get_object_or_404(Student, id=request.session.get("student_id"))
-
-    # Fetch the associated vocabulary list
     vocab_list = assignment.vocab_list
 
-    # Get all words from the vocabulary list
+    # Get all words from the vocabulary list and randomly select up to 30 words
     all_words = list(vocab_list.words.values('word', 'translation'))
-
-    # Randomly select up to 30 words
     selected_words = sample(all_words, min(30, len(all_words)))
-
-    # Shuffle words for display order
     shuffle(selected_words)
 
-    return render(request, "learning/assignment_modes/destroy_the_wall_assignment.html", {
+    context = {
         "assignment": assignment,
-        "words_json": json.dumps(selected_words),  # Serialize words for JavaScript
+        "words_json": json.dumps(selected_words),
         "student": student,
-    })
+        # Set points awarded per correct brick click in destroy the wall mode
+        "points": assignment.points_per_destroy_wall,
+    }
+    return render(request, "learning/assignment_modes/destroy_the_wall_assignment.html", context)
+
 
 def match_up_mode_assignment(request, vocab_list_id=None, assignment_id=None):
     if assignment_id:
