@@ -5,27 +5,39 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Assignment: {{ assignment.name }}</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f9f9f9;
+        /* Global Reset & Base */
+        * {
+            box-sizing: border-box;
             margin: 0;
             padding: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
-            padding-top: 70px; /* Ensure enough space below the fixed header */
-            padding-bottom: 50px;
+        }
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--background);
+            color: var(--dark);
+            line-height: 1.6;
+            scroll-behavior: smooth;
+            padding-top: 70px; /* Space for fixed header */
+            padding-bottom: 50px; /* Space for progress bar */
         }
 
-        /* Top Floating Info Bar */
+        :root {
+            --primary: #1A73E8;           /* Bright Blue */
+            --accent: #F2A03D;            /* Orange */
+            --secondary-accent: #34A853;  /* Green */
+            --background: #F2EFE9;        /* Soft Off-White */
+            --dark: #0D0D0D;              /* Dark Gray */
+            --highlight: #A6173D;         /* Reddish Accent */
+        }
+
+        /* Fixed Floating Header */
         .assignment-header {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
-            background-color: white;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            background-color: #fff;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             padding: 10px 20px;
             display: flex;
             justify-content: space-between;
@@ -36,22 +48,18 @@
         .assignment-title {
             font-size: 18px;
             font-weight: bold;
-            color: #0aa2ef;
+            color: var(--primary);
         }
 
-.assignment-info {
-    display: flex;
-    align-items: center;
-    gap: 10px; /* Adjusted spacing */
-    flex-wrap: wrap; /* Allows wrapping on smaller screens */
-    justify-content: center; /* Centers content */
-    max-width: calc(100% - 20px); /* Ensures it doesn’t hit scrollbar */
-    padding: 5px;
-    margin-right: 20px; /* Moves everything slightly left */
-}
+        .assignment-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
 
         .info-box {
-            background-color: #fec10e;
+            background-color: var(--accent);
             color: white;
             padding: 5px 10px;
             border-radius: 5px;
@@ -62,35 +70,35 @@
         }
 
         .info-box.completed {
-            background-color: #28a745 !important; /* Turns green when completed */
+            background-color: var(--secondary-accent);
         }
 
-.btn {
-    background-color: #0aa2ef;
-    color: white;
-    padding: 8px 12px;
-    text-decoration: none;
-    border-radius: 5px;
-    font-weight: bold;
-    text-align: center;
-    transition: background-color 0.3s ease;
-    font-size: 14px;
-    white-space: nowrap; /* Prevents text breaking */
-}
+        .btn {
+            background-color: var(--primary);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 5px;
+            font-weight: bold;
+            text-align: center;
+            transition: background-color 0.3s ease;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+        }
 
         .btn:hover {
-            background-color: #086baf;
+            background-color: var(--accent);
         }
 
         .tabs {
             display: flex;
             justify-content: center;
             gap: 10px;
-            margin: 10px 0;
+            margin: 20px 0;
         }
 
         .tab {
-            background-color: #0aa2ef;
+            background-color: var(--primary);
             color: white;
             border: none;
             padding: 10px 15px;
@@ -101,7 +109,7 @@
         }
 
         .tab:hover, .tab.active {
-            background-color: #086baf;
+            background-color: var(--accent);
         }
 
         iframe {
@@ -109,6 +117,7 @@
             height: 600px;
             border: none;
             border-radius: 10px;
+            margin: 20px 0;
         }
 
         .progress-container {
@@ -116,7 +125,7 @@
             bottom: 0;
             left: 0;
             width: 100%;
-            background-color: #f1f1f1;
+            background-color: #fff;
             padding: 10px 0;
             text-align: center;
             box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1);
@@ -124,7 +133,7 @@
 
         .progress-bar {
             height: 25px;
-            background-color: #ff2c61;
+            background-color: var(--highlight);
             width: 0%;
             transition: width 0.3s;
             text-align: center;
@@ -135,16 +144,15 @@
         }
 
         .progress-bar.completed {
-            background-color: #28a745 !important;
+            background-color: var(--secondary-accent);
         }
 
-@media (max-width: 768px) {
-    .assignment-info {
-        flex-direction: column;
-        align-items: center;
-    }
-}
-
+        @media (max-width: 768px) {
+            .assignment-info {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
     </style>
 </head>
 <body>
@@ -163,21 +171,23 @@
         </div>
     </div>
 
+    <!-- Tabs for Modes -->
     <div class="tabs">
         {% for mode, url in modes %}
         <button class="tab" data-url="{{ url }}">{{ mode|title }}</button>
         {% endfor %}
-    {% if assignment.include_listening_dictation %}
-    <button class="tab" data-url="{% url 'listening_dictation_assignment' assignment.id %}">Listening Dictation</button>
-    {% endif %}
-
-    {% if assignment.include_listening_translation %}
-    <button class="tab" data-url="{% url 'listening_translation_assignment' assignment.id %}">Listening Translation</button>
-    {% endif %}
+        {% if assignment.include_listening_dictation %}
+        <button class="tab" data-url="{% url 'listening_dictation_assignment' assignment.id %}">Listening Dictation</button>
+        {% endif %}
+        {% if assignment.include_listening_translation %}
+        <button class="tab" data-url="{% url 'listening_translation_assignment' assignment.id %}">Listening Translation</button>
+        {% endif %}
     </div>
 
+    <!-- Iframe for Activity Content -->
     <iframe id="mode-iframe"></iframe>
 
+    <!-- Progress Bar -->
     <div class="progress-container">
         <div class="progress-bar" id="progress-bar">0%</div>
     </div>
