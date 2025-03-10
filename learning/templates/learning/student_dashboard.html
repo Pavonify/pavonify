@@ -3,31 +3,19 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1.0">
-  <title>Student Dashboard - Pavonify</title>
-  
-  <!-- Meta Tags -->
-  <meta name="description" content="Manage your progress, classes, assignments, and practice with Pavonify's interactive student dashboard.">
-  <meta name="keywords" content="student dashboard, Pavonify, language learning">
-  <meta name="author" content="Pavonify">
-  
-  <!-- Favicon -->
-  <link rel="icon" href="{% static 'images/favicon.ico' %}" type="image/x-icon">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Dashboard</title>
   
   <!-- Google Fonts: Poppins and Fredoka One -->
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Fredoka+One&display=swap" rel="stylesheet">
-  
-  <!-- Font Awesome for Icons -->
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-  
+
   <style>
     :root {
-      --primary: #1A73E8;         /* Bright Blue */
-      --accent: #F2A03D;          /* Orange */
-      --secondary-accent: #34A853; /* Green */
-      --background: #F2EFE9;       /* Soft Off-White */
-      --dark: #0D0D0D;            /* Dark Gray */
-      --highlight: #A6173D;       /* Reddish Accent */
+      --primary: #1A73E8;
+      --accent: #F2A03D;
+      --background: #F2EFE9;
+      --dark: #0D0D0D;
+      --highlight: #A6173D;
     }
     /* Global Reset & Base */
     * {
@@ -41,7 +29,6 @@
       color: var(--dark);
       line-height: 1.6;
       scroll-behavior: smooth;
-      min-height: 100vh;
     }
     a {
       color: var(--accent);
@@ -51,20 +38,8 @@
     a:hover {
       color: var(--highlight);
     }
-    h1, h2, h3, h4, h5, h6 {
-      font-weight: 700;
-      margin-bottom: 0.5em;
-    }
-    h1 {
-      font-family: 'Fredoka One', cursive;
-      font-size: 3.5rem;
-      color: #fff;
-    }
-    p {
-      margin-bottom: 1em;
-    }
     
-    /* TOP NAVIGATION BAR */
+    /* Top Navigation Bar */
     .top-nav {
       background-color: var(--primary);
       color: #fff;
@@ -105,7 +80,7 @@
       color: var(--accent);
     }
     
-    /* MAIN CONTENT & PANES */
+    /* Main Content Area */
     .main-content {
       margin: 20px;
       padding: 20px;
@@ -124,13 +99,41 @@
     .pane.active {
       display: block;
     }
-    .pane h2 {
-      margin-top: 0;
+    .pane h2, .pane h3 {
+      margin-bottom: 15px;
       color: var(--primary);
-      font-size: 28px;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
     }
     
-    /* Points Overview Cards */
+    /* Button Styles */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 15px;
+      margin: 5px;
+      background-color: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      text-transform: uppercase;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.3s ease, transform 0.2s ease;
+      text-decoration: none;
+    }
+    .btn:hover {
+      background-color: var(--accent);
+      transform: translateY(-2px);
+    }
+    .btn:active {
+      transform: translateY(0);
+    }
+    
+    /* Points Overview */
     .points-container {
       display: flex;
       justify-content: space-between;
@@ -158,7 +161,46 @@
       color: #333;
     }
     
-    /* Tables */
+    /* Trophy Section */
+    .trophy-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+    .trophy-card {
+      background: #fffae6;
+      padding: 10px;
+      border-radius: 10px;
+      text-align: center;
+      width: 130px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .trophy-icon {
+      width: 60px;
+      height: 60px;
+      object-fit: contain;
+      margin-bottom: 5px;
+    }
+    .trophy-name {
+      font-size: 14px;
+      font-weight: bold;
+      color: #ff8c00;
+    }
+    .trophy-description {
+      font-size: 12px;
+      color: #555;
+    }
+    .no-trophies {
+      text-align: center;
+      font-size: 16px;
+      font-weight: bold;
+      color: #777;
+      margin-top: 10px;
+    }
+    
+    /* Table Styles */
     table {
       width: 100%;
       border-collapse: collapse;
@@ -181,71 +223,6 @@
       background-color: #f9f9f9;
     }
     
-    /* Buttons */
-    a.btn, button.btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 180px;
-      white-space: nowrap;
-      padding: 10px 16px;
-      margin: 0;
-      border-radius: 6px;
-      box-sizing: border-box;
-      cursor: pointer;
-      font-weight: 600;
-      text-transform: uppercase;
-      background-color: var(--primary);
-      color: #fff;
-      border: none;
-      line-height: 1;
-      transition: background-color 0.3s ease, transform 0.3s ease;
-    }
-    a.btn:hover, button.btn:hover {
-      background-color: var(--accent);
-      transform: translateY(-2px);
-    }
-    .btn:active {
-      transform: translateY(0);
-    }
-    .btn-action {
-      background-color: #fff;
-      border: 2px solid var(--primary);
-      color: var(--primary);
-      padding: 6px 12px;
-      border-radius: 6px;
-      font-weight: 600;
-      text-transform: uppercase;
-      font-size: 0.9rem;
-      margin: 2px;
-      cursor: pointer;
-      transition: background-color 0.3s ease, color 0.3s ease, transform 0.2s ease;
-    }
-    .btn-action:hover {
-      background-color: var(--accent);
-      color: #fff;
-      transform: translateY(-2px);
-    }
-    .btn-action:active {
-      transform: translateY(0);
-    }
-    
-    /* Flags (if used) */
-    .flag {
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      object-fit: cover;
-      display: inline-block;
-      margin-right: 5px;
-    }
-    
-    /* Animations */
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(-20px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    
     /* Responsive Adjustments */
     @media (max-width: 768px) {
       .top-nav {
@@ -259,231 +236,253 @@
   </style>
 </head>
 <body>
-  <!-- TOP NAVIGATION BAR -->
+  <!-- TOP NAVIGATION BAR (No Sidebar) -->
   <div class="top-nav">
     <div class="nav-left">
-      <img src="{% static 'pavonify_bird.png' %}" alt="Pavonify Logo">
-      <span>Pavonify</span>
+      <img src="{% static 'learning/pavonify_logo.png' %}" alt="Pavonify Logo">
+      <span>Welcome, {{ student.first_name }}</span>
     </div>
     <div class="nav-right">
-      <a href="#" data-pane="progress" class="active">Progress</a>
-      <a href="#" data-pane="classes">Classes</a>
-      <a href="#" data-pane="assignments">Assignments</a>
-      <a href="#" data-pane="practice">Practice</a>
+      <a href="#" data-pane="progress" class="active">My Progress</a>
+      <a href="#" data-pane="classes">My Classes</a>
+      <a href="#" data-pane="assignments">My Assignments</a>
+      <a href="#" data-pane="practice">Independent Practice</a>
       <a href="{% url 'student_logout' %}" class="btn">Logout</a>
     </div>
   </div>
-  
-  <!-- MAIN CONTENT -->
+
+  <!-- MAIN CONTENT AREA -->
   <div class="main-content">
-    <!-- Progress Pane -->
+    <!-- My Progress Pane -->
     <div class="pane active" id="progress">
       <h2>My Progress</h2>
       <div class="points-container">
         <div class="points-card">
-          <h4>Total Points</h4>
+          <h4>Total Points 🔥</h4>
           <p>{{ student.total_points }}</p>
         </div>
         <div class="points-card">
-          <h4>Monthly Points</h4>
+          <h4>Monthly Points 📅</h4>
           <p>{{ student.monthly_points }}</p>
         </div>
         <div class="points-card">
-          <h4>Weekly Points</h4>
+          <h4>Weekly Points ⏳</h4>
           <p>{{ student.weekly_points }}</p>
         </div>
       </div>
-      <h3>Overall Leaderboard</h3>
-      <table>
-        <thead>
-          <tr>
-            <th>Rank</th>
-            <th>Student</th>
-            <th>Class</th>
-            <th>Total Points</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for student_obj in overall_leaderboard_page.object_list %}
-          <tr>
-            <td>{{ forloop.counter0|add:overall_leaderboard_page.start_index }}</td>
-            <td>{{ student_obj.username }}</td>
-            <td>
-              {% if student_obj.classes.all %}
-                {% for class in student_obj.classes.all %}
-                  {{ class.name }}{% if not forloop.last %}, {% endif %}
-                {% endfor %}
+      <h3>My Trophies</h3>
+      {% if student.trophies.all %}
+        <div class="trophy-container">
+          {% for student_trophy in student.trophies.all %}
+            <div class="trophy-card">
+              {% if student_trophy.trophy.icon and student_trophy.trophy.icon.url %}
+                <img src="{{ student_trophy.trophy.icon.url }}" class="trophy-icon" alt="{{ student_trophy.trophy.name }}">
               {% else %}
-                N/A
+                <img src="{% static 'trophies/default_trophy.png' %}" class="trophy-icon" alt="Default Trophy">
               {% endif %}
-            </td>
-            <td>{{ student_obj.total_points }}</td>
-          </tr>
-          {% empty %}
-          <tr>
-            <td colspan="4">No data available.</td>
-          </tr>
+              <h4 class="trophy-name">{{ student_trophy.trophy.name }}</h4>
+              <p class="trophy-description">{{ student_trophy.trophy.description }}</p>
+            </div>
           {% endfor %}
-        </tbody>
-      </table>
-      <div class="pagination">
-        {% if overall_leaderboard_page.has_previous %}
-          <a href="?overall_page=1">&laquo; First</a>
-          <a href="?overall_page={{ overall_leaderboard_page.previous_page_number }}">Previous</a>
-        {% endif %}
-        <span>Page {{ overall_leaderboard_page.number }} of {{ overall_leaderboard_page.paginator.num_pages }}</span>
-        {% if overall_leaderboard_page.has_next %}
-          <a href="?overall_page={{ overall_leaderboard_page.next_page_number }}">Next</a>
-          <a href="?overall_page={{ overall_leaderboard_page.paginator.num_pages }}">Last &raquo;</a>
-        {% endif %}
-      </div>
+        </div>
+      {% else %}
+        <p class="no-trophies">No trophies earned yet. Keep going! 🚀</p>
+      {% endif %}
     </div>
-    
-    <!-- Classes Pane -->
+
+    <!-- My Classes Pane -->
     <div class="pane" id="classes">
       <h2>My Classes</h2>
       {% if classes %}
         {% for class_instance in classes %}
-          <div class="class-container" style="margin-bottom: 20px;">
-            <div class="class-header" id="class-header-{{ class_instance.id }}" onclick="toggleAssignments('{{ class_instance.id }}')">
-              <img src="{% static 'flags/'|add:class_instance.language|add:'.png' %}" class="flag" alt="{{ class_instance.language }} flag">
-              <span class="class-name">{{ class_instance.name }}</span>
-              {% if class_instance.live_assignments %}
-                <span class="live-badge">Live</span>
-              {% endif %}
+          <div class="class-container" style="margin-bottom: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 10px;">
+            <div class="class-header" style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+              <img src="{% static 'flags/'|add:class_instance.language|add:'.png' %}" class="flag" alt="{{ class_instance.language }} flag" style="width: 35px; height: 35px; border-radius: 50%;">
+              <h4 style="flex-grow: 1; font-size: 20px; font-weight: bold; color: #333;">{{ class_instance.name }}</h4>
             </div>
-            <div class="assignments-container" id="assignments-{{ class_instance.id }}" style="display: none;">
-              <h3>Live Assignments</h3>
-              <table class="assignment-table">
-                <thead>
-                  <tr>
-                    <th>Assignment Name</th>
-                    <th>Deadline</th>
-                    <th>Status</th>
-                    <th>Progress</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% if class_instance.live_assignments %}
-                    {% for assignment in class_instance.live_assignments %}
-                      <tr>
-                        <td>{{ assignment.name }}</td>
-                        <td>{{ assignment.deadline|date:"M d, Y H:i" }}</td>
-                        <td>
-                          <span class="status-badge {% if assignment.is_complete %}status-complete{% else %}status-incomplete{% endif %}">
-                            {% if assignment.is_complete %}Completed{% else %}Incomplete{% endif %}
-                          </span>
-                        </td>
-                        <td>
-                          <div class="progress-container">
-                            <div class="progress-bar" style="width: {{ assignment.progress_percentage }}%;"></div>
-                            <span class="progress-text">{{ assignment.student_progress }} / {{ assignment.target_points }}</span>
-                          </div>
-                        </td>
-                        <td>
-                          <a href="{% url 'assignment_page' assignment.id %}" class="btn">Load</a>
-                        </td>
-                      </tr>
+            <div class="leaderboard-container">
+              {% for leaderboard in leaderboard_categories %}
+                <div class="leaderboard" data-class="{{ class_instance.id }}" data-category="{{ leaderboard.category }}" style="background-color: #f8f8f8; padding: 15px; border-radius: 8px; flex: 1; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                  <h5 style="font-size: 16px; font-weight: bold; color: #ff8c00; margin-bottom: 5px; text-align: center;">{{ leaderboard.title }} {{ leaderboard.icon }}</h5>
+                  <hr style="height: 2px; background-color: #ddd; border: none; margin-bottom: 10px;">
+                  <ol class="leaderboard-list" id="leaderboard-{{ class_instance.id }}-{{ leaderboard.category }}" style="list-style: none; padding: 0;">
+                    {% for student in class_instance.students.all|dictsortreversed:leaderboard.category %}
+                      <li class="leaderboard-item" style="display: flex; justify-content: space-between; align-items: center; padding: 5px 0; font-size: 14px; font-weight: bold; color: #333;">
+                        <span class="medal" style="font-size: 16px; margin-right: 5px;">
+                          {% if forloop.counter == 1 %}🥇{% elif forloop.counter == 2 %}🥈{% elif forloop.counter == 3 %}🥉{% endif %}
+                        </span>
+                        <span class="student-name" style="flex-grow: 1;">{{ student.first_name }} {{ student.last_name }}</span>
+                        <span class="student-score" style="font-weight: bold; color: #28a745;">{{ student.total_points }} pts</span>
+                      </li>
+                    {% empty %}
+                      <li class="no-students" style="text-align: center; font-size: 14px; color: #777;">No students available for this leaderboard.</li>
                     {% endfor %}
-                  {% else %}
-                    <tr>
-                      <td colspan="5" class="no-assignments">No live assignments available.</td>
-                    </tr>
-                  {% endif %}
-                </tbody>
-              </table>
-              <h3 class="assignment-section-title expired">Expired Assignments</h3>
-              <table class="assignment-table expired-table">
-                <thead>
-                  <tr>
-                    <th>Assignment Name</th>
-                    <th>Deadline</th>
-                    <th>Status</th>
-                    <th>Progress</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% if class_instance.expired_assignments %}
-                    {% for assignment in class_instance.expired_assignments %}
-                      <tr>
-                        <td>{{ assignment.name }}</td>
-                        <td>{{ assignment.deadline|date:"M d, Y H:i" }}</td>
-                        <td>
-                          <span class="status-badge status-expired">Expired</span>
-                        </td>
-                        <td>
-                          <div class="progress-container">
-                            <div class="progress-bar" style="width: {{ assignment.progress_percentage|default:0 }}%;"></div>
-                            <span class="progress-text">
-                              {% if assignment.student_progress > 0 %}
-                                {{ assignment.student_progress }} / {{ assignment.target_points }}
-                              {% else %}
-                                0 / {{ assignment.target_points }}
-                              {% endif %}
-                            </span>
-                          </div>
-                        </td>
-                        <td>
-                          <span class="btn disabled">Expired</span>
-                        </td>
-                      </tr>
-                    {% endfor %}
-                  {% else %}
-                    <tr>
-                      <td colspan="5" class="no-assignments">No expired assignments available.</td>
-                    </tr>
-                  {% endif %}
-                </tbody>
-              </table>
+                  </ol>
+                  <div class="leaderboard-controls" style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+                    <button class="prev-btn" style="background-color: var(--primary); color: white; padding: 5px 10px; border: none; border-radius: 5px; font-size: 12px; cursor: pointer;" onclick="changePage('{{ class_instance.id }}', '{{ leaderboard.category }}', -1)">⬅ Previous</button>
+                    <span class="page-indicator" id="page-{{ class_instance.id }}-{{ leaderboard.category }}" style="font-size: 14px; font-weight: bold; color: #333;">Page 1</span>
+                    <button class="next-btn" style="background-color: var(--primary); color: white; padding: 5px 10px; border: none; border-radius: 5px; font-size: 12px; cursor: pointer;" onclick="changePage('{{ class_instance.id }}', '{{ leaderboard.category }}', 1)">Next ➡</button>
+                  </div>
+                </div>
+              {% empty %}
+                <p class="no-leaderboards" style="text-align: center; font-size: 14px; color: #777;">No leaderboards available.</p>
+              {% endfor %}
             </div>
           </div>
         {% empty %}
-          <p class="no-classes">You are not enrolled in any classes yet.</p>
+          <p class="no-classes" style="text-align: center; font-size: 16px; font-weight: bold;">No classes found for this student.</p>
         {% endfor %}
       {% else %}
-        <p class="no-classes">You are not enrolled in any classes yet.</p>
+        <p class="no-classes" style="text-align: center; font-size: 16px; font-weight: bold;">You are not enrolled in any classes yet.</p>
       {% endif %}
     </div>
-    
-    <!-- Practice Pane -->
+
+    <!-- Independent Practice Pane -->
     <div class="pane" id="practice">
       <h2>Independent Practice</h2>
       {% if vocab_lists %}
-        <div class="vocab-container">
+        <div class="vocab-container" style="display: flex; flex-wrap: wrap; gap: 15px; justify-content: center;">
           {% for vocab_list in vocab_lists %}
-            <div class="vocab-card">
-              <h4 class="vocab-title">{{ vocab_list.name }}</h4>
-              <div class="language-info">
-                <img src="{% static 'flags/'|add:vocab_list.source_language|add:'.png' %}" alt="{{ vocab_list.source_language }}" class="flag-icon">
-                <span class="arrow">➡️</span>
-                <img src="{% static 'flags/'|add:vocab_list.target_language|add:'.png' %}" alt="{{ vocab_list.target_language }}" class="flag-icon">
+            <div class="vocab-card" style="background-color: #fff; padding: 15px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); text-align: center; width: 260px; transition: transform 0.2s ease-in-out;" onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'">
+              <h4 class="vocab-title" style="font-size: 18px; font-weight: bold; color: #333;">{{ vocab_list.name }}</h4>
+              <div class="language-info" style="display: flex; align-items: center; justify-content: center; gap: 10px; margin: 10px 0;">
+                <img src="{% static 'flags/'|add:vocab_list.source_language|add:'.png' %}" alt="{{ vocab_list.source_language }}" class="flag-icon" style="width: 30px; height: 30px; border-radius: 50%; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);">
+                <span class="arrow" style="font-size: 20px; font-weight: bold;">➡️</span>
+                <img src="{% static 'flags/'|add:vocab_list.target_language|add:'.png' %}" alt="{{ vocab_list.target_language }}" class="flag-icon" style="width: 30px; height: 30px; border-radius: 50%; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);">
               </div>
-              <div class="practice-modes">
+              <div class="practice-modes" style="display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 10px;">
                 <a href="{% url 'flashcard_mode' vocab_list.id %}" class="btn mode-btn">Flashcards</a>
                 <a href="{% url 'match_up_mode' vocab_list.id %}" class="btn mode-btn">Match-Up</a>
                 <a href="{% url 'gap_fill_mode' vocab_list.id %}" class="btn mode-btn">Gap-Fill</a>
-                <a href="{% url 'destroy_the_wall' vocab_list.id %}" class="btn mode-btn">Destroy Wall</a>
+                <a href="{% url 'destroy_the_wall' vocab_list.id %}" class="btn mode-btn">Destroy the Wall</a>
                 <a href="{% url 'unscramble_the_word' vocab_list.id %}" class="btn mode-btn">Unscramble</a>
-                <a href="{% url 'listening_dictation' vocab_list.id %}" class="btn mode-btn">Listening</a>
-                <a href="{% url 'listening_translation' vocab_list.id %}" class="btn mode-btn">Translation</a>
+                <a href="{% url 'listening_dictation' vocab_list.id %}" class="btn mode-btn">Listening Dictation</a>
+                <a href="{% url 'listening_translation' vocab_list.id %}" class="btn mode-btn">Listening Translation</a>
               </div>
             </div>
           {% endfor %}
         </div>
       {% else %}
-        <p class="no-classes">No vocabulary lists available for practice.</p>
+        <p class="no-classes" style="text-align: center; font-size: 16px; font-weight: bold;">No vocabulary lists available for independent practice.</p>
       {% endif %}
     </div>
+
+    <!-- My Assignments Pane -->
+    <div class="pane" id="assignments">
+      <h2>My Assignments</h2>
+      {% for class in classes %}
+        <div class="class-box" style="border: 1px solid #ddd; border-radius: 8px; margin-bottom: 10px; background-color: #f9f9f9; overflow: hidden;">
+          <div class="class-header" onclick="toggleAssignments('{{ class.id }}')" id="class-header-{{ class.id }}" style="background-color: #ffae00; color: white; font-weight: bold; padding: 12px; cursor: pointer; display: flex; align-items: center; box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1);">
+            <span class="arrow" style="font-size: 16px; font-weight: bold; margin-right: 10px;">▶</span>
+            <span class="class-name" style="flex-grow: 1; font-size: 16px; font-weight: bold;">{{ class.name }}</span>
+            {% if class.live_assignments %}
+              <span class="live-badge" style="background-color: #28a745; color: white; padding: 4px 10px; border-radius: 5px; font-size: 14px; font-weight: bold;">Live Assignment</span>
+            {% endif %}
+          </div>
+          <div class="assignments-container" id="assignments-{{ class.id }}" style="display: none; padding: 10px; background-color: white; animation: fadeIn 0.3s ease-in-out;">
+            <h3 style="font-size: 18px; font-weight: bold; margin: 15px 0 10px; color: #333;">Live Assignments</h3>
+            <table class="assignment-table" style="width: 100%; border-collapse: collapse; text-align: center;">
+              <thead>
+                <tr>
+                  <th style="background-color: #0aa2ef; color: white; padding: 12px; font-size: 16px;">Assignment Name</th>
+                  <th style="background-color: #0aa2ef; color: white; padding: 12px; font-size: 16px;">Deadline</th>
+                  <th style="background-color: #0aa2ef; color: white; padding: 12px; font-size: 16px;">Status</th>
+                  <th style="background-color: #0aa2ef; color: white; padding: 12px; font-size: 16px;">Progress</th>
+                  <th style="background-color: #0aa2ef; color: white; padding: 12px; font-size: 16px;">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% if class.live_assignments %}
+                  {% for assignment in class.live_assignments %}
+                    <tr>
+                      <td style="padding: 10px; border: 1px solid white; background-color: #ffd966;">{{ assignment.name }}</td>
+                      <td style="padding: 10px; border: 1px solid white; background-color: #ffd966;">{{ assignment.deadline|date:"M d, Y H:i" }}</td>
+                      <td style="padding: 10px; border: 1px solid white; background-color: #ffd966;">
+                        <span class="status-badge {% if assignment.is_complete %}status-complete{% else %}status-incomplete{% endif %}" style="display: inline-block; padding: 6px 12px; border-radius: 5px; font-weight: bold; min-width: 100px; {% if assignment.is_complete %}background-color: #28a745; color: white;{% else %}background-color: #ff2c61; color: white;{% endif %}">
+                          {% if assignment.is_complete %}Completed{% else %}Incomplete{% endif %}
+                        </span>
+                      </td>
+                      <td style="padding: 10px; border: 1px solid white; background-color: #ffd966;">
+                        <div class="progress-container" style="position: relative; width: 120px; height: 25px; background-color: #ddd; border-radius: 5px; overflow: hidden; display: inline-flex; align-items: center; justify-content: center; font-weight: bold; color: white;">
+                          <div class="progress-bar" style="position: absolute; height: 100%; background-color: #28a745; transition: width 0.5s ease; border-radius: 5px; width: {{ assignment.progress_percentage }}%;"></div>
+                          <span class="progress-text" style="position: relative; z-index: 2;">{{ assignment.student_progress }} / {{ assignment.target_points }}</span>
+                        </div>
+                      </td>
+                      <td style="padding: 10px; border: 1px solid white; background-color: #ffd966;">
+                        <a href="{% url 'assignment_page' assignment.id %}" class="btn">Load Assignment</a>
+                      </td>
+                    </tr>
+                  {% endfor %}
+                {% else %}
+                  <tr>
+                    <td colspan="5" class="no-assignments" style="text-align: center; font-weight: bold; color: #777;">There are no assignments at the moment!</td>
+                  </tr>
+                {% endif %}
+              </tbody>
+            </table>
+            <h3 class="assignment-section-title expired" style="font-size: 18px; font-weight: bold; margin: 15px 0 10px; color: #777;">Expired Assignments</h3>
+            <table class="assignment-table expired-table" style="width: 100%; border-collapse: collapse; text-align: center;">
+              <thead>
+                <tr>
+                  <th style="background-color: #0aa2ef; color: white; padding: 12px; font-size: 16px;">Assignment Name</th>
+                  <th style="background-color: #0aa2ef; color: white; padding: 12px; font-size: 16px;">Deadline</th>
+                  <th style="background-color: #0aa2ef; color: white; padding: 12px; font-size: 16px;">Status</th>
+                  <th style="background-color: #0aa2ef; color: white; padding: 12px; font-size: 16px;">Progress</th>
+                  <th style="background-color: #0aa2ef; color: white; padding: 12px; font-size: 16px;">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% if class.expired_assignments %}
+                  {% for assignment in class.expired_assignments %}
+                    <tr>
+                      <td style="padding: 10px; border: 1px solid white; background-color: #f5f5f5; color: black;">{{ assignment.name }}</td>
+                      <td style="padding: 10px; border: 1px solid white; background-color: #f5f5f5; color: black;">{{ assignment.deadline|date:"M d, Y H:i" }}</td>
+                      <td style="padding: 10px; border: 1px solid white; background-color: #f5f5f5; color: black;">
+                        <span class="status-badge" style="display: inline-block; padding: 6px 12px; border-radius: 5px; font-weight: bold; background-color: #777; color: white; min-width: 100px;">Expired</span>
+                      </td>
+                      <td style="padding: 10px; border: 1px solid white; background-color: #f5f5f5; color: black;">
+                        <div class="progress-container" style="position: relative; width: 120px; height: 25px; background-color: #ddd; border-radius: 5px; overflow: hidden; display: inline-flex; align-items: center; justify-content: center; font-weight: bold; color: white;">
+                          <div class="progress-bar" style="position: absolute; height: 100%; background-color: #28a745; transition: width 0.5s ease; border-radius: 5px; width: {{ assignment.progress_percentage|default:0 }}%;"></div>
+                          <span class="progress-text" style="position: relative; z-index: 2;">
+                            {% if assignment.student_progress > 0 %}
+                              {{ assignment.student_progress }} / {{ assignment.target_points }}
+                            {% else %}
+                              0 / {{ assignment.target_points }}
+                            {% endif %}
+                          </span>
+                        </div>
+                      </td>
+                      <td style="padding: 10px; border: 1px solid white; background-color: #f5f5f5; color: black;">
+                        <span class="btn disabled" style="background-color: #aaa !important; pointer-events: none; cursor: default;">Expired</span>
+                      </td>
+                    </tr>
+                  {% endfor %}
+                {% else %}
+                  <tr>
+                    <td colspan="5" class="no-assignments" style="text-align: center; font-weight: bold; color: #777;">There are no expired assignments at the moment!</td>
+                  </tr>
+                {% endif %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
   </div>
-  
+
+  <!-- Trophy Popup -->
+  <div id="trophy-popup" class="trophy-popup" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 8px; box-shadow: 0 5px 10px rgba(0,0,0,0.3); text-align: center;">
+    <div class="trophy-popup-content" id="trophy-popup-content"></div>
+    <button onclick="closeTrophyPopup()" class="btn" style="margin-top: 10px;">Close</button>
+  </div>
+
   <!-- Scripts -->
   <script>
-    // Toggle Assignments for Classes Pane
+    // Toggle Assignments
     function toggleAssignments(classId) {
       let container = document.getElementById("assignments-" + classId);
       let arrow = document.querySelector("#class-header-" + classId + " .arrow");
+
       if (container.style.display === "none" || container.style.display === "") {
         container.style.display = "block";
         arrow.innerHTML = "▼";
@@ -492,12 +491,46 @@
         arrow.innerHTML = "▶";
       }
     }
-    
-    // Switch Panes based on top-nav nav-right links
+
+    // Show Trophy Popup
+    function showTrophyPopup(trophies) {
+      let popup = document.getElementById("trophy-popup");
+      let popupContent = document.getElementById("trophy-popup-content");
+
+      popupContent.innerHTML = ""; // Clear previous content
+
+      trophies.forEach(trophy => {
+        let trophyDiv = document.createElement("div");
+        trophyDiv.classList.add("trophy-popup-item");
+
+        let img = document.createElement("img");
+        img.src = trophy.icon;
+        img.classList.add("trophy-popup-img");
+        img.style.width = "100px";
+        img.style.height = "100px";
+        img.style.objectFit = "contain";
+
+        let text = document.createElement("p");
+        text.innerText = `🏆 You earned the '${trophy.name}' trophy!`;
+
+        trophyDiv.appendChild(img);
+        trophyDiv.appendChild(text);
+        popupContent.appendChild(trophyDiv);
+      });
+
+      popup.style.display = "block";
+    }
+
+    // Close Trophy Popup
+    function closeTrophyPopup() {
+      document.getElementById("trophy-popup").style.display = "none";
+    }
+
+    // Switch Panes Using Top Nav Links
     document.addEventListener("DOMContentLoaded", function () {
       const navLinks = document.querySelectorAll(".top-nav .nav-right a");
       const panes = document.querySelectorAll(".pane");
-      
+
       function switchPane(paneId) {
         panes.forEach(pane => {
           if (pane.id === paneId) {
@@ -509,22 +542,24 @@
           }
         });
       }
-      
-      // Default: Show "Progress" pane on page load
+
+      // Default: Show "My Progress" on page load
       switchPane("progress");
-      
+
       navLinks.forEach(link => {
-        link.addEventListener("click", function (e) {
-          e.preventDefault();
-          const targetPane = link.getAttribute("data-pane");
-          if (targetPane) {
-            switchPane(targetPane);
-          }
-          navLinks.forEach(l => l.classList.remove("active"));
-          link.classList.add("active");
-        });
+        if (link.getAttribute("data-pane")) {
+          link.addEventListener("click", function (e) {
+            e.preventDefault();
+            const paneToShow = link.getAttribute("data-pane");
+            switchPane(paneToShow);
+            navLinks.forEach(l => l.classList.remove("active"));
+            link.classList.add("active");
+          });
+        }
       });
     });
+
+    // (Existing script for pagination in leaderboards remains unchanged)
   </script>
 </body>
 </html>

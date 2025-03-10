@@ -214,15 +214,6 @@
     <div class="pane">
       <h1>Student Login</h1>
 
-      <!-- Display Messages (if any) -->
-      {% if messages %}
-        <ul class="messages">
-          {% for message in messages %}
-            <li>{{ message }}</li>
-          {% endfor %}
-        </ul>
-      {% endif %}
-
       <form method="POST" action="{% url 'student_login' %}?next={{ next }}">
         {% csrf_token %}
         <label for="username">Username:</label>
