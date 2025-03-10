@@ -857,11 +857,12 @@ def unscramble_the_word(request, vocab_list_id):
 @login_required
 def create_assignment(request, class_id):
     class_assigned = get_object_or_404(Class, id=class_id)
-    vocab_list = get_object_or_404(VocabularyList, id=vocab_list_id, linked_classes=class_assigned)
+    # Use the ManyToMany relationship to get only vocab lists linked to this class.
+    vocab_lists = class_assigned.vocabulary_lists.all()
 
     if request.method == "POST":
         name = request.POST.get("name")
-        vocab_list_id = request.POST.get("vocab_list")
+        vocab_list_id = request.POST.get("vocab_list")  # Only defined in POST
         deadline = request.POST.get("deadline")
         target_points = int(request.POST.get("target_points"))
 
@@ -880,14 +881,14 @@ def create_assignment(request, class_id):
         include_unscramble = "include_unscramble" in request.POST
         points_per_unscramble = int(request.POST.get("points_per_unscramble", 1)) if include_unscramble else 0
 
-        # ✅ NEW MODES ✅
         include_listening_dictation = "include_listening_dictation" in request.POST
         points_per_listening_dictation = int(request.POST.get("points_per_listening_dictation", 1)) if include_listening_dictation else 0
 
         include_listening_translation = "include_listening_translation" in request.POST
         points_per_listening_translation = int(request.POST.get("points_per_listening_translation", 1)) if include_listening_translation else 0
 
-        vocab_list = get_object_or_404(VocabularyList, id=vocab_list_id)
+        # Ensure the vocabulary list is linked to this class
+        vocab_list = get_object_or_404(VocabularyList, id=vocab_list_id, linked_classes=class_assigned)
 
         Assignment.objects.create(
             name=name,
