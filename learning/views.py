@@ -1915,7 +1915,7 @@ def class_leaderboard(request, class_id):
         "class_instance": class_instance,
         "students": students,
     }
-    return render(request, "teacher/class_leaderboard.html", context)
+    return render(request, "learning/class_leaderboard.html", context)
 
 @login_required
 def refresh_leaderboard(request, class_id):
@@ -1926,7 +1926,7 @@ def refresh_leaderboard(request, class_id):
     
     students = class_instance.students.all().order_by('-total_points')
     
-    return render(request, "teacher/leaderboard_fragment.html", {
+    return render(request, "learning/leaderboard_fragment.html", {
          "class_instance": class_instance,
          "students": students,
     })
