@@ -857,7 +857,7 @@ def unscramble_the_word(request, vocab_list_id):
 @login_required
 def create_assignment(request, class_id):
     class_assigned = get_object_or_404(Class, id=class_id)
-    vocab_lists = VocabularyList.objects.all()
+    vocab_list = get_object_or_404(VocabularyList, id=vocab_list_id, linked_classes=class_assigned)
 
     if request.method == "POST":
         name = request.POST.get("name")
