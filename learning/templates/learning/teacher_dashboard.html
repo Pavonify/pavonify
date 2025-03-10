@@ -464,6 +464,7 @@ a.btn:hover, button.btn:hover {
               {% endif %}
               <a href="{% url 'delete_class' class_instance.id %}" class="btn-action" onclick="return confirm('Are you sure?');">Delete</a>
               <a href="{% url 'view_attached_vocab' class_instance.id %}" class="btn-action">Vocab Lists</a>
+              <a href="{% url 'class_leaderboard' class_instance.id %}" class="btn-action">View Leaderboard</a>
             </td>
           </tr>
             {% endif %}
