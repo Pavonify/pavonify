@@ -2068,4 +2068,4 @@ def assignment_analytics(request, assignment_id):
         "top_difficult_words": top_difficult_words,
     }
     
-    return render(request, "teacher/assignment_analytics.html", context)
+    return render(request, "learning/assignment_analytics.html", context)
