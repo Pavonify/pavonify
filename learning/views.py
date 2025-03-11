@@ -974,16 +974,6 @@ def update_assignment_points(request):
 
 
 @login_required
-def assignment_analytics(request, assignment_id):
-    assignment = get_object_or_404(Assignment, id=assignment_id)
-    progress_list = AssignmentProgress.objects.filter(assignment=assignment)
-    return render(request, "learning/assignment_analytics.html", {
-        "assignment": assignment,
-        "progress_list": progress_list,
-    })
-
-
-@login_required
 def delete_assignment(request, assignment_id):
     assignment = get_object_or_404(Assignment, id=assignment_id)
     if request.user != assignment.teacher:
@@ -2084,4 +2074,4 @@ def assignment_analytics(request, assignment_id):
         "top_difficult_words": top_difficult_words,
     }
     
-    return render(request, "teacher/assignment_analytics.html", context)
+    return render(request, "learning/assignment_analytics.html", context)
