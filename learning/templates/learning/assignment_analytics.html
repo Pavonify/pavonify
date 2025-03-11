@@ -5,40 +5,39 @@
   <meta charset="UTF-8">
   <title>Assignment Analytics - {{ assignment.name }}</title>
   <link rel="icon" href="{% static 'images/favicon.ico' %}" type="image/x-icon">
-  <!-- Optionally include Font Awesome for icons -->
+  <!-- Font Awesome for icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <!-- Google Fonts already loaded in teacher dashboard -->
   <style>
-    /* Basic Reset and Fonts */
+    :root {
+      --primary: #1A73E8;
+      --accent: #F2A03D;
+      --secondary-accent: #34A853;
+      --background: #F2EFE9;
+      --dark: #0D0D0D;
+      --highlight: #A6173D;
+    }
+    /* Global Reset & Base */
     *, *::before, *::after { box-sizing: border-box; }
     body {
-      font-family: Arial, sans-serif;
-      background: #e3f2fd;
+      font-family: 'Poppins', sans-serif;
+      background-color: var(--background);
+      color: var(--dark);
       margin: 0;
       padding: 20px;
     }
-    .container {
-      max-width: 1000px;
-      margin: 0 auto;
-      background: #fff;
-      padding: 30px;
-      border-radius: 10px;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    }
+    a { color: var(--accent); text-decoration: none; transition: color 0.3s; }
+    a:hover { color: var(--highlight); }
     /* Top Navigation Bar */
     .top-nav {
-      background-color: var(--primary, #1A73E8);
+      background-color: var(--primary);
       color: #fff;
       padding: 8px 20px;
       display: flex;
       align-items: center;
       margin-bottom: 20px;
     }
-    .top-nav a {
-      color: #fff;
-      text-decoration: none;
-      font-weight: 600;
-      font-size: 16px;
-    }
+    .top-nav a { color: #fff; font-weight: 600; font-size: 16px; }
     /* Tabs */
     .tabs {
       display: flex;
@@ -59,22 +58,13 @@
       border-bottom: 2px solid #fff;
       background: #f9f9f9;
     }
-    .tab-content {
-      display: none;
-    }
-    .tab-content.active {
-      display: block;
-    }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
     /* Tables */
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-bottom: 20px;
-    }
-    table, th, td { border: 1px solid #ddd; }
-    th, td { padding: 10px; text-align: center; font-size: 16px; }
-    th { background: #0aa2ef; color: #fff; }
-    tr:nth-child(even) { background: #f9f9f9; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+    table th, table td { padding: 10px; border: 1px solid #ddd; text-align: center; font-size: 16px; }
+    table th { background: var(--primary); color: #fff; }
+    table tr:nth-child(even) { background: #f9f9f9; }
     /* Difficulty Meter */
     .difficulty-bar {
       height: 10px;
@@ -92,6 +82,7 @@
     .word-cloud span {
       margin: 5px;
       display: inline-block;
+      /* We'll assign random colours and rotations via JavaScript */
     }
   </style>
 </head>
@@ -214,17 +205,17 @@
       <h2>Feedback</h2>
       <div>
         <h3>Word Cloud (Easy)</h3>
-        <div class="word-cloud">
+        <div class="word-cloud" id="word-cloud-easy">
           {% for word in word_cloud_easy %}
-            <span style="font-size: {{ word|length }}px;">{{ word }} </span>
+            <span>{{ word }}</span>
           {% endfor %}
         </div>
       </div>
       <div>
         <h3>Word Cloud (Difficult)</h3>
-        <div class="word-cloud">
+        <div class="word-cloud" id="word-cloud-difficult">
           {% for word in word_cloud_difficult %}
-            <span style="font-size: {{ word|length }}px;">{{ word }} </span>
+            <span>{{ word }}</span>
           {% endfor %}
         </div>
       </div>
@@ -242,7 +233,7 @@
   </div>
   
   <script>
-    // Simple tab-switching logic.
+    // Tab switching logic.
     const tabs = document.querySelectorAll(".tab");
     const tabContents = document.querySelectorAll(".tab-content");
     tabs.forEach(tab => {
@@ -253,6 +244,22 @@
         document.getElementById(tab.getAttribute("data-tab")).classList.add("active");
       });
     });
+    
+    // Enhance Word Clouds: assign random colour and slight rotation to each word.
+    function enhanceWordCloud(cloudId) {
+      const cloud = document.getElementById(cloudId);
+      const colors = ["#e74c3c", "#3498db", "#2ecc71", "#f1c40f", "#9b59b6"];
+      cloud.querySelectorAll("span").forEach(span => {
+        const randomColor = colors[Math.floor(Math.random() * colors.length)];
+        span.style.color = randomColor;
+        const rotation = Math.floor(Math.random() * 31) - 15; // Random rotation between -15 and 15 degrees
+        span.style.display = "inline-block";
+        span.style.transform = "rotate(" + rotation + "deg)";
+      });
+    }
+    
+    enhanceWordCloud("word-cloud-easy");
+    enhanceWordCloud("word-cloud-difficult");
   </script>
 </body>
 </html>
