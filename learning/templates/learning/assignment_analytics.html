@@ -7,7 +7,8 @@
   <link rel="icon" href="{% static 'images/favicon.ico' %}" type="image/x-icon">
   <!-- Font Awesome for icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-  <!-- Google Fonts already loaded in teacher dashboard -->
+  <!-- Google Fonts: Poppins for body and Fredoka One for headings -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&family=Fredoka+One&display=swap" rel="stylesheet">
   <style>
     :root {
       --primary: #1A73E8;
@@ -24,10 +25,13 @@
       background-color: var(--background);
       color: var(--dark);
       margin: 0;
-      padding: 20px;
+      padding: 0 20px 20px 20px;
     }
     a { color: var(--accent); text-decoration: none; transition: color 0.3s; }
     a:hover { color: var(--highlight); }
+    h1, h2, h3, h4, h5, h6 { margin: 0.5em 0; }
+    h1 { font-family: 'Fredoka One', cursive; font-size: 3rem; color: #fff; }
+    h2 { font-family: 'Fredoka One', cursive; font-size: 2rem; color: var(--primary); }
     /* Top Navigation Bar */
     .top-nav {
       background-color: var(--primary);
@@ -35,9 +39,27 @@
       padding: 8px 20px;
       display: flex;
       align-items: center;
-      margin-bottom: 20px;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000;
     }
-    .top-nav a { color: #fff; font-weight: 600; font-size: 16px; }
+    .top-nav a {
+      color: #fff;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 16px;
+    }
+    .container {
+      max-width: 1000px;
+      margin: 80px auto 20px;  /* leave space for fixed top nav */
+      background: #fff;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      text-align: center;
+    }
     /* Tabs */
     .tabs {
       display: flex;
@@ -62,9 +84,10 @@
     .tab-content.active { display: block; }
     /* Tables */
     table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-    table th, table td { padding: 10px; border: 1px solid #ddd; text-align: center; font-size: 16px; }
-    table th { background: var(--primary); color: #fff; }
-    table tr:nth-child(even) { background: #f9f9f9; }
+    table, th, td { border: 1px solid #ddd; }
+    th, td { padding: 10px; text-align: center; font-size: 16px; }
+    th { background: var(--primary); color: #fff; }
+    tr:nth-child(even) { background: #f9f9f9; }
     /* Difficulty Meter */
     .difficulty-bar {
       height: 10px;
@@ -82,7 +105,7 @@
     .word-cloud span {
       margin: 5px;
       display: inline-block;
-      /* We'll assign random colours and rotations via JavaScript */
+      transition: transform 0.3s;
     }
   </style>
 </head>
@@ -207,15 +230,15 @@
         <h3>Word Cloud (Easy)</h3>
         <div class="word-cloud" id="word-cloud-easy">
           {% for word in word_cloud_easy %}
-            <span>{{ word }}</span>
+            <span style="font-size: 16px;">{{ word }}</span>
           {% endfor %}
         </div>
       </div>
       <div>
         <h3>Word Cloud (Difficult)</h3>
         <div class="word-cloud" id="word-cloud-difficult">
-          {% for word in word_cloud_difficult %}
-            <span>{{ word }}</span>
+          {% for word in top_difficult_words %}
+            <span data-difficulty="{{ word.students_difficulty }}">{{ word.word }}</span>
           {% endfor %}
         </div>
       </div>
@@ -245,21 +268,44 @@
       });
     });
     
-    // Enhance Word Clouds: assign random colour and slight rotation to each word.
-    function enhanceWordCloud(cloudId) {
-      const cloud = document.getElementById(cloudId);
-      const colors = ["#e74c3c", "#3498db", "#2ecc71", "#f1c40f", "#9b59b6"];
-      cloud.querySelectorAll("span").forEach(span => {
+    // Enhance Word Cloud for Difficult Words:
+    // Use the "data-difficulty" attribute to set a dynamic font size.
+    function enhanceDifficultWordCloud() {
+      const cloud = document.getElementById("word-cloud-difficult");
+      const spans = cloud.querySelectorAll("span");
+      spans.forEach(span => {
+        const difficulty = parseInt(span.getAttribute("data-difficulty")) || 0;
+        // Compute a font size: base 16px plus 2px per student (adjust scaling as needed)
+        const fontSize = 16 + (difficulty * 2);
+        span.style.fontSize = fontSize + "px";
+        // Random color from a preset list
+        const colors = ["#e74c3c", "#3498db", "#2ecc71", "#f1c40f", "#9b59b6"];
         const randomColor = colors[Math.floor(Math.random() * colors.length)];
         span.style.color = randomColor;
-        const rotation = Math.floor(Math.random() * 31) - 15; // Random rotation between -15 and 15 degrees
+        // Random rotation between -15 and 15 degrees.
+        const rotation = Math.floor(Math.random() * 31) - 15;
         span.style.display = "inline-block";
         span.style.transform = "rotate(" + rotation + "deg)";
       });
     }
     
-    enhanceWordCloud("word-cloud-easy");
-    enhanceWordCloud("word-cloud-difficult");
+    // Enhance the easy word cloud with random colors and rotations (but constant size)
+    function enhanceEasyWordCloud() {
+      const cloud = document.getElementById("word-cloud-easy");
+      const spans = cloud.querySelectorAll("span");
+      spans.forEach(span => {
+        span.style.fontSize = "16px";
+        const colors = ["#3498db", "#2ecc71", "#f1c40f", "#e67e22", "#9b59b6"];
+        const randomColor = colors[Math.floor(Math.random() * colors.length)];
+        span.style.color = randomColor;
+        const rotation = Math.floor(Math.random() * 31) - 15;
+        span.style.display = "inline-block";
+        span.style.transform = "rotate(" + rotation + "deg)";
+      });
+    }
+    
+    enhanceDifficultWordCloud();
+    enhanceEasyWordCloud();
   </script>
 </body>
 </html>
