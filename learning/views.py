@@ -1965,27 +1965,25 @@ def log_assignment_attempt(request):
         return JsonResponse({"success": False, "error": str(e)})
 
 @login_required
+@teacher_login_required
 def assignment_analytics(request, assignment_id):
     # Fetch the assignment
     assignment = get_object_or_404(Assignment, id=assignment_id)
     
-    # Ensure the logged-in teacher is the owner of the assignment
+    # Security: Check that the logged-in teacher is the owner of the assignment
     if request.user != assignment.teacher:
         return HttpResponseForbidden("You do not have permission to view this assignment's analytics.")
-    
-    # Also ensure that the assignment's class is actually one of the teacher's classes.
+    # Also ensure the assignment's class is among the teacher's classes.
     if not assignment.class_assigned.teachers.filter(id=request.user.id).exists():
         return HttpResponseForbidden("You do not have permission to view this assignment's analytics.")
     
-    # Overview: Get each student's progress for this assignment.
+    # Overview: Get progress for each student for this assignment.
     progress_list = AssignmentProgress.objects.filter(assignment=assignment)
     
     # Get all attempts for this assignment, ordered by timestamp.
     attempts = list(AssignmentAttempt.objects.filter(assignment=assignment).order_by("timestamp"))
     
     # --- Student Summary Aggregation ---
-    # For each student, record the words they attempted.
-    # For each (student, word) pair, count wrong attempts until the first correct one.
     student_summary = {}
     for att in attempts:
         student_id = att.student.id
@@ -1993,44 +1991,42 @@ def assignment_analytics(request, assignment_id):
         if student_id not in student_summary:
             student_summary[student_id] = {
                 "student": att.student,
-                "words": {}  # key: word_id, value: dict with keys: word, wrong count, aced flag
+                "words": {}  # keyed by word_id with data: target word, wrong count, aced flag
             }
         if word_id not in student_summary[student_id]["words"]:
-            student_summary[student_id]["words"][word_id] = {"word": att.vocabulary_word.word, "wrong": 0, "aced": False}
-        # Only update if word not already aced
+            # Use the target word (translation) here:
+            student_summary[student_id]["words"][word_id] = {"word": att.vocabulary_word.translation, "wrong": 0, "aced": False}
         if not student_summary[student_id]["words"][word_id]["aced"]:
             if att.is_correct:
                 student_summary[student_id]["words"][word_id]["aced"] = True
             else:
                 student_summary[student_id]["words"][word_id]["wrong"] += 1
 
-    # Convert student_summary to a list of summaries.
     student_summary_list = []
-    for summary in student_summary.values():
+    for s in student_summary.values():
         words_aced = []
         attempts_wrong = []
-        for data in summary["words"].values():
+        for data in s["words"].values():
             if data["aced"]:
                 words_aced.append(data["word"])
                 if data["wrong"] > 0:
                     attempts_wrong.append((data["word"], data["wrong"]))
         student_summary_list.append({
-            "student": summary["student"],
+            "student": s["student"],
             "words_aced": words_aced,
             "attempts_wrong": attempts_wrong,
         })
     
     # --- Word Summary Aggregation ---
-    # For each vocabulary word attempted, count the total wrong attempts and the number of distinct students who got it wrong.
     word_summary_dict = {}
     for att in attempts:
         word_id = att.vocabulary_word.id
         if word_id not in word_summary_dict:
-            word_summary_dict[word_id] = {"word": att.vocabulary_word.word, "wrong_attempts": 0, "students": set()}
+            # Use the target word (translation) instead of the source word
+            word_summary_dict[word_id] = {"word": att.vocabulary_word.translation, "wrong_attempts": 0, "students": set()}
         if not att.is_correct:
             word_summary_dict[word_id]["wrong_attempts"] += 1
             word_summary_dict[word_id]["students"].add(att.student.id)
-    
     word_summary_list = []
     for w in word_summary_dict.values():
         word_summary_list.append({
@@ -2040,7 +2036,6 @@ def assignment_analytics(request, assignment_id):
         })
     
     # --- Feedback Aggregation ---
-    # Calculate first attempts for each (student, word) pair.
     first_attempts = {}
     for att in attempts:
         key = (att.student.id, att.vocabulary_word.id)
@@ -2052,16 +2047,16 @@ def assignment_analytics(request, assignment_id):
     for key, is_correct in first_attempts.items():
         word_id = key[1]
         if word_id in word_summary_dict:
+            # Again, use the target word
             word_text = word_summary_dict[word_id]["word"]
             if is_correct:
                 easy_words.append(word_text)
             else:
                 difficult_words.append(word_text)
-    # Remove duplicates
     word_cloud_easy = list(set(easy_words))
     word_cloud_difficult = list(set(difficult_words))
     
-    # Top 10 Difficult Words: sorted by the number of distinct students who got it wrong.
+    # Top 10 Difficult Words by distinct student count.
     top_difficult_words = sorted(word_summary_list, key=lambda x: x["students_difficulty"], reverse=True)[:10]
     
     context = {
@@ -2074,4 +2069,4 @@ def assignment_analytics(request, assignment_id):
         "top_difficult_words": top_difficult_words,
     }
     
-    return render(request, "learning/assignment_analytics.html", context)
+    return render(request, "teacher/assignment_analytics.html", context)
