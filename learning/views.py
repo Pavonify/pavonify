@@ -1965,7 +1965,6 @@ def log_assignment_attempt(request):
         return JsonResponse({"success": False, "error": str(e)})
 
 @login_required
-@teacher_login_required
 def assignment_analytics(request, assignment_id):
     # Fetch the assignment
     assignment = get_object_or_404(Assignment, id=assignment_id)
