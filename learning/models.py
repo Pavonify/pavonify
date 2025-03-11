@@ -296,7 +296,7 @@ class AssignmentAttempt(models.Model):
     MODE_CHOICES = [
         ('flashcards', 'Flashcards'),
         ('matchup', 'Matchup'),
-        ('fill_gap', 'Gap Fill'),
+        ('fill_gap', 'Gap Fill'),	
         ('destroy_wall', 'Destroy the Wall'),
         ('unscramble', 'Unscramble'),
         ('listening_dictation', 'Listening Dictation'),

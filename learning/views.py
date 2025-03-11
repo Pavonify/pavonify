@@ -14,7 +14,8 @@ from django.utils import timezone
 from django.db.models import Q
 from django.urls import reverse
 from functools import wraps
-from django.http import HttpResponseForbidden, Http404
+from django.http import HttpResponseForbidden, Http404, HttpResponseBadRequest
+
 import json
 from .decorators import student_login_required
 from django.utils.timezone import now
