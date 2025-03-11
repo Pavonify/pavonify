@@ -58,7 +58,7 @@
         // Create a shuffled copy of words for the target order.
         const shuffledWords = [...words].sort(() => Math.random() - 0.5);
 
-        // Set the next target word
+        // Set the next target word.
         const setNextTargetWord = () => {
             targetWordElement.innerText = shuffledWords[currentWordIndex].translation;
         };
@@ -69,7 +69,7 @@
             targetWordElement.innerText = "No words available.";
         }
 
-        // Function to log an attempt (for analytics)
+        // Function to log an attempt (for analytics) including the assignment mode.
         function logAttempt(targetWordId, isCorrect) {
             fetch("{% url 'log_assignment_attempt' %}", {
                 method: "POST",
@@ -80,7 +80,8 @@
                 body: JSON.stringify({
                     assignment_id: "{{ assignment.id }}",
                     word_id: targetWordId,
-                    is_correct: isCorrect
+                    is_correct: isCorrect,
+                    mode: "destroy_wall"  // New field indicating the assignment mode.
                 }),
             })
             .then(response => response.json())
@@ -92,13 +93,13 @@
             });
         }
 
-        // Create bricks for each word in the original word list
+        // Create bricks for each word in the original word list.
         words.forEach(word => {
             const brick = document.createElement("div");
             brick.classList.add("brick");
             brick.textContent = word.word;
             brick.dataset.translation = word.translation;
-            // We keep the brick's own ID here if needed, but for logging we use the target word's id.
+            // We use the target word's id (from shuffledWords) for logging instead of the clicked brick's id.
 
             brick.addEventListener("click", () => {
                 // Prevent logging if this brick was already clicked.

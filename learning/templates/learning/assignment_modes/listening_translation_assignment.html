@@ -134,16 +134,20 @@
     let targetLanguage = "{{ target_language }}";
     let currentIndex = 0;
     let assignmentId = {{ assignment.id }};
-    // Use the points value passed from the view
+    // Use the points value passed from the view.
     let pointsPerCorrect = {{ points }};
     let csrfToken = "{{ csrf_token }}";
 
-    // Randomize word order
+    // Randomize word order.
     words = words.sort(() => Math.random() - 0.5);
 
     function getLanguageCode(lang) {
         const langMap = {
-            "fr": "fr-FR", "de": "de-DE", "es": "es-ES", "it": "it-IT", "en": "en-US"
+            "fr": "fr-FR",
+            "de": "de-DE",
+            "es": "es-ES",
+            "it": "it-IT",
+            "en": "en-US"
         };
         return langMap[lang] || "en-US"; 
     }
@@ -191,12 +195,15 @@
         if (userAnswer === correctAnswer) {
             feedbackElement.textContent = "✅ Correct!";
             feedbackElement.style.color = "green";
-
+            // Log a correct attempt for the current word.
+            logAttempt(words[currentIndex].id, true);
             updateAssignmentPoints(pointsPerCorrect);
             setTimeout(nextWord, 1000);
         } else {
             feedbackElement.textContent = "❌ Try again!";
             feedbackElement.style.color = "red";
+            // Log an incorrect attempt for the current word.
+            logAttempt(words[currentIndex].id, false);
         }
     }
 
@@ -215,19 +222,52 @@
     function updateAssignmentPoints(points) {
         fetch("{% url 'update_assignment_points' %}", {
             method: "POST",
-            headers: { "Content-Type": "application/json", "X-CSRFToken": csrfToken },
+            headers: { 
+                "Content-Type": "application/json", 
+                "X-CSRFToken": csrfToken 
+            },
             body: JSON.stringify({ assignment_id: assignmentId, points: points }),
         })
         .then(() => {
             if (window.parent) {
-                window.parent.postMessage({ type: "activity_complete", assignmentId: assignmentId, pointsEarned: points }, "*");
+                window.parent.postMessage({
+                    type: "activity_complete",
+                    assignmentId: assignmentId,
+                    pointsEarned: points
+                }, "*");
             }
+        });
+    }
+
+    // Log the attempt via AJAX to record analytics.
+    // In Listening Translation mode, we include mode: "listening_translation".
+    function logAttempt(wordId, isCorrect) {
+        fetch("{% url 'log_assignment_attempt' %}", {
+            method: "POST",
+            headers: { 
+                "Content-Type": "application/json", 
+                "X-CSRFToken": csrfToken 
+            },
+            body: JSON.stringify({
+                assignment_id: assignmentId,
+                word_id: wordId,
+                is_correct: isCorrect,
+                mode: "listening_translation"
+            }),
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log("Attempt logged:", data);
+        })
+        .catch(error => {
+            console.error("Error logging attempt:", error);
         });
     }
 
     document.getElementById("play-word").addEventListener("click", speakWord);
     document.getElementById("submit-answer").addEventListener("click", checkAnswer);
     document.getElementById("skip-word").addEventListener("click", skipWord);
+
     createAccentKeyboard();
   </script>
 

@@ -293,14 +293,26 @@ class ReadingLabText(models.Model):
         return f"{self.teacher.username} - {self.topic} ({self.created_at.date()})"
 
 class AssignmentAttempt(models.Model):
+    MODE_CHOICES = [
+        ('flashcards', 'Flashcards'),
+        ('matchup', 'Matchup'),
+        ('fill_gap', 'Gap Fill'),
+        ('destroy_wall', 'Destroy the Wall'),
+        ('unscramble', 'Unscramble'),
+        ('listening_dictation', 'Listening Dictation'),
+        ('listening_translation', 'Listening Translation'),
+    ]
+    
     student = models.ForeignKey(Student, on_delete=models.CASCADE)
     assignment = models.ForeignKey(Assignment, on_delete=models.CASCADE)
     vocabulary_word = models.ForeignKey(VocabularyWord, on_delete=models.CASCADE)
+    mode = models.CharField(max_length=30, choices=MODE_CHOICES)
     is_correct = models.BooleanField(default=False)
     timestamp = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         status = "Correct" if self.is_correct else "Incorrect"
-        return f"{self.student.username} - {self.vocabulary_word.word}: {status} at {self.timestamp}"
+        return f"{self.student.username} - {self.vocabulary_word.word} ({self.mode}): {status} at {self.timestamp}"
+
 
 

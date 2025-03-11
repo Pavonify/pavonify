@@ -19,7 +19,6 @@
       overflow-y: auto; /* Allow only necessary vertical scrolling */
       height: 100%;
     }
-
     /* Main Container */
     .pane {
       background: white;
@@ -31,13 +30,11 @@
       text-align: center;
       margin-top: 0;
     }
-
     .pane h1 {
       color: #0aa2ef;
       font-size: 24px;
       margin-bottom: 15px;
     }
-
     /* Dictation Controls */
     .dictation-controls {
       display: flex;
@@ -46,7 +43,6 @@
       gap: 10px;
       margin-bottom: 15px;
     }
-
     /* Input Styling */
     .input-container {
       display: flex;
@@ -54,7 +50,6 @@
       align-items: center;
       gap: 10px;
     }
-
     .input-container input {
       padding: 10px;
       font-size: 16px;
@@ -63,7 +58,6 @@
       border-radius: 5px;
       text-align: center;
     }
-
     /* Buttons */
     .button {
       padding: 10px 15px;
@@ -75,20 +69,16 @@
       border-radius: 5px;
       transition: background-color 0.3s ease;
     }
-
     .button:hover {
       background-color: #0882c1;
     }
-
     /* Skip Button */
     .skip-button {
       background-color: #ff9f1c;
     }
-
     .skip-button:hover {
       background-color: #e88d17;
     }
-
     /* Accent Keyboard */
     .accent-keyboard {
       display: flex;
@@ -97,7 +87,6 @@
       justify-content: center;
       margin-top: 10px;
     }
-
     .accent-key {
       padding: 5px 10px;
       font-size: 16px;
@@ -107,18 +96,15 @@
       border-radius: 5px;
       transition: background-color 0.3s ease;
     }
-
     .accent-key:hover {
       background-color: #ccc;
     }
-
     /* Status Message */
     #feedback {
       font-size: 18px;
       font-weight: bold;
       margin-top: 10px;
     }
-
     /* Correct Answer Container */
     #correct-answer-container {
       display: none;
@@ -164,11 +150,11 @@
     let targetLanguage = "{{ target_language }}";
     let currentIndex = 0;
     let assignmentId = {{ assignment.id }};
-    // Use the points value passed from the view
+    // Use the points value passed from the view.
     let pointsPerCorrect = {{ points }};
     let csrfToken = "{{ csrf_token }}";
 
-    // Randomize word order
+    // Randomize word order.
     words = words.sort(() => Math.random() - 0.5);
 
     function getLanguageCode(lang) {
@@ -206,6 +192,7 @@
             return;
         }
 
+        // In Listening Dictation mode, the word to be spoken is the target translation.
         const word = words[currentIndex].translation;
         const utterance = new SpeechSynthesisUtterance(word);
         utterance.lang = getLanguageCode(targetLanguage);
@@ -220,12 +207,15 @@
         if (userAnswer === correctAnswer) {
             feedbackElement.textContent = "✅ Correct!";
             feedbackElement.style.color = "green";
-
+            // Log a correct attempt for the target word.
+            logAttempt(words[currentIndex].id, true);
             updateAssignmentPoints(pointsPerCorrect);
             setTimeout(nextWord, 1000);
         } else {
             feedbackElement.textContent = "❌ Try again!";
             feedbackElement.style.color = "red";
+            // Log an incorrect attempt for the target word.
+            logAttempt(words[currentIndex].id, false);
         }
     }
 
@@ -236,6 +226,7 @@
         speakWord();
     }
 
+    // Function to update assignment points (existing functionality)
     function updateAssignmentPoints(points) {
         fetch("{% url 'update_assignment_points' %}", {
             method: "POST",
@@ -250,6 +241,28 @@
                     pointsEarned: points
                 }, "*");
             }
+        });
+    }
+
+    // Log the attempt via AJAX to record analytics.
+    // In Listening Dictation mode, we include mode: "listening_dictation".
+    function logAttempt(wordId, isCorrect) {
+        fetch("{% url 'log_assignment_attempt' %}", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "X-CSRFToken": csrfToken },
+            body: JSON.stringify({
+                assignment_id: assignmentId,
+                word_id: wordId,
+                is_correct: isCorrect,
+                mode: "listening_dictation"
+            }),
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log("Attempt logged:", data);
+        })
+        .catch(error => {
+            console.error("Error logging attempt:", error);
         });
     }
 

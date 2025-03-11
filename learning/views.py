@@ -1955,12 +1955,17 @@ def log_assignment_attempt(request):
         assignment = get_object_or_404(Assignment, id=assignment_id)
         student = get_object_or_404(Student, id=request.session.get("student_id"))
         vocab_word = get_object_or_404(VocabularyWord, id=word_id)
+
+        mode = data.get("mode")
+        if not mode:
+            return HttpResponseBadRequest("Missing mode parameter.")
         
         # Create the assignment attempt record.
         AssignmentAttempt.objects.create(
             student=student,
             assignment=assignment,
             vocabulary_word=vocab_word,
+            mode=mode,
             is_correct=is_correct
         )
         return JsonResponse({"success": True})

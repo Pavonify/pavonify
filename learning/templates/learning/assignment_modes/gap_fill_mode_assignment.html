@@ -173,6 +173,7 @@
                 if (words.length === 0) return;
                 currentIndex = Math.floor(Math.random() * words.length);
                 const word = words[currentIndex].translation;
+                // Show the prompt as: [source word] = [masked target word]
                 wordPrompt.textContent = `${words[currentIndex].word} = ${maskLetters(word)}`;
                 gapFillInput.value = "";
                 gapFillInput.focus();
@@ -210,6 +211,7 @@
             }
 
             // Log the attempt via AJAX to record analytics.
+            // The mode is set to "fill_gap"
             function logAttempt(wordId, isCorrect) {
                 fetch("{% url 'log_assignment_attempt' %}", {
                     method: "POST",
@@ -217,7 +219,8 @@
                     body: JSON.stringify({
                         assignment_id: assignmentId,
                         word_id: wordId,
-                        is_correct: isCorrect
+                        is_correct: isCorrect,
+                        mode: "fill_gap"
                     }),
                 })
                 .then(response => response.json())
