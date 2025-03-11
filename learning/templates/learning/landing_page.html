@@ -225,6 +225,12 @@
     .comparison tr:nth-child(even) {
       background-color: #f9f9f9;
     }
+
+.comparison td:last-child {
+  background-color: #ffffe0; /* Pale yellow highlight */
+  position: relative;        /* Create stacking context */
+  z-index: 2;                /* Ensures these cells are above the bird */
+}
     .comparison .btn {
       margin-top: 20px;
       background-color: var(--accent);
@@ -403,7 +409,8 @@
 
 /* Ensure the table has a minimum width so it can scroll horizontally on small screens. */
 table.comparison {
-  min-width: 700px; /* Adjust as needed */
+  width: 100%;          /* Added to stretch across the container */
+  min-width: 700px;     /* Keep the min-width for small screens */
   border-collapse: collapse;
   background-color: #fff;
   border-radius: 8px;
