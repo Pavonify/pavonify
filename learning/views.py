@@ -1247,7 +1247,7 @@ def unscramble_the_word_assignment(request, assignment_id):
     vocab_list = assignment.vocab_list
 
     # Get all words from the vocabulary list
-    words = list(vocab_list.words.values('word', 'translation'))
+    words = list(vocab_list.words.values('id', 'word', 'translation'))
 
     # Shuffle words for display order
     shuffle(words)
@@ -1446,7 +1446,7 @@ def listening_dictation_assignment(request, assignment_id):
         return HttpResponseForbidden("You do not have access to this vocabulary list.")
 
     # Get all words in the vocabulary list
-    words = list(vocab_list.words.values('word', 'translation'))
+    words = list(vocab_list.words.values('id', 'word', 'translation'))
 
     return render(request, "learning/assignment_modes/listening_dictation_assignment.html", {
         "assignment": assignment,
@@ -1467,23 +1467,24 @@ def listening_translation_assignment(request, assignment_id):
     student = get_object_or_404(Student, id=request.session.get("student_id"))
 
     # Get the vocabulary list assigned to this assignment
-    vocab_list = assignment.vocab_list  # Now vocab_list is defined
+    vocab_list = assignment.vocab_list
 
-    # Fetch words and randomize them server-side
-    words_queryset = list(VocabularyWord.objects.filter(list=vocab_list).values("word", "translation"))
-    random.shuffle(words_queryset)  # Shuffle words
+    # Fetch words including the 'id' field and randomize them server-side
+    words_queryset = list(VocabularyWord.objects.filter(list=vocab_list).values("id", "word", "translation"))
+    random.shuffle(words_queryset)
     words_json = json.dumps(words_queryset)  # Convert to JSON for frontend
 
     return render(request, 'learning/assignment_modes/listening_translation_assignment.html', {
-        'assignment': assignment,      # Pass assignment
-        'vocab_list': vocab_list,      # Pass vocabulary list
-        'words_json': words_json,      # JSON of words
-        'target_language': vocab_list.target_language,  # Ensure vocab_list has this field
-        'student': student,            # Pass student object
-        'weekly_points': student.weekly_points,   # Pass correct weekly points
-        'total_points': student.total_points,       # Pass correct total points
-        'points': assignment.points_per_listening_translation,  # Per-interaction points
+        'assignment': assignment,
+        'vocab_list': vocab_list,
+        'words_json': words_json,
+        'target_language': vocab_list.target_language,
+        'student': student,
+        'weekly_points': student.weekly_points,
+        'total_points': student.total_points,
+        'points': assignment.points_per_listening_translation,
     })
+
 
 
 def custom_404_view(request, exception):
