@@ -1,163 +1,258 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Assignment Analytics</title>
+  <title>Assignment Analytics - {{ assignment.name }}</title>
+  <link rel="icon" href="{% static 'images/favicon.ico' %}" type="image/x-icon">
+  <!-- Optionally include Font Awesome for icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <style>
-    /* Global Box-Sizing */
-    *, *::before, *::after {
-      box-sizing: border-box;
-    }
-    
-    /* Base Styles */
+    /* Basic Reset and Fonts */
+    *, *::before, *::after { box-sizing: border-box; }
     body {
       font-family: Arial, sans-serif;
       background: #e3f2fd;
       margin: 0;
       padding: 20px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
     }
-    
-    /* Container */
     .container {
-      max-width: 800px;
-      width: 100%;
+      max-width: 1000px;
+      margin: 0 auto;
       background: #fff;
-      border-radius: 10px;
       padding: 30px;
+      border-radius: 10px;
       box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-      text-align: center;
     }
-    
-    /* Header */
-    h1 {
-      color: #0aa2ef;
-      margin-bottom: 20px;
-    }
-    
-    /* Assignment Details Section */
-    .assignment-details {
-      background: #f9f9f9;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      padding: 15px;
-      margin-bottom: 20px;
-      text-align: left;
-    }
-    .assignment-details h2 {
-      margin: 0 0 10px;
-      color: #333;
-      font-size: 22px;
-    }
-    .assignment-details p {
-      margin: 5px 0;
-      font-size: 16px;
-      color: #555;
-    }
-    
-    /* Back Link */
-    .back-link {
-      display: inline-block;
-      margin-bottom: 20px;
-      background-color: #ff2c61;
+    /* Top Navigation Bar */
+    .top-nav {
+      background-color: var(--primary, #1A73E8);
       color: #fff;
-      padding: 10px 15px;
-      border-radius: 5px;
+      padding: 8px 20px;
+      display: flex;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .top-nav a {
+      color: #fff;
       text-decoration: none;
-      transition: background-color 0.3s ease;
-      font-size: 14px;
+      font-weight: 600;
+      font-size: 16px;
     }
-    .back-link:hover {
-      background-color: #d4204c;
+    /* Tabs */
+    .tabs {
+      display: flex;
+      border-bottom: 2px solid #ddd;
+      margin-bottom: 20px;
     }
-    
-    /* Table Styles */
+    .tab {
+      padding: 10px 20px;
+      cursor: pointer;
+      font-weight: bold;
+      border: 1px solid transparent;
+      border-top-left-radius: 10px;
+      border-top-right-radius: 10px;
+      margin-right: 5px;
+    }
+    .tab.active {
+      border: 1px solid #ddd;
+      border-bottom: 2px solid #fff;
+      background: #f9f9f9;
+    }
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+    }
+    /* Tables */
     table {
       width: 100%;
       border-collapse: collapse;
       margin-bottom: 20px;
     }
-    table th, table td {
+    table, th, td { border: 1px solid #ddd; }
+    th, td { padding: 10px; text-align: center; font-size: 16px; }
+    th { background: #0aa2ef; color: #fff; }
+    tr:nth-child(even) { background: #f9f9f9; }
+    /* Difficulty Meter */
+    .difficulty-bar {
+      height: 10px;
+      background: red;
+      width: 0%;
+      transition: width 0.3s;
+    }
+    /* Word Clouds */
+    .word-cloud {
       border: 1px solid #ddd;
-      padding: 12px;
-      text-align: center;
-      font-size: 16px;
+      padding: 10px;
+      min-height: 100px;
+      margin-bottom: 20px;
     }
-    table th {
-      background-color: #0aa2ef;
-      color: #fff;
-    }
-    table tbody tr:nth-child(even) {
-      background-color: #f9f9f9;
-    }
-    
-    /* Status Styling */
-    .status-completed {
-      color: green;
-      font-weight: bold;
-    }
-    .status-completed i {
-      margin-right: 5px;
-      color: green;
-    }
-    .status-incomplete {
-      color: red;
-      font-weight: bold;
-    }
-    .status-incomplete i {
-      margin-right: 5px;
-      color: red;
+    .word-cloud span {
+      margin: 5px;
+      display: inline-block;
     }
   </style>
 </head>
 <body>
+  <!-- Top Navigation Bar -->
+  <div class="top-nav">
+    <a href="{% url 'teacher_dashboard' %}?pane=classes">&larr; Back to Dashboard</a>
+  </div>
+  
   <div class="container">
-    <h1>Assignment Analytics</h1>
+    <h1>Assignment Analytics: {{ assignment.name }}</h1>
     
-    <!-- Assignment Details Section -->
-    <div class="assignment-details">
-      <h2>{{ assignment.name }}</h2>
-      <p><strong>Deadline:</strong> {{ assignment.deadline|date:"M d, Y H:i" }}</p>
-      <p><strong>Target Points:</strong> {{ assignment.target_points }}</p>
+    <!-- Tab Navigation -->
+    <div class="tabs">
+      <div class="tab active" data-tab="overview">Overview</div>
+      <div class="tab" data-tab="student-summary">Student Summary</div>
+      <div class="tab" data-tab="word-summary">Word Summary</div>
+      <div class="tab" data-tab="feedback">Feedback</div>
     </div>
     
-    <!-- Back Button -->
-    <a href="{% url 'teacher_dashboard' %}" class="back-link">&larr; Back to Dashboard</a>
+    <!-- Overview Tab -->
+    <div class="tab-content active" id="overview">
+      <h2>Overview</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Student</th>
+            <th>Points Earned</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for progress in progress_list %}
+          <tr>
+            <td>{{ progress.student.username }}</td>
+            <td>{{ progress.points_earned }}</td>
+            <td>
+              {% if progress.completed or progress.points_earned >= assignment.target_points %}
+                <span style="color:green;"><i class="fas fa-check-circle"></i> Completed</span>
+              {% else %}
+                <span style="color:red;"><i class="fas fa-times-circle"></i> Incomplete</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="3">No progress data available.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
     
-    <!-- Analytics Table -->
-    <table>
-      <thead>
-        <tr>
-          <th>Student</th>
-          <th>Points Earned</th>
-          <th>Status</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for progress in progress_list %}
-        <tr>
-          <td>{{ progress.student.username }}</td>
-          <td>{{ progress.points_earned }}</td>
-          <td>
-            {% if progress.completed or progress.points_earned >= assignment.target_points %}
-              <span class="status-completed">
-                <i class="fas fa-check-circle"></i>Completed
-              </span>
-            {% else %}
-              <span class="status-incomplete">
-                <i class="fas fa-times-circle"></i>Incomplete
-              </span>
-            {% endif %}
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+    <!-- Student Summary Tab -->
+    <div class="tab-content" id="student-summary">
+      <h2>Student Summary</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Student</th>
+            <th>Words Aced 💪</th>
+            <th>Attempts Wrong 👎</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for summary in student_summary %}
+          <tr>
+            <td>{{ summary.student.first_name }} {{ summary.student.last_name }}</td>
+            <td>
+              {% for word in summary.words_aced %}
+                {{ word }}<br>
+              {% endfor %}
+            </td>
+            <td>
+              {% for word, count in summary.attempts_wrong %}
+                {{ word }} ({{ count }})<br>
+              {% endfor %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="3">No student summary data available.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    
+    <!-- Word Summary Tab -->
+    <div class="tab-content" id="word-summary">
+      <h2>Word Summary</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Word</th>
+            <th>Difficulty Meter</th>
+            <th>Student Count</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for word in word_summary %}
+          <tr>
+            <td>{{ word.word }}</td>
+            <td>
+              <div class="difficulty-bar" style="width: {{ word.wrong_attempts|floatformat:0 }}%;"></div>
+            </td>
+            <td>{{ word.students_difficulty }} students found this word difficult</td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="3">No word summary data available.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    
+    <!-- Feedback Tab -->
+    <div class="tab-content" id="feedback">
+      <h2>Feedback</h2>
+      <div>
+        <h3>Word Cloud (Easy)</h3>
+        <div class="word-cloud">
+          {% for word in word_cloud_easy %}
+            <span style="font-size: {{ word|length }}px;">{{ word }} </span>
+          {% endfor %}
+        </div>
+      </div>
+      <div>
+        <h3>Word Cloud (Difficult)</h3>
+        <div class="word-cloud">
+          {% for word in word_cloud_difficult %}
+            <span style="font-size: {{ word|length }}px;">{{ word }} </span>
+          {% endfor %}
+        </div>
+      </div>
+      <div>
+        <h3>Top 10 Difficult Words</h3>
+        <ol>
+          {% for word in top_difficult_words %}
+            <li>{{ word.word }} - {{ word.students_difficulty }} students</li>
+          {% empty %}
+            <li>No data available.</li>
+          {% endfor %}
+        </ol>
+      </div>
+    </div>
   </div>
+  
+  <script>
+    // Simple tab-switching logic.
+    const tabs = document.querySelectorAll(".tab");
+    const tabContents = document.querySelectorAll(".tab-content");
+    tabs.forEach(tab => {
+      tab.addEventListener("click", () => {
+        tabs.forEach(t => t.classList.remove("active"));
+        tabContents.forEach(tc => tc.classList.remove("active"));
+        tab.classList.add("active");
+        document.getElementById(tab.getAttribute("data-tab")).classList.add("active");
+      });
+    });
+  </script>
 </body>
 </html>
