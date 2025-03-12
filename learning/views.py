@@ -1980,7 +1980,11 @@ def assignment_analytics(request, assignment_id):
     progress_list = AssignmentProgress.objects.filter(assignment=assignment)
     
     # Get all attempts for this assignment, ordered by timestamp.
-    attempts = list(AssignmentAttempt.objects.filter(assignment=assignment).order_by("timestamp"))
+    attempts = list(
+        AssignmentAttempt.objects.filter(assignment=assignment)
+        .select_related("vocabulary_word")
+        .order_by("timestamp")
+    )
     
     # --- Student Summary Aggregation ---
     student_summary = {}
