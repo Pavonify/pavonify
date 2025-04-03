@@ -225,12 +225,11 @@
     .comparison tr:nth-child(even) {
       background-color: #f9f9f9;
     }
-
-.comparison td:last-child {
-  background-color: #ffffe0; /* Pale yellow highlight */
-  position: relative;        /* Create stacking context */
-  z-index: 2;                /* Ensures these cells are above the bird */
-}
+    .comparison td:last-child {
+      background-color: #ffffe0; /* Pale yellow highlight */
+      position: relative;        /* Create stacking context */
+      z-index: 2;                /* Ensures these cells are above the bird */
+    }
     .comparison .btn {
       margin-top: 20px;
       background-color: var(--accent);
@@ -349,12 +348,12 @@
       opacity: 0;
       animation: fly-in-out 18s linear infinite;
     }
-    .feature:nth-child(1) { animation-delay: 0s; }
-    .feature:nth-child(2) { animation-delay: 3s; }
-    .feature:nth-child(3) { animation-delay: 6s; }
-    .feature:nth-child(4) { animation-delay: 9s; }
-    .feature:nth-child(5) { animation-delay: 12s; }
-    .feature:nth-child(6) { animation-delay: 15s; }
+    .feature:nth-child(1)  { animation-delay: 0s; }
+    .feature:nth-child(2)  { animation-delay: 3s; }
+    .feature:nth-child(3)  { animation-delay: 6s; }
+    .feature:nth-child(4)  { animation-delay: 9s; }
+    .feature:nth-child(5)  { animation-delay: 12s; }
+    .feature:nth-child(6)  { animation-delay: 15s; }
     @keyframes fly-in-out {
       0% {
         transform: translateX(100%);
@@ -397,44 +396,42 @@
       position: relative;
       padding: 0;
       overflow: visible;
-
     }
 
-/* Container for the table to allow horizontal scrolling if it's too wide. */
-.table-scroll {
-  width: 100%;
-  overflow-x: auto;
-  margin-top: 0; /* spacing between the bird and the table */
-}
+    /* Container for the table to allow horizontal scrolling if it's too wide. */
+    .table-scroll {
+      width: 100%;
+      overflow-x: auto;
+      margin-top: 0;
+    }
 
-/* Ensure the table has a minimum width so it can scroll horizontally on small screens. */
-table.comparison {
-  width: 100%;          /* Added to stretch across the container */
-  min-width: 700px;     /* Keep the min-width for small screens */
-  border-collapse: collapse;
-  background-color: #fff;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-/* Trophy bird styling for larger screens. */
-.pavonify-bird-on-trophy {
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 100px;
-  height: auto;
-  margin: 0;
-  padding: 0;
-  z-index: 3;
-  transform: none;
-}
+    /* Ensure the table has a minimum width so it can scroll horizontally on small screens. */
+    table.comparison {
+      width: 100%;
+      min-width: 700px;
+      border-collapse: collapse;
+      background-color: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
 
-/* Hide the trophy bird on mobile */
-@media (max-width: 768px) {
-  .pavonify-bird-on-trophy {
-    display: none;
-  }
-}
+    /* Position the trophy bird above the table, smaller in size */
+    .pavonify-bird-on-trophy {
+      position: absolute;
+      top: -40px;   /* negative to perch above the table */
+      right: 20px;  /* shift slightly left from the container's right edge */
+      width: 80px;  /* smaller size */
+      height: auto;
+      z-index: 3;
+    }
+
+    /* Hide the trophy bird on mobile */
+    @media (max-width: 768px) {
+      .pavonify-bird-on-trophy {
+        display: none;
+      }
+    }
+
     .register-btn {
       background: linear-gradient(45deg, #F2A03D, #F2A03D 50%, #F2A03D);
       color: var(--dark);
@@ -553,102 +550,102 @@ table.comparison {
   </section>
 
   <!-- Comparison Section -->
-<section id="comparison">
-  <h2>Features Comparison</h2>
-  <p>Compare Pavonify with other leading language teaching platforms.</p>
+  <section id="comparison">
+    <h2>Features Comparison</h2>
+    <p>Compare Pavonify with other leading language teaching platforms.</p>
 
-  <div class="comparison-wrapper">
-    <!-- Trophy bird image positioned above the table -->
-    <img class="pavonify-bird-on-trophy" 
-         src="{% static 'pavonify_bird_on_trophy.png' %}" 
-         alt="Pavonify Trophy Bird">
-    
-    <!-- New wrapper for the table so it can scroll independently -->
-    <div class="table-scroll">
-      <table class="comparison">
-        <thead>
-          <tr>
-            <th>Feature</th>
-            <th>Quizlet</th>
-            <th>Memrise</th>
-            <th>Duolingo for Schools</th>
-            <th>Pavonify</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>Interactive Games</td>
-            <td>✔️</td>
-            <td>✔️</td>
-            <td>✔️</td>
-            <td>✔️</td>
-          </tr>
-          <tr>
-            <td>Vocabulary Building</td>
-            <td>✔️</td>
-            <td>✔️</td>
-            <td>✔️</td>
-            <td>✔️</td>
-          </tr>
-          <tr>
-            <td>Progress Tracking</td>
-            <td>✔️</td>
-            <td>–</td>
-            <td>–</td>
-            <td>✔️</td>
-          </tr>
-          <tr>
-            <td>Class Leaderboards</td>
-            <td>✖️</td>
-            <td>✖️</td>
-            <td>✖️</td>
-            <td>✔️</td>
-          </tr>
-          <tr>
-            <td>Teacher Dashboard</td>
-            <td>✔️</td>
-            <td>✖️</td>
-            <td>✔️</td>
-            <td>✔️</td>
-          </tr>
-          <tr>
-            <td>Student Management</td>
-            <td>✖️</td>
-            <td>✖️</td>
-            <td>✖️</td>
-            <td>✔️</td>
-          </tr>
-          <tr>
-            <td>Custom Content Creation</td>
-            <td>✔️</td>
-            <td>✔️</td>
-            <td>✖️</td>
-            <td>✔️</td>
-          </tr>
-          <tr>
-            <td>Worksheet Maker</td>
-            <td>✖️</td>
-            <td>✖️</td>
-            <td>✖️</td>
-            <td>✔️</td>
-          </tr>
-          <tr>
-            <td>AI Reading Generator</td>
-            <td>✖️</td>
-            <td>✖️</td>
-            <td>✖️</td>
-            <td>✔️</td>
-          </tr>
-          <tr>
-            <td>Cost for Teachers</td>
-            <td>$35.99/year</td>
-            <td>$8.99/month</td>
-            <td>Free</td>
-            <td>£2.99/month</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+    <div class="comparison-wrapper">
+      <!-- Trophy bird image positioned above the table -->
+      <img class="pavonify-bird-on-trophy" 
+           src="{% static 'pavonify_bird_on_trophy.png' %}" 
+           alt="Pavonify Trophy Bird">
+      
+      <!-- New wrapper for the table so it can scroll independently -->
+      <div class="table-scroll">
+        <table class="comparison">
+          <thead>
+            <tr>
+              <th>Feature</th>
+              <th>Quizlet</th>
+              <th>Memrise</th>
+              <th>Duolingo for Schools</th>
+              <th>Pavonify</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Interactive Games</td>
+              <td>✔️</td>
+              <td>✔️</td>
+              <td>✔️</td>
+              <td>✔️</td>
+            </tr>
+            <tr>
+              <td>Vocabulary Building</td>
+              <td>✔️</td>
+              <td>✔️</td>
+              <td>✔️</td>
+              <td>✔️</td>
+            </tr>
+            <tr>
+              <td>Progress Tracking</td>
+              <td>✔️</td>
+              <td>–</td>
+              <td>–</td>
+              <td>✔️</td>
+            </tr>
+            <tr>
+              <td>Class Leaderboards</td>
+              <td>✖️</td>
+              <td>✖️</td>
+              <td>✖️</td>
+              <td>✔️</td>
+            </tr>
+            <tr>
+              <td>Teacher Dashboard</td>
+              <td>✔️</td>
+              <td>✖️</td>
+              <td>✔️</td>
+              <td>✔️</td>
+            </tr>
+            <tr>
+              <td>Student Management</td>
+              <td>✖️</td>
+              <td>✖️</td>
+              <td>✖️</td>
+              <td>✔️</td>
+            </tr>
+            <tr>
+              <td>Custom Content Creation</td>
+              <td>✔️</td>
+              <td>✔️</td>
+              <td>✖️</td>
+              <td>✔️</td>
+            </tr>
+            <tr>
+              <td>Worksheet Maker</td>
+              <td>✖️</td>
+              <td>✖️</td>
+              <td>✖️</td>
+              <td>✔️</td>
+            </tr>
+            <tr>
+              <td>AI Reading Generator</td>
+              <td>✖️</td>
+              <td>✖️</td>
+              <td>✖️</td>
+              <td>✔️</td>
+            </tr>
+            <tr>
+              <td>Cost for Teachers</td>
+              <td>$35.99/year</td>
+              <td>$8.99/month</td>
+              <td>Free</td>
+              <td>£2.99/month</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
     <div style="text-align: left; margin-top: 20px;">
       Register and try our features for ✨Free!✨ 
