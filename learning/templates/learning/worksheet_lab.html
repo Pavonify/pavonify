@@ -98,6 +98,8 @@
 
         button:hover {
             background-color: var(--highlight);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         }
 
         .worksheet-page {
@@ -106,9 +108,12 @@
             height: 29.7cm;
             padding: 20px;
             border-radius: 5px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 12px 20px rgba(0, 0, 0, 0.25);
             margin-top: 30px;
             position: relative;
+  background-image: linear-gradient(to right, rgba(0,0,0,0.05) 1px, transparent 1px),
+                    linear-gradient(to bottom, rgba(0,0,0,0.05) 1px, transparent 1px);
+  background-size: 20px 20px;
         }
 
         .worksheet-page img.worksheet-logo {
@@ -199,10 +204,14 @@
     text-decoration: none;
     display: inline-block;
     width: fit-content;
+  transition: all 0.3s ease;
+  transform: translateY(0);
 }
 
 .upgrade-btn:hover {
     background-color: var(--highlight);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
 }
 
     </style>
@@ -941,7 +950,7 @@ function addToWorksheet() {
 
         // **Find next available position within the worksheet page**
         let newX = 20; // Start position (left padding)
-        let newY = 160; // Start position (below the logo/title area)
+        let newY = 220; // Start position (below the logo/title area)
         const gridSize = 20; // Snap to grid
 
         // Get all existing boxes within the page
