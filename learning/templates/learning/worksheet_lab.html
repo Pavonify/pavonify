@@ -47,6 +47,14 @@
             overflow-y: auto;
         }
 
+.sidebar input[type="text"],
+.sidebar input[type="number"],
+.sidebar select {
+    width: 100%;
+    max-width: 210px; /* prevent from touching edge */
+    margin-bottom: 12px;
+}
+
         .main-content {
             margin-left: 250px;
             padding: 40px;
@@ -106,6 +114,8 @@
         .worksheet-page img.worksheet-logo {
             width: 120px;
             margin-bottom: 10px;
+    	display: block;
+  	  margin: 0 auto 10px;
         }
 
         .worksheet-content {
@@ -178,6 +188,23 @@
         .upgrade-message {
             color: var(--dark);
         }
+
+.upgrade-btn {
+    background-color: var(--accent);
+    color: #fff;
+    padding: 8px 14px;
+    border-radius: 5px;
+    font-weight: bold;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    width: fit-content;
+}
+
+.upgrade-btn:hover {
+    background-color: var(--highlight);
+}
+
     </style>
 </head>
 <body>
