@@ -2,304 +2,290 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reading Lab</title>
-    <style>
-        /* Global Styles */
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            min-height: 100vh;
-            background: #e3f2fd;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        .main-content {
-            flex-grow: 1;
-            padding: 40px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-            width: 100%;
-        }
-        .pane {
-            background-color: white;
-            border-radius: 10px;
-            padding: 20px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            max-width: 800px;
-            width: 90%;
-            margin-bottom: 20px;
-            animation: fadeIn 1s ease-in-out;
-            color: #333;
-            text-align: left;
-        }
-        .pane h2 {
-            text-align: center;
-            margin-top: 0;
-            color: #0aa2ef;
-            font-size: 28px;
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        label {
-            font-weight: bold;
-            display: block;
-            margin-bottom: 5px;
-        }
-        select, input[type="number"], input[type="text"], button {
-            width: 100%;
-            padding: 10px;
-            font-size: 16px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-        }
-        select:focus, input:focus {
-            outline: none;
-            border-color: #0aa2ef;
-            box-shadow: 0 0 5px rgba(10, 162, 239, 0.5);
-        }
-        .word-selection-box {
-            border: 1px solid #ccc;
-            max-height: 200px;
-            overflow-y: auto;
-            padding: 10px;
-            background: white;
-            border-radius: 5px;
-        }
-        .word-selection-box label {
-            display: block;
-            padding: 5px;
-            cursor: pointer;
-        }
-        .select-controls {
-            margin-bottom: 10px;
-        }
-        .select-controls a {
-            font-size: 14px;
-            text-decoration: none;
-            color: #0aa2ef;
-            margin-right: 10px;
-            cursor: pointer;
-        }
-        .checkbox-group label {
-            display: inline-block;
-            margin-right: 10px;
-        }
-        .btn {
-            background-color: #ff2c61;
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 5px;
-            text-decoration: none;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-            font-size: 16px;
-            display: inline-block;
-            margin-top: 20px;
-            text-align: center;
-        }
-        .btn:hover {
-            background-color: #d4204c;
-        }
-        .hidden {
-            display: none;
-        }
-        .radio-group {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .radio-group input {
-            margin: 0;
-            width: 16px;
-            height: 16px;
-        }
-        @media (max-width: 768px) {
-            .pane {
-                width: 95%;
-            }
-        }
-        .back-btn {
-            background-color: #0aa2ef;
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 5px;
-            text-decoration: none;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-            font-size: 16px;
-            display: inline-block;
-            margin-top: 20px;
-            text-align: center;
-        }
-        .back-btn:hover {
-            background-color: #086baf;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reading Lab</title>
+  <style>
+    :root {
+      --primary: #1A73E8;
+      --accent: #F2A03D;
+      --highlight: #A6173D;
+      --background: #F2EFE9;
+      --dark: #0D0D0D;
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      margin: 0;
+      background-color: var(--background);
+      color: var(--dark);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .main-content {
+      padding: 40px;
+      width: 100%;
+      display: flex;
+      justify-content: center;
+    }
+
+    .pane {
+      background-color: #fff;
+      border-radius: 16px;
+      padding: 30px;
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+      width: 100%;
+      max-width: 900px;
+      animation: fadeIn 0.6s ease-in-out;
+    }
+
+    h2 {
+      color: var(--primary);
+      text-align: center;
+      margin-bottom: 30px;
+      font-size: 28px;
+    }
+
+    label {
+      font-weight: 600;
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    select, input[type="text"], input[type="number"] {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+
+    select:focus, input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 4px rgba(26, 115, 232, 0.3);
+    }
+
+    .checkbox-group label {
+      display: inline-block;
+      margin-right: 12px;
+      margin-top: 5px;
+    }
+
+    .radio-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .radio-group input[type="radio"] {
+      margin: 0;
+    }
+
+    .word-selection-box {
+      background-color: #f9f9f9;
+      border: 1px solid #ccc;
+      padding: 10px;
+      max-height: 200px;
+      overflow-y: auto;
+      border-radius: 8px;
+    }
+
+    .word-selection-box label {
+      display: block;
+      padding: 4px 0;
+    }
+
+    .select-controls a {
+      font-size: 14px;
+      color: var(--primary);
+      margin-right: 15px;
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .btn, .back-btn {
+      background-color: var(--accent);
+      color: white;
+      padding: 12px 20px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-block;
+      text-align: center;
+      text-decoration: none;
+      margin-top: 20px;
+    }
+
+    .btn:hover, .back-btn:hover {
+      background-color: var(--highlight);
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    @media (max-width: 768px) {
+      .pane {
+        width: 95%;
+        padding: 20px;
+      }
+    }
+  </style>
 </head>
 <body>
-    <div class="main-content">
-        <div class="pane">
-            <h2>📚 Reading Lab</h2>
-            <form method="post">
-                {% csrf_token %}
-                <div class="form-group">
-                    <label for="vocabulary_list">Vocabulary List</label>
-                    <select id="vocabulary_list" name="vocabulary_list" onchange="updateWordSelection()" required>
-                        <option value="">Select a vocabulary list</option>
-                        {% for list in vocabulary_lists %}
-                            <option value="{{ list.id }}">{{ list.name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <div class="form-group hidden" id="word_selection">
-                    <label>Select Words</label>
-                    <div class="word-selection-box"></div>
-                </div>
-
-                <div class="form-group">
-                    <label>Choose a Topic Selection Method:</label>
-                    <div class="radio-group">
-                        <input type="radio" name="topic_method" value="exam_board" id="topic_method_board" checked onclick="toggleTopicSelection()"> 
-                        <label for="topic_method_board">I want to select an exam board theme</label>
-                    </div>
-                    <div class="radio-group">
-                        <input type="radio" name="topic_method" value="custom_topic" id="topic_method_custom" onclick="toggleTopicSelection()"> 
-                        <label for="topic_method_custom">I want to set my own topic</label>
-                    </div>
-                </div>
-
-                <div class="form-group hidden" id="exam_board_section">
-                    <label for="exam_board">Exam Board</label>
-                    <select id="exam_board" name="exam_board" onchange="updateTopics()">
-                        <option value="">Select an exam board</option>
-                        {% for board in exam_boards %}
-                            <option value="{{ board }}">{{ board }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <div class="form-group hidden" id="topic_group">
-                    <label for="topic">Topic</label>
-                    <select id="topic" name="topic">
-                        <!-- Topics will be populated dynamically -->
-                    </select>
-                </div>
-
-                <div class="form-group hidden" id="custom_topic_section">
-                    <label for="custom_topic">Enter Your Own Topic (Max 25 chars)</label>
-                    <input type="text" id="custom_topic" name="custom_topic" maxlength="25" placeholder="Type your topic here">
-                </div>
-
-                <div class="form-group">
-                    <label for="level">Level</label>
-                    <select id="level" name="level" required>
-                        <option value="A1">A1</option>
-                        <option value="A2">A2</option>
-                        <option value="B1">B1</option>
-                        <option value="B2">B2</option>
-                        <option value="C1">C1</option>
-                        <option value="C2">C2</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label for="word_count">Word Count</label>
-                    <input type="number" id="word_count" name="word_count" min="50" max="300" required>
-                </div>
-
-                <div class="form-group">
-                    <label>Select Tense(s):</label>
-                    <div class="checkbox-group">
-                        <label><input type="checkbox" name="tenses" value="present"> Present</label>
-                        <label><input type="checkbox" name="tenses" value="imperfect"> Imperfect</label>
-                        <label><input type="checkbox" name="tenses" value="perfect"> Perfect</label>
-                        <label><input type="checkbox" name="tenses" value="pluperfect"> Pluperfect</label>
-                        <label><input type="checkbox" name="tenses" value="future"> Future</label>
-                        <label><input type="checkbox" name="tenses" value="conditional"> Conditional</label>
-                    </div>
-                </div>
-
-                <button type="submit" class="btn">🔄 Generate Text</button>
-            </form>
-            <a href="{% url 'teacher_dashboard' %}" class="btn back-btn">⬅️ Back to Dashboard</a>
+  <div class="main-content">
+    <div class="pane">
+      <h2>📚 Reading Lab</h2>
+      <form method="post">
+        {% csrf_token %}
+        <div class="form-group">
+          <label for="vocabulary_list">Vocabulary List</label>
+          <select id="vocabulary_list" name="vocabulary_list" onchange="updateWordSelection()" required>
+            <option value="">Select a vocabulary list</option>
+            {% for list in vocabulary_lists %}
+              <option value="{{ list.id }}">{{ list.name }}</option>
+            {% endfor %}
+          </select>
         </div>
+
+        <div class="form-group hidden" id="word_selection">
+          <label>Select Words</label>
+          <div class="word-selection-box"></div>
+        </div>
+
+        <div class="form-group">
+          <label>Choose a Topic Selection Method:</label>
+          <div class="radio-group">
+            <input type="radio" name="topic_method" value="exam_board" id="topic_method_board" checked onclick="toggleTopicSelection()">
+            <label for="topic_method_board">Exam Board Theme</label>
+          </div>
+          <div class="radio-group">
+            <input type="radio" name="topic_method" value="custom_topic" id="topic_method_custom" onclick="toggleTopicSelection()">
+            <label for="topic_method_custom">Custom Topic</label>
+          </div>
+        </div>
+
+        <div class="form-group hidden" id="exam_board_section">
+          <label for="exam_board">Exam Board</label>
+          <select id="exam_board" name="exam_board" onchange="updateTopics()">
+            <option value="">Select an exam board</option>
+            {% for board in exam_boards %}
+              <option value="{{ board }}">{{ board }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-group hidden" id="topic_group">
+          <label for="topic">Topic</label>
+          <select id="topic" name="topic"></select>
+        </div>
+
+        <div class="form-group hidden" id="custom_topic_section">
+          <label for="custom_topic">Custom Topic (Max 25 characters)</label>
+          <input type="text" id="custom_topic" name="custom_topic" maxlength="25" placeholder="Type your topic here">
+        </div>
+
+        <div class="form-group">
+          <label for="level">Level</label>
+          <select id="level" name="level" required>
+            <option value="A1">A1</option>
+            <option value="A2">A2</option>
+            <option value="B1">B1</option>
+            <option value="B2">B2</option>
+            <option value="C1">C1</option>
+            <option value="C2">C2</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="word_count">Word Count</label>
+          <input type="number" id="word_count" name="word_count" min="50" max="300" required>
+        </div>
+
+        <div class="form-group">
+          <label>Select Tense(s):</label>
+          <div class="checkbox-group">
+            <label><input type="checkbox" name="tenses" value="present"> Present</label>
+            <label><input type="checkbox" name="tenses" value="imperfect"> Imperfect</label>
+            <label><input type="checkbox" name="tenses" value="perfect"> Perfect</label>
+            <label><input type="checkbox" name="tenses" value="pluperfect"> Pluperfect</label>
+            <label><input type="checkbox" name="tenses" value="future"> Future</label>
+            <label><input type="checkbox" name="tenses" value="conditional"> Conditional</label>
+          </div>
+        </div>
+
+        <button type="submit" class="btn">🔄 Generate Text</button>
+        <a href="{% url 'teacher_dashboard' %}" class="back-btn">⬅️ Back to Dashboard</a>
+      </form>
     </div>
+  </div>
 
-    <script>
-        const examBoardTopics = JSON.parse('{{ exam_board_topics_json|escapejs }}');
+  <script>
+    const examBoardTopics = JSON.parse('{{ exam_board_topics_json|escapejs }}');
 
-        function updateTopics() {
-            const examBoard = document.getElementById("exam_board").value;
-            const topicSelect = document.getElementById("topic");
-            topicSelect.innerHTML = ""; // Clear existing options
+    function updateTopics() {
+      const examBoard = document.getElementById("exam_board").value;
+      const topicSelect = document.getElementById("topic");
+      topicSelect.innerHTML = "";
 
-            if (examBoard in examBoardTopics) {
-                examBoardTopics[examBoard].forEach(topic => {
-                    const option = document.createElement("option");
-                    option.value = topic;
-                    option.textContent = topic;
-                    topicSelect.appendChild(option);
-                });
-                document.getElementById("topic_group").classList.remove("hidden");
-            } else {
-                document.getElementById("topic_group").classList.add("hidden");
-            }
-        }
+      if (examBoard in examBoardTopics) {
+        examBoardTopics[examBoard].forEach(topic => {
+          const option = document.createElement("option");
+          option.value = topic;
+          option.textContent = topic;
+          topicSelect.appendChild(option);
+        });
+        document.getElementById("topic_group").classList.remove("hidden");
+      } else {
+        document.getElementById("topic_group").classList.add("hidden");
+      }
+    }
 
-        function toggleTopicSelection() {
-            const isExamBoardSelected = document.getElementById("topic_method_board").checked;
-            document.getElementById("exam_board_section").classList.toggle("hidden", !isExamBoardSelected);
-            document.getElementById("topic_group").classList.add("hidden"); // Keep it hidden initially
+    function toggleTopicSelection() {
+      const isBoard = document.getElementById("topic_method_board").checked;
+      const isCustom = document.getElementById("topic_method_custom").checked;
 
-            const isCustomTopicSelected = document.getElementById("topic_method_custom").checked;
-            document.getElementById("custom_topic_section").classList.toggle("hidden", !isCustomTopicSelected);
-        }
+      document.getElementById("exam_board_section").classList.toggle("hidden", !isBoard);
+      document.getElementById("topic_group").classList.add("hidden");
+      document.getElementById("custom_topic_section").classList.toggle("hidden", !isCustom);
+    }
 
-        function updateWordSelection() {
-            const vocabularyListId = document.getElementById("vocabulary_list").value;
-            const wordSelectionDiv = document.querySelector(".word-selection-box");
+    function updateWordSelection() {
+      const vocabId = document.getElementById("vocabulary_list").value;
+      const wordBox = document.querySelector(".word-selection-box");
 
-            if (vocabularyListId) {
-                fetch(`/get-words/?vocabulary_list_id=${vocabularyListId}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        let controlsHTML = `
-                            <div class="select-controls">
-                                <a href="#" onclick="selectAllWords(true); return false;">Select All</a> | 
-                                <a href="#" onclick="selectAllWords(false); return false;">Select None</a>
+      if (vocabId) {
+        fetch(`/get-words/?vocabulary_list_id=${vocabId}`)
+          .then(res => res.json())
+          .then(data => {
+            let controls = `<div class="select-controls">
+                              <a href="#" onclick="selectAllWords(true); return false;">Select All</a>
+                              <a href="#" onclick="selectAllWords(false); return false;">Select None</a>
                             </div>`;
-                        let wordListHTML = '';
-                        data.words.forEach(word => {
-                            wordListHTML += `
-                                <label>
-                                    <input type="checkbox" name="selected_words" value="${word.id}" checked>
-                                    ${word.word}
-                                </label>
-                            `;
-                        });
-                        wordSelectionDiv.innerHTML = controlsHTML + wordListHTML;
-                        wordSelectionDiv.parentElement.classList.remove("hidden");
-                    });
-            } else {
-                wordSelectionDiv.parentElement.classList.add("hidden");
-            }
-        }
+            let words = data.words.map(word => `<label><input type="checkbox" name="selected_words" value="${word.id}" checked> ${word.word}</label>`).join("");
+            wordBox.innerHTML = controls + words;
+            document.getElementById("word_selection").classList.remove("hidden");
+          });
+      } else {
+        document.getElementById("word_selection").classList.add("hidden");
+      }
+    }
 
-        function selectAllWords(select) {
-            const checkboxes = document.querySelectorAll(".word-selection-box input[type='checkbox']");
-            checkboxes.forEach(cb => {
-                cb.checked = select;
-            });
-        }
-    </script>
+    function selectAllWords(state) {
+      document.querySelectorAll(".word-selection-box input[type='checkbox']").forEach(cb => cb.checked = state);
+    }
+  </script>
 </body>
 </html>
