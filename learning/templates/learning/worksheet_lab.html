@@ -426,7 +426,8 @@
     <p class="upgrade-message">
         <span class="lock-icon">🔒</span> Printing and exporting are Premium features.
     </p>
-    <a href="{% url 'teacher_upgrade' %}" class="upgrade-btn">Upgrade to Premium</a>
+<a href="#" class="upgrade-btn" onclick="openUpgradeModal()">Upgrade to Premium</a>
+
 </div>
 {% endif %}
             <button onclick="goBack()">Back to Dashboard</button>
@@ -484,8 +485,77 @@
         </div>
     </div>
 
+<!-- Upgrade Modal -->
+<div id="upgrade-modal" class="modal" style="display:none;">
+  <div class="modal-content">
+    <!-- Close button -->
+    <span onclick="closeUpgradeModal()" style="float:right; cursor:pointer; font-size: 20px;">&times;</span>
+
+    <!-- Paste teacher-upgrade pane content here -->
+    <h2>Upgrade to Premium</h2>
+    <p>Get full access to all features for just <strong>£2.99 per month</strong>.</p>
+    <table class="feature-table">
+      <tr><th>Feature</th><th>Basic</th><th>Premium</th></tr>
+      <tr><td>Create Vocabulary Lists</td><td>5</td><td>✔</td></tr>
+      <tr><td>Create Classes</td><td>2</td><td>✔</td></tr>
+      <tr><td>Create Assignments</td><td>1</td><td>✔</td></tr>
+      <tr><td>Assignment Analytics</td><td>❌</td><td>✔</td></tr>
+      <tr><td>Unlimited Students</td><td>❌</td><td>✔</td></tr>
+      <tr><td>Worksheet Lab</td><td>❌</td><td>✔</td></tr>
+    </table>
+    <button id="upgrade-btn" class="btn btn-upgrade">Upgrade to Premium</button>
+  </div>
+</div>
+
+<script>
+  function openUpgradeModal() {
+    document.getElementById("upgrade-modal").style.display = "block";
+  }
+
+  function closeUpgradeModal() {
+    document.getElementById("upgrade-modal").style.display = "none";
+  }
+
+  // Stripe upgrade click handler
+  document.addEventListener("DOMContentLoaded", () => {
+    const upgradeBtn = document.getElementById("upgrade-btn");
+    if (upgradeBtn) {
+      upgradeBtn.addEventListener("click", async function (event) {
+        event.preventDefault();
+        const csrftoken = document.querySelector("[name=csrfmiddlewaretoken]").value;
+
+        const response = await fetch("{% url 'create_checkout_session' %}", {
+          method: "POST",
+          headers: {
+            "X-CSRFToken": csrftoken,
+            "Content-Type": "application/json"
+          },
+        });
+
+        const data = await response.json();
+        if (data.sessionId) {
+          window.location.href = `https://checkout.stripe.com/pay/${data.sessionId}`;
+        } else {
+          alert("Error: " + data.error);
+        }
+      });
+    }
+  });
+
+  // Close modal when clicking outside
+  window.onclick = function(event) {
+    const modal = document.getElementById("upgrade-modal");
+    if (event.target === modal) {
+      closeUpgradeModal();
+    }
+  }
+</script>
+
+
     <!-- JSON Data for Words -->
     <script>
+
+
         function adjustSidebarHeight() {
             const sidebar = document.querySelector('.sidebar');
             const contentHeight = sidebar.scrollHeight;
