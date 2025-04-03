@@ -6,20 +6,19 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1.0">
   <title>Register as a Teacher - Pavonify</title>
-  
+
   <!-- Meta Tags -->
   <meta name="description" content="Register as a Teacher on Pavonify - Premium AI-Powered Language Teaching Platform">
   <meta name="keywords" content="Pavonify, register, teacher, language teaching, AI education">
   <meta name="author" content="Pavonify">
-  
+
   <!-- Favicon -->
   <link rel="icon" href="{% static 'images/favicon.ico' %}" type="image/x-icon">
-  
+
   <!-- Google Fonts: Poppins and Fredoka One -->
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Fredoka+One&display=swap" rel="stylesheet">
-  
+
   <style>
-    /* Theme Colors */
     :root {
       --primary: #1A73E8;
       --accent: #F2A03D;
@@ -28,8 +27,6 @@
       --dark: #0D0D0D;
       --highlight: #A6173D;
     }
-    
-    /* Global Reset & Base */
     * {
       box-sizing: border-box;
       margin: 0;
@@ -51,19 +48,10 @@
     a:hover {
       color: var(--highlight);
     }
-    h1, h2, h3, h4, h5, h6 {
-      font-weight: 700;
-      margin-bottom: 0.5em;
-    }
     h1 {
       font-family: 'Fredoka One', cursive;
       color: var(--primary);
     }
-    p {
-      margin-bottom: 1em;
-    }
-    
-    /* Top Navigation Bar */
     .top-nav {
       background-color: var(--primary);
       color: #fff;
@@ -72,21 +60,10 @@
       align-items: center;
       justify-content: center;
     }
-    .top-nav .nav-left {
-      display: flex;
-      align-items: center;
-    }
     .top-nav .nav-left img {
       height: 40px;
       margin-right: 10px;
     }
-    .top-nav .nav-left span {
-      font-size: 1.5rem;
-      font-weight: 700;
-      text-transform: uppercase;
-    }
-    
-    /* Main Content */
     .main-content {
       display: flex;
       align-items: center;
@@ -104,17 +81,6 @@
       text-align: center;
       animation: fadeIn 0.5s ease-in-out;
     }
-    .pane h1 {
-      font-family: 'Fredoka One', cursive;
-      font-size: 28px;
-      margin-bottom: 20px;
-    }
-    .pane p {
-      font-size: 16px;
-      color: #333;
-    }
-    
-    /* Form Styling */
     form {
       display: flex;
       flex-direction: column;
@@ -125,7 +91,6 @@
     form label {
       font-size: 16px;
       margin-bottom: 5px;
-      color: var(--dark);
     }
     form input,
     form select {
@@ -135,7 +100,6 @@
       border-radius: 5px;
       font-size: 16px;
     }
-    
     .checkbox-container {
       display: flex;
       align-items: center;
@@ -147,18 +111,6 @@
       width: 16px;
       height: 16px;
     }
-    .checkbox-container label {
-      cursor: pointer;
-    }
-    .checkbox-container a {
-      color: var(--primary);
-      text-decoration: none;
-    }
-    .checkbox-container a:hover {
-      text-decoration: underline;
-    }
-    
-    /* Buttons */
     .action-btn {
       padding: 10px 15px;
       background-color: var(--primary);
@@ -176,37 +128,21 @@
       background-color: var(--accent);
       transform: translateY(-2px);
     }
-    
-    /* Error Message */
     .error-message {
       color: red;
       font-size: 14px;
+      margin-top: -10px;
       margin-bottom: 10px;
     }
-    
-    /* Animations */
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(-20px); }
       to { opacity: 1; transform: translateY(0); }
     }
-    
-    /* Remove Flag from Country Select */
     form select[name="country"] {
       background-image: none !important;
     }
-    
-    /* Responsive Styles */
-    @media (max-width: 768px) {
-      .top-nav {
-        flex-direction: column;
-        text-align: center;
-      }
-      .main-content {
-        padding: 20px;
-      }
-    }
   </style>
-  
+
   <script>
     function validateForm(event) {
       const checkbox = document.getElementById('privacy-policy-checkbox');
@@ -218,53 +154,70 @@
   </script>
 </head>
 <body>
-  <!-- Top Navigation Bar -->
   <div class="top-nav">
     <div class="nav-left">
       <img src="{% static 'pavonify_bird.png' %}" alt="Pavonify Logo">
       <span>Pavonify</span>
     </div>
   </div>
-  
-  <!-- Main Content Section -->
+
   <div class="main-content">
     <div class="pane">
       <h1>Register as a Teacher</h1>
       <p>Sign up for a <strong>free teacher account</strong>. Upgrade anytime from your dashboard to access premium features.</p>
-      
-      {% if messages %}
-        {% for message in messages %}
-          <p class="error-message">{{ message }}</p>
+
+      {% if form.non_field_errors %}
+        {% for error in form.non_field_errors %}
+          <p class="error-message">{{ error }}</p>
         {% endfor %}
       {% endif %}
-      
+
       <form id="registration-form" method="POST" onsubmit="validateForm(event)">
         {% csrf_token %}
+
         <label for="{{ form.full_name.id_for_label }}">{{ form.full_name.label }}</label>
         {{ form.full_name }}
-        
+        {% if form.full_name.errors %}
+          <div class="error-message">{{ form.full_name.errors.0 }}</div>
+        {% endif %}
+
         <label for="{{ form.email.id_for_label }}">{{ form.email.label }}</label>
         {{ form.email }}
-        
+        {% if form.email.errors %}
+          <div class="error-message">{{ form.email.errors.0 }}</div>
+        {% endif %}
+
         <label for="{{ form.username.id_for_label }}">{{ form.username.label }}</label>
         {{ form.username }}
-        
+        {% if form.username.errors %}
+          <div class="error-message">{{ form.username.errors.0 }}</div>
+        {% endif %}
+
         <label for="{{ form.password1.id_for_label }}">{{ form.password1.label }}</label>
         {{ form.password1 }}
-        
+        {% if form.password1.errors %}
+          <div class="error-message">{{ form.password1.errors.0 }}</div>
+        {% endif %}
+
         <label for="{{ form.password2.id_for_label }}">{{ form.password2.label }}</label>
         {{ form.password2 }}
-        
+        {% if form.password2.errors %}
+          <div class="error-message">{{ form.password2.errors.0 }}</div>
+        {% endif %}
+
         <label for="{{ form.country.id_for_label }}">{{ form.country.label }}</label>
         {{ form.country }}
-        
+        {% if form.country.errors %}
+          <div class="error-message">{{ form.country.errors.0 }}</div>
+        {% endif %}
+
         <div class="checkbox-container">
           <input type="checkbox" id="privacy-policy-checkbox">
           <label for="privacy-policy-checkbox">
             I accept the <a href="{% static 'Privacy Policy for Pavonify.pdf' %}" target="_blank">Privacy Policy</a>.
           </label>
         </div>
-        
+
         <button type="submit" class="action-btn">Register</button>
       </form>
     </div>
