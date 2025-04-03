@@ -21,395 +21,171 @@
     <style>
 
 
-@media print {
-    /* Hide everything except the worksheet */
-    body * {
-        visibility: hidden !important;
+:root {
+      --primary: #1A73E8;
+      --accent: #F2A03D;
+      --secondary-accent: #34A853;
+      --background: #F2EFE9;
+      --dark: #0D0D0D;
+      --highlight: #A6173D;
     }
 
-    /* Show only the worksheet page */
-    .worksheet-page, .worksheet-page * {
-        visibility: visible !important;
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
     }
 
-    /* Keep the worksheet page formatted correctly */
-    .worksheet-page {
-        width: 21cm !important; /* A4 width */
-        height: 29.7cm !important; /* A4 height */
-        margin: 0 auto !important;
-        padding: 20px !important;
-        box-shadow: none !important;
-        background: white !important;
-        position: relative !important;
+    body {
+      font-family: 'Poppins', sans-serif;
+      background-color: var(--background);
+      color: var(--dark);
+      display: flex;
+      min-height: 100vh;
     }
 
-    /* Ensure worksheet content remains inside the worksheet */
-    .worksheet-content {
-        width: 100% !important;
-        text-align: left !important;
+    .sidebar {
+      background-color: var(--primary);
+      color: #fff;
+      width: 250px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      overflow-y: auto;
     }
 
-    /* Ensure boxes remain positioned correctly and spaced properly */
-    .worksheet-box {
-        position: absolute !important; /* Keep original layout */
-        border: 1px solid #000 !important; /* Make it print-friendly */
-        padding: 10px !important;
-        background: white !important;
-        box-shadow: none !important;
-        overflow: visible !important;
-        page-break-inside: avoid !important;
+    .sidebar h2, .sidebar h3, .sidebar label {
+      color: #fff;
     }
 
-    /* Preserve spacing between boxes by adding margins */
-    .worksheet-box:not(:first-child) {
-        margin-top: 10px !important;
+    .main-content {
+      margin-left: 250px;
+      padding: 40px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
 
-    /* Hide UI controls (drag, resize, delete) */
-    .remove-box, .drag-handle, .resize-handle {
-        display: none !important;
+    .pane {
+      background-color: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 1200px;
     }
-}
 
-        /* Global Box-Sizing */
-        *, *::before, *::after {
-            box-sizing: border-box;
-        }
+    h1, h2, h3 {
+      color: var(--primary);
+    }
 
-        /* Import Font Awesome */
-        @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css');
-
-        /* Global Styles */
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            min-height: 100vh;
-            background: #e3f2fd;
-            display: flex;
-        }
-
-        /* Fixed Sidebar */
-        .sidebar {
-            background-color: #0aa2ef;
-            color: white;
-            padding: 20px;
-            width: 250px;
-            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-            position: fixed;
-            left: 0;
-            top: 0;
-            height: 100vh;
-            overflow-y: auto;
-        }
-
-        /* Custom Scrollbar (For Webkit browsers) */
-        .sidebar::-webkit-scrollbar {
-            width: 8px;
-        }
-        .sidebar::-webkit-scrollbar-track {
-            background: #0aa2ef;
-            border-radius: 10px;
-        }
-        .sidebar::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.6);
-            border-radius: 10px;
-        }
-        .sidebar::-webkit-scrollbar-thumb:hover {
-            background: rgba(255, 255, 255, 0.8);
-        }
-
-        /* Main Content */
-        .main-content {
-            margin-left: 250px;
-            flex-grow: 1;
-            padding: 40px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-            overflow-y: auto;
-            height: 100vh;
-        }
-
-        /* Toolbar */
-        .toolbar {
-            display: flex;
-            justify-content: space-between;
-            width: 100%;
-            margin-bottom: 20px;
-        }
-
-        /* Worksheet Lab Styles */
-        .pane {
-            background-color: white;
-            border-radius: 10px;
-            padding: 20px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            width: 100%;
-            margin-bottom: 20px;
-            color: #333;
-        }
-
-        /* Task Type Section */
-        .pane h2 {
-            color: #0aa2ef;
-            font-size: 28px;
-            margin-top: 0;
-        }
-
-        /* Ensure the preview box always keeps the scrollbar */
-        .box {
-            border: 1px solid #ccc;
-            padding: 10px;
-            margin-top: 10px;
-            background-color: #f9f9f9;
-            border-radius: 5px;
-            box-shadow: 0 2px 3px rgba(0, 0, 0, 0.1);
-            color: #333;
-            min-height: 50px;
-            max-height: calc(100vh - 400px); /* Adjust based on viewport height */
-            width: 90%;
-            text-align: left;
-            font-size: 14px;
-            line-height: 1.5;
-            overflow-y: auto !important; /* Forces scrollbar to always appear */
-            display: block;
-        }
-
-        /* Ensure Scrollbar is Visible in Webkit Browsers */
-        .box::-webkit-scrollbar {
-            width: 6px; /* Thin scrollbar */
-        }
-
-        .box::-webkit-scrollbar-track {
-            background: #f1f1f1; /* Light grey */
-            border-radius: 5px;
-        }
-
-        .box::-webkit-scrollbar-thumb {
-            background: #888; /* Slightly darker for visibility */
-            border-radius: 5px;
-        }
-
-        .box::-webkit-scrollbar-thumb:hover {
-            background: #555; /* Darker when hovered */
-        }
-
-        /* Dynamic Button Positioning */
-        .sidebar .buttons-wrapper {
-            margin-top: auto; /* Push buttons down dynamically */
-            padding-top: 10px;
-            width: 100%;
-            text-align: center;
-        }
-
-        /* Form Elements */
-        label {
-            display: block;
-            margin-top: 5px;
-            font-weight: bold;
-        }
-        select, input[type="number"], input[type="text"] {
-            width: 100%;
-            padding: 8px;
-            margin-top: 5px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-        }
-
-        /* Buttons */
-        button {
-            background-color: #ff2c61;
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            margin-top: 10px;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background-color 0.3s;
-            font-size: 14px;
-        }
-        button:hover {
-            background-color: #d4204c;
-        }
-
-        /* Small Rounded Light Blue Buttons */
-        .button-row {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin-bottom: 10px;
-        }
-
-        /* Individual Small Button */
-        .button-row button {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            font-size: 18px;
-            padding: 5px;
-            text-align: center;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background-color: #4da3ff; /* Light Blue */
-            color: white;
-            border: none;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-        }
-
-        .button-row button:hover {
-            background-color: #1e87ff; /* Slightly darker blue on hover */
-        }
-
-        /* Worksheet Layout (A4 Paper Style with Grid) */
-        .worksheet-page {
-            width: 21cm; /* A4 width */
-            height: 29.7cm; /* A4 height */
-            background: white;
-            padding: 20px;
-            border-radius: 5px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            text-align: center;
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
- background-image: 
-        linear-gradient(rgba(150, 150, 150, 0.4) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(150, 150, 150, 0.4) 1px, transparent 1px);	
-            background-size: 20px 20px; /* Grid spacing */
-        }
-
-        /* Pavonify Logo */
-        .worksheet-logo {
-            width: 120px;
-            margin-bottom: 10px;
-        }
-
-        /* Worksheet Title */
-        #worksheet-title {
-            font-size: 24px;
-            color: #0aa2ef;
-            margin-bottom: 10px;
-        }
-
-        /* Print-friendly Styling */
-        @media print {
-            body {
-                background: none;
-            }
-            .worksheet-page {
-                box-shadow: none;
-                border: none;
-            }
-        }
-
-        /* Worksheet Content */
-        .worksheet-content {
-            width: 100%;
-            text-align: left;
-        }
-
-/* Draggable & Resizable Worksheet Box */
-.worksheet-box {
-    position: absolute;
-    border: 1px solid #ccc;
-    padding: 10px;
-    background-color: #fff;
-    border-radius: 5px;
-    box-shadow: 0 2px 3px rgba(0, 0, 0, 0.1);
-    width: auto; /* Adjust width to content */
-    min-width: 150px;
-    max-width: 60%; /* Prevent excessive width */
-    height: auto; /* Adjust height to content */
-    min-height: 50px;
-    /* max-height: 300px; /* Prevent excessive height */
-    text-align: left;
-    overflow: auto;
-    cursor: default; /* No drag cursor on the whole box */
-    display: inline-block; /* Ensure width adjusts to text */
-    white-space: normal; /* Allow text to wrap */
-}
-
-/* Top-Right Controls (Drag Handle & Remove Button) */
-.box-controls {
-    position: absolute;
-    top: 5px;
-    right: 5px;
-    display: flex;
-    gap: 5px;
-}
-
-/* Drag Handle (Moves the Box) */
-.drag-handle {
-    cursor: grab;
-    font-size: 14px;
-    color: #666; /* Subtle color */
-    padding: 3px;
-}
-
-/* Remove Button (X) */
-.remove-box {
-    font-size: 14px;
-    color: #ff2c61;
-    cursor: pointer;
-    font-weight: bold;
-    transition: color 0.3s ease;
-    padding: 3px;
-}
-.remove-box:hover {
-    color: #d4204c;
-}
-
-/* Resize Handle (Bottom-Right Corner) */
-.resize-handle {
-    position: absolute;
-    width: 10px;
-    height: 10px;
-    background: #ccc; /* Matches box border */
-    bottom: 2px;
-    right: 2px;
-    cursor: se-resize;
-    border-radius: 2px;
-    z-index: 10;
-}
-
-    .upgrade-btn {
-      background-color: #FFD700;
-      color: #333;
-      border: none;
-      padding: 6px 10px;
+    input[type="text"], input[type="number"], select {
+      width: 100%;
+      padding: 8px;
+      margin-top: 5px;
+      margin-bottom: 15px;
       border-radius: 5px;
-      text-decoration: none;
+      border: 1px solid #ccc;
+    }
+
+    button {
+      background-color: var(--accent);
+      color: #fff;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 5px;
+      font-weight: 600;
       cursor: pointer;
       transition: background-color 0.3s ease;
+    }
+
+    button:hover {
+      background-color: var(--highlight);
+    }
+
+    .worksheet-page {
+      background: #fff;
+      width: 21cm;
+      height: 29.7cm;
+      padding: 20px;
+      border-radius: 5px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+      margin-top: 30px;
+      position: relative;
+    }
+
+    .worksheet-page img.worksheet-logo {
+      width: 120px;
+      margin-bottom: 10px;
+    }
+
+    .worksheet-content {
+      width: 100%;
+    }
+
+    .worksheet-box {
+      position: absolute;
+      border: 1px solid #ccc;
+      background-color: #fff;
+      padding: 10px;
+      border-radius: 5px;
+      box-shadow: 0 2px 3px rgba(0, 0, 0, 0.1);
+      white-space: normal;
+    }
+
+    .drag-handle, .remove-box {
       font-size: 14px;
-      white-space: nowrap;
+      padding: 3px;
     }
+
+    .drag-handle {
+      cursor: grab;
+      color: #888;
+    }
+
+    .remove-box {
+      color: var(--highlight);
+      cursor: pointer;
+    }
+
+    .button-row button {
+      background-color: var(--primary);
+      color: #fff;
+    }
+
+    .button-row button:hover {
+      background-color: var(--accent);
+    }
+
+    .box {
+      border: 1px solid #ccc;
+      background: #f9f9f9;
+      padding: 10px;
+      border-radius: 5px;
+      font-size: 14px;
+      color: var(--dark);
+      overflow-y: auto;
+      max-height: 300px;
+    }
+
+    .upgrade-btn {
+      background-color: var(--accent);
+      color: #fff;
+      border-radius: 5px;
+      padding: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+    }
+
     .upgrade-btn:hover {
-      background-color: #e6c200;
+      background-color: var(--highlight);
     }
-
-
-        /* Keep Important Buttons at the Bottom */
-        .sidebar-footer {
-            position: sticky;
-            bottom: 0;
-            background: #0aa2ef;
-            padding: 10px;
-            width: 100%;
-            text-align: center;
-        }
-        .sidebar-footer button {
-            width: 90%;
-            margin-bottom: 5px;
-        }
     </style>
 </head>
 <body>
@@ -474,7 +250,7 @@
 
                 <!-- Worksheet Print Preview (More like a real page) -->
                 <div class="worksheet-page">
-                    <img src="{% static 'learning/pavonify_logo.png' %}" alt="Pavonify Logo" class="worksheet-logo">
+                    <img src="{% static 'pavonify_bird.png' %}" alt="Pavonify Logo" class="worksheet-logo">
                     <h1 id="worksheet-title">{{ vocab_list.name }} Worksheet</h1>
                     <hr>
                     <div id="worksheet-preview" class="worksheet-content">
