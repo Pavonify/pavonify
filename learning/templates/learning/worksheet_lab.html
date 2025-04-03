@@ -9,183 +9,175 @@
 
 
     <!-- jQuery and jQuery UI (for draggable and resizable features) -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
 
 
     <style>
+        :root {
+            --primary: #1A73E8;
+            --accent: #F2A03D;
+            --secondary-accent: #34A853;
+            --background: #F2EFE9;
+            --dark: #0D0D0D;
+            --highlight: #A6173D;
+        }
 
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--background);
+            color: var(--dark);
+            display: flex;
+            min-height: 100vh;
+        }
 
-:root {
-      --primary: #1A73E8;
-      --accent: #F2A03D;
-      --secondary-accent: #34A853;
-      --background: #F2EFE9;
-      --dark: #0D0D0D;
-      --highlight: #A6173D;
-    }
+        .sidebar {
+            background-color: var(--primary);
+            color: #fff;
+            width: 250px;
+            padding: 20px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            overflow-y: auto;
+        }
 
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+        .main-content {
+            margin-left: 250px;
+            padding: 40px;
+            flex: 1;
+        }
 
-    body {
-      font-family: 'Poppins', sans-serif;
-      background-color: var(--background);
-      color: var(--dark);
-      display: flex;
-      min-height: 100vh;
-    }
+        .toolbar {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 20px;
+        }
 
-    .sidebar {
-      background-color: var(--primary);
-      color: #fff;
-      width: 250px;
-      padding: 20px;
-      display: flex;
-      flex-direction: column;
-      position: fixed;
-      top: 0;
-      left: 0;
-      bottom: 0;
-      overflow-y: auto;
-    }
+        .pane {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            max-width: 1200px;
+            margin: auto;
+        }
 
-    .sidebar h2, .sidebar h3, .sidebar label {
-      color: #fff;
-    }
+        input[type="text"], input[type="number"], select {
+            width: 100%;
+            padding: 8px;
+            margin: 8px 0 16px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
 
-    .main-content {
-      margin-left: 250px;
-      padding: 40px;
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
+        button {
+            background-color: var(--accent);
+            color: #fff;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 5px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
 
-    .pane {
-      background-color: #fff;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-      width: 100%;
-      max-width: 1200px;
-    }
+        button:hover {
+            background-color: var(--highlight);
+        }
 
-    h1, h2, h3 {
-      color: var(--primary);
-    }
+        .worksheet-page {
+            background: #fff;
+            width: 21cm;
+            height: 29.7cm;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            margin-top: 30px;
+            position: relative;
+        }
 
-    input[type="text"], input[type="number"], select {
-      width: 100%;
-      padding: 8px;
-      margin-top: 5px;
-      margin-bottom: 15px;
-      border-radius: 5px;
-      border: 1px solid #ccc;
-    }
+        .worksheet-page img.worksheet-logo {
+            width: 120px;
+            margin-bottom: 10px;
+        }
 
-    button {
-      background-color: var(--accent);
-      color: #fff;
-      border: none;
-      padding: 10px 16px;
-      border-radius: 5px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background-color 0.3s ease;
-    }
+        .worksheet-content {
+            width: 100%;
+        }
 
-    button:hover {
-      background-color: var(--highlight);
-    }
+        .worksheet-box {
+            position: absolute;
+            border: 1px solid #ccc;
+            background-color: #fff;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 3px rgba(0, 0, 0, 0.1);
+            white-space: normal;
+        }
 
-    .worksheet-page {
-      background: #fff;
-      width: 21cm;
-      height: 29.7cm;
-      padding: 20px;
-      border-radius: 5px;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-      margin-top: 30px;
-      position: relative;
-    }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.5);
+        }
 
-    .worksheet-page img.worksheet-logo {
-      width: 120px;
-      margin-bottom: 10px;
-    }
+        .modal-content {
+            background-color: #fff;
+            margin: 10% auto;
+            padding: 20px;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.3);
+        }
 
-    .worksheet-content {
-      width: 100%;
-    }
+        .modal-content .close {
+            float: right;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+        }
 
-    .worksheet-box {
-      position: absolute;
-      border: 1px solid #ccc;
-      background-color: #fff;
-      padding: 10px;
-      border-radius: 5px;
-      box-shadow: 0 2px 3px rgba(0, 0, 0, 0.1);
-      white-space: normal;
-    }
+        .feature-table {
+            width: 100%;
+            margin-top: 10px;
+            border-collapse: collapse;
+        }
 
-    .drag-handle, .remove-box {
-      font-size: 14px;
-      padding: 3px;
-    }
+        .feature-table th,
+        .feature-table td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            text-align: center;
+        }
 
-    .drag-handle {
-      cursor: grab;
-      color: #888;
-    }
+        .feature-table th {
+            background-color: #eee;
+        }
 
-    .remove-box {
-      color: var(--highlight);
-      cursor: pointer;
-    }
+        .premium-restriction {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-right: 20px;
+        }
 
-    .button-row button {
-      background-color: var(--primary);
-      color: #fff;
-    }
-
-    .button-row button:hover {
-      background-color: var(--accent);
-    }
-
-    .box {
-      border: 1px solid #ccc;
-      background: #f9f9f9;
-      padding: 10px;
-      border-radius: 5px;
-      font-size: 14px;
-      color: var(--dark);
-      overflow-y: auto;
-      max-height: 300px;
-    }
-
-    .upgrade-btn {
-      background-color: var(--accent);
-      color: #fff;
-      border-radius: 5px;
-      padding: 10px;
-      font-weight: 600;
-      cursor: pointer;
-      text-decoration: none;
-    }
-
-    .upgrade-btn:hover {
-      background-color: var(--highlight);
-    }
+        .upgrade-message {
+            color: var(--dark);
+        }
     </style>
 </head>
 <body>
