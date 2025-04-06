@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import login, logout, get_user_model
 from django.db.models import Sum
-from .models import Progress, VocabularyWord, VocabularyList, User, Class, Student, School, Assignment, AssignmentProgress, Trophy, StudentTrophy, ReadingLabText, AssignmentAttempt
+from .models import Progress, VocabularyWord, VocabularyList, User, Class, Student, School, Assignment, AssignmentProgress, Trophy, StudentTrophy, ReadingLabText, AssignmentAttempt, GrammarLadder, LadderItem
 from .forms import VocabularyListForm, CustomUserCreationForm, BulkAddWordsForm, ClassForm, ShareClassForm, TeacherRegistrationForm
 from django.contrib import messages
 from django.http import HttpResponseRedirect
@@ -15,6 +15,8 @@ from django.db.models import Q
 from django.urls import reverse
 from functools import wraps
 from django.http import HttpResponseForbidden, Http404, HttpResponseBadRequest
+import re
+from django.views.decorators.http import require_POST
 
 import json
 from .decorators import student_login_required
@@ -2073,3 +2075,159 @@ def assignment_analytics(request, assignment_id):
     }
     
     return render(request, "learning/assignment_analytics.html", context)
+
+
+from django.db.models import Count
+
+@login_required
+def grammar_lab(request):
+    # Annotate ladders with the number of LadderItems
+    ladders = GrammarLadder.objects.filter(teacher=request.user).annotate(rung_count=Count("items")).order_by("-created_at")
+
+    
+    coins_left = request.user.ai_credits
+
+    if request.method == "POST":
+        # 1. Permissions & coins check
+        if not request.user.is_teacher or request.user.ai_credits < 1:
+            messages.error(request, "You do not have enough Pavonicoins or you are not a teacher.")
+            return redirect("grammar_lab")
+
+        # 2. Collect form data
+        name = request.POST.get("ladder_name")
+        prompt = request.POST.get("grammar_prompt")
+        language = request.POST.get("language")
+
+        if not name or not prompt or not language:
+            messages.error(request, "Please complete all fields.")
+            return redirect("grammar_lab")
+
+        # 3. 🎯 Construct focused AI prompt
+        full_prompt = (
+            f"You are a grammar teaching assistant. Your task is to generate as many short, realistic and varied phrases "
+            f"or sentences in {language} as possible (up to 1000), that focus *only* on the grammar topic: \"{prompt}\".\n\n"
+
+            f"⚠️ Each example must test understanding of this grammar point. Do not include errors related to other grammar topics "
+            f"(e.g. noun gender, spelling, or articles).\n"
+            f"✅ All correct sentences must be genuinely grammatically correct.\n"
+            f"❌ All incorrect sentences must contain a single, realistic grammar mistake related only to the target grammar point.\n\n"
+
+            f"✍️ Output format:\n"
+            f"Each line must contain exactly one sentence or phrase, followed by =correct or =incorrect.\n"
+            f"No explanations. No titles. No examples. No numbering.\n"
+            f"Only output real {language} sentences. Do not include the word 'PHRASE'.\n\n"
+
+            f"Bad:\nPHRASE=correct ❌\n"
+            f"Good:\nIch habe gegessen=correct ✅\nIch hat gegessen=incorrect ✅\n"
+        )
+
+        # 4. 🔥 Call Gemini API
+        try:
+            model = genai.GenerativeModel('gemini-1.5-flash')
+            response = model.generate_content(full_prompt)
+            raw_output = response.text.strip()
+        except Exception as e:
+            messages.error(request, f"AI generation failed: {e}")
+            return redirect("grammar_lab")
+
+        # 5. Parse AI response
+        parsed_items = []
+        for line in raw_output.splitlines():
+            if "=" in line:
+                parts = line.split("=")
+                if len(parts) == 2:
+                    phrase = parts[0].strip()
+                    correctness = parts[1].strip().lower()
+                    is_correct = correctness == "correct"
+                    parsed_items.append((phrase, is_correct))
+
+        # 6. Validate and filter
+        total_items = len(parsed_items)
+        if total_items < 100:
+            messages.error(request, f"❌ AI returned too few results ({total_items}). Please try again or refine your prompt.")
+            return redirect("grammar_lab")
+        if total_items > 750:
+            parsed_items = parsed_items[:750]  # Cap at 750
+
+        correct_count = sum(1 for _, c in parsed_items if c)
+        incorrect_count = sum(1 for _, c in parsed_items if not c)
+        if abs(correct_count - incorrect_count) > total_items * 0.25:  # max 25% imbalance
+            messages.error(request, "AI returned an unbalanced set of correct and incorrect phrases. Try again or adjust the prompt.")
+            return redirect("grammar_lab")
+
+        # 7. Save Grammar Ladder
+        ladder = GrammarLadder.objects.create(
+            teacher=request.user,
+            name=name,
+            prompt=prompt,
+            language=language
+        )
+
+        # 8. Save Ladder Items
+        for phrase, is_correct in parsed_items:
+            LadderItem.objects.create(
+                ladder=ladder,
+                phrase=phrase,
+                is_correct=is_correct
+            )
+
+        # 9. Deduct Pavonicoin
+        request.user.deduct_credit()
+
+        # 10. Success message and redirect
+        messages.success(request, f"✅ Grammar Ladder created with {total_items} phrases!")
+        return redirect("grammar_lab")
+
+    # GET request: render the page
+    return render(request, "learning/grammar_lab.html", {
+        "ladders": ladders,
+        "coins_left": coins_left
+    })
+
+
+@require_POST
+@login_required
+def delete_ladder(request, ladder_id):
+    ladder = get_object_or_404(GrammarLadder, id=ladder_id, teacher=request.user)
+    ladder.delete()
+    return redirect("grammar_lab")
+
+from django.forms import modelformset_factory
+from .models import GrammarLadder, LadderItem
+
+@login_required
+def grammar_ladder_detail(request, ladder_id):
+    ladder = get_object_or_404(GrammarLadder, id=ladder_id, teacher=request.user)
+
+    LadderItemFormSet = modelformset_factory(
+        LadderItem,
+        fields=("phrase", "is_correct"),
+        extra=0,
+        can_delete=True  # 🔥 Enables row deletion
+    )
+
+    if request.method == "POST":
+        print("DEBUG POST:", request.POST)
+
+        formset = LadderItemFormSet(request.POST, queryset=ladder.items.all())
+        if formset.is_valid():
+            print("✅ Formset is valid")
+            print(f"Deleting {len(formset.deleted_forms)} rows")
+
+            for form in formset.deleted_forms:
+                print("Marked for deletion:", form.cleaned_data.get("phrase"))
+
+            formset.save()
+            messages.success(request, "Ladder items updated.")
+            return redirect("grammar_ladder_detail", ladder_id=ladder_id)
+        else:
+            print("❌ Formset is invalid")
+            print(formset.errors)
+
+    else:
+        formset = LadderItemFormSet(queryset=ladder.items.all())
+
+    return render(request, "learning/grammar_ladder_detail.html", {
+        "ladder": ladder,
+        "formset": formset,
+    })

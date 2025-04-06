@@ -315,4 +315,28 @@ class AssignmentAttempt(models.Model):
         return f"{self.student.username} - {self.vocabulary_word.word} ({self.mode}): {status} at {self.timestamp}"
 
 
+class GrammarLadder(models.Model):
+    teacher = models.ForeignKey(User, on_delete=models.CASCADE, related_name="grammar_ladders")
+    name = models.CharField(max_length=100)
+    prompt = models.TextField()
+    language = models.CharField(max_length=20, choices=[
+        ('French', 'French'),
+        ('German', 'German'),
+        ('Spanish', 'Spanish'),
+        ('Italian', 'Italian'),
+    ])
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.teacher.username} - {self.name} ({self.language})"
+
+
+class LadderItem(models.Model):
+    ladder = models.ForeignKey(GrammarLadder, on_delete=models.CASCADE, related_name="items")
+    phrase = models.CharField(max_length=255)
+    is_correct = models.BooleanField()
+
+    def __str__(self):
+        return f"{self.phrase} - {'Correct' if self.is_correct else 'Incorrect'}"
+
 

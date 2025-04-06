@@ -17,7 +17,7 @@ RECAPTCHA_SECRET_KEY = '6Lf2tuAqAAAAACNaUMmTeo34l3CtbM6fy5QwK3TE'
 
 GEMINI_API_KEY = 'AIzaSyAhBjjphW7nVHETfDtewuy_qiFXspa1yO4'
 
-
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 5000  # or higher depending on your use case
 
 # Security Settings
 SECRET_KEY = os.getenv("SECRET_KEY", "django-insecure-key")
