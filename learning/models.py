@@ -148,21 +148,28 @@ class VocabularyWord(models.Model):
 
 
 class Progress(models.Model):
-    student = models.ForeignKey(User, on_delete=models.CASCADE, limit_choices_to={'is_student': True})
+    student = models.ForeignKey(
+        User, on_delete=models.CASCADE, limit_choices_to={"is_student": True}
+    )
     word = models.ForeignKey(VocabularyWord, on_delete=models.CASCADE)
     correct_attempts = models.IntegerField(default=0)
     incorrect_attempts = models.IntegerField(default=0)
-    last_seen = models.DateTimeField(null=True, blank=True)
-    review_count = models.IntegerField(default=0)
+    last_seen = models.DateTimeField(auto_now=True, null=True, blank=True)
+    review_count = models.PositiveIntegerField(default=0)
     next_due = models.DateTimeField(null=True, blank=True)
     interval = models.IntegerField(default=1)
-    last_seen = models.DateTimeField(null=True, blank=True)
-    review_count = models.PositiveIntegerField(default=0)
     points = models.IntegerField(default=0)  # Points for this specific word interaction
 
     def update_points(self, points_awarded):
         self.points += points_awarded
         self.save()
+
+    def memory_score(self):
+        """Return a hot/cold score based on time since last seen."""
+        if self.review_count == 0 or not self.last_seen:
+            return "cold"
+        elapsed = now() - self.last_seen
+        return "hot" if elapsed <= timedelta(days=self.interval) else "cold"
 
 class Word(models.Model):
     source = models.CharField(max_length=255)

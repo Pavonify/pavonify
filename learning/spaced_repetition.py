@@ -43,15 +43,21 @@ def get_due_words(student, vocab_list, limit=20):
 
 
 def schedule_review(student, word_id, correct):
-    """Update review schedule for a word based on the result."""
+    """Update review schedule and attempt counters for a word."""
     user = _get_user_from_student(student)
     word = VocabularyWord.objects.get(id=word_id)
     progress, _ = Progress.objects.get_or_create(student=user, word=word)
+
+    now = timezone.now()
+    progress.last_seen = now
+    progress.review_count = (progress.review_count or 0) + 1
+
     if correct:
         progress.correct_attempts += 1
         progress.interval = max(progress.interval * 2, 1)
     else:
         progress.incorrect_attempts += 1
         progress.interval = 1
-    progress.next_due = timezone.now() + timedelta(days=progress.interval)
+
+    progress.next_due = now + timedelta(days=progress.interval)
     progress.save()
