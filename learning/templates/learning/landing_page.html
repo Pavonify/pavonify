@@ -41,11 +41,28 @@
       padding: 0;
     }
     body {
-      font-family: 'Poppins', sans-serif;
-      background-color: var(--background);
-      color: var(--dark);
+      background: linear-gradient(135deg, #e5e5ea, #f2f2f7);
+      font-family: "SF Pro Display", sans-serif;
+      color: #1c1c1e;
       line-height: 1.6;
       scroll-behavior: smooth;
+    }
+    .glass-card {
+      background: rgba(255,255,255,0.6);
+      border-radius: 20px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+      backdrop-filter: blur(20px);
+      padding: 2rem;
+    }
+    .btn-primary {
+      background: #007aff;
+      color: #fff;
+      border-radius: 12px;
+      padding: 0.75rem 1.25rem;
+      transition: background 0.2s;
+    }
+    .btn-primary:hover {
+      background: #005fcc;
     }
     a {
       color: var(--accent);
@@ -104,10 +121,7 @@
     /* Hero Section */
     header {
       position: relative;
-      background: linear-gradient(135deg, var(--primary), #1A73E8);
-      color: #fff;
       padding: 60px 20px;
-      overflow: hidden;
     }
     .hero-container {
       display: flex;
@@ -143,28 +157,7 @@
       position: relative;
     }
     .hero-right img {
-      max-width: 500px;
-      animation: bounce 2s infinite;
-    }
-    @keyframes bounce {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-10px); }
-    }
-    .hero-right .speech-bubble {
-      position: absolute;
-      top: -20px;
-      right: -20px;
-      background: #fff;
-      padding: 10px;
-      border-radius: 10px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      font-size: 0.9rem;
-      color: var(--dark);
-      animation: float 3s infinite;
-    }
-    @keyframes float {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-5px); }
+      max-width: 300px;
     }
 
     /* Features Section */
@@ -178,25 +171,13 @@
       grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
       gap: 20px;
     }
-    .feature-box {
-      background-color: #fff;
-      border-radius: 8px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      padding: 20px;
-      transition: transform 0.3s ease;
+    .features .glass-card {
       text-align: center;
     }
-    .feature-box:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 8px 16px rgba(0,0,0,0.2);
-    }
-    .feature-box img {
-      max-width: 80px;
+    .features .glass-card svg {
+      width: 64px;
+      height: 64px;
       margin-bottom: 15px;
-      transition: transform 0.3s ease;
-    }
-    .feature-box:hover img {
-      transform: rotate(10deg) scale(1.1);
     }
 
     /* Comparison Table */
@@ -282,8 +263,6 @@
 
     /* Navigation */
     nav {
-      background-color: #fff;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
       padding: 10px 20px;
       display: flex;
       justify-content: flex-end;
@@ -293,7 +272,7 @@
       margin-left: 30px;
       font-weight: 600;
       text-transform: uppercase;
-      color: var(--dark);
+      color: #1c1c1e;
     }
     nav a:hover {
       color: var(--accent);
@@ -301,14 +280,12 @@
 
     /* Footer */
     footer {
-      background-color: var(--primary);
-      color: #fff;
       text-align: center;
       padding: 30px 20px;
       font-size: 0.9em;
     }
     footer a {
-      color: #fff;
+      color: #007aff;
       text-transform: none;
     }
 
@@ -380,15 +357,6 @@
         opacity: 0;
       }
     }
-    .student-bird {
-      display: block;
-      margin: 0 auto;
-      max-width: 150px;
-      width: 100%;
-      height: auto;
-      padding: 0;
-      margin-bottom: 0;
-    }
     .comparison-wrapper {
       width: 100%;
       max-width: 1200px;
@@ -430,23 +398,6 @@
       .pavonify-bird-on-trophy {
         display: none;
       }
-    }
-
-    .register-btn {
-      background: linear-gradient(45deg, #F2A03D, #F2A03D 50%, #F2A03D);
-      color: var(--dark);
-      padding: 12px 24px;
-      border: none;
-      border-radius: 8px;
-      text-transform: uppercase;
-      font-weight: 700;
-      cursor: pointer;
-      transition: background-color 0.3s ease, transform 0.3s ease;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    }
-    .register-btn:hover {
-      background: linear-gradient(45deg, #F2A03D, #F2A03D 50%, #F2A03D);
-      transform: translateY(-2px);
     }
 
     /* Responsive Adjustments for Mobile */
@@ -494,71 +445,92 @@
   </div>
 
   <!-- Hero Section -->
-  <header>
-    <div class="hero-container">
-      <div class="hero-left">
-        <h1>WELCOME TO <span class="shimmer">PAVONIFY</span></h1>
-        <p>The Ultimate AI-Powered Language Teaching Platform</p>
-        <div class="feature-strip">
-          <span class="feature">Vocabulary Learning</span>
-          <span class="feature">Track Student Progress</span>
-          <span class="feature">Worksheet Designer</span>
-          <span class="feature">AI Parallel Text Designer</span>
-          <span class="feature">Live Games</span>
-          <span class="feature">Student Leaderboards & Trophies</span>
+    <header class="glass-card">
+      <div class="hero-container">
+        <div class="hero-left">
+          <h1>WELCOME TO <span class="shimmer">PAVONIFY</span></h1>
+          <p>The Ultimate AI-Powered Language Teaching Platform</p>
+          <div class="feature-strip">
+            <span class="feature">Vocabulary Learning</span>
+            <span class="feature">Track Student Progress</span>
+            <span class="feature">Worksheet Designer</span>
+            <span class="feature">AI Parallel Text Designer</span>
+            <span class="feature">Live Games</span>
+            <span class="feature">Student Leaderboards & Trophies</span>
+          </div>
+        </div>
+        <div class="hero-right">
+          <img src="{% static 'globe.png' %}" alt="Global language learning">
         </div>
       </div>
-      <div class="hero-right">
-        <img src="{% static 'pavonify_bird_jumping_circle.png' %}" alt="Jumping Pavonify Bird">
-        <!-- <div class="speech-bubble">Let's learn together!</div> -->
-      </div>
-    </div>
-  </header>
+    </header>
 
   <!-- Navigation -->
-  <nav>
-    <a href="#features">Features</a>
-    <a href="#comparison">Comparison</a>
-    <a href="#roadmap">Roadmap</a>
-    <a href="mailto:contact@pavonify.com">Contact</a>
-  </nav>
+    <nav class="glass-card">
+      <a href="#features">Features</a>
+      <a href="#comparison">Comparison</a>
+      <a href="#roadmap">Roadmap</a>
+      <a href="mailto:contact@pavonify.com">Contact</a>
+    </nav>
 
   <!-- Features Section -->
-  <section id="features">
-    <h2>Key Features</h2>
-    <div class="features">
-      <div class="feature-box">
-        <img src="{% static 'Dictionary.png' %}" alt="Dictionary">
-        <h3>Vocabulary</h3>
-        <p>Create lists and set assignments for students.</p>
+    <section id="features">
+      <h2>Key Features</h2>
+      <div class="features">
+        <div class="glass-card">
+          <svg viewBox="0 0 64 64" fill="none" stroke="#007aff" stroke-width="3">
+            <rect x="8" y="8" width="20" height="48" rx="2" ry="2"/>
+            <rect x="36" y="8" width="20" height="48" rx="2" ry="2"/>
+          </svg>
+          <h3>Vocabulary</h3>
+          <p>Create lists and set assignments for students.</p>
+        </div>
+        <div class="glass-card">
+          <svg viewBox="0 0 64 64" fill="#007aff">
+            <polygon points="28,4 44,4 32,28 48,28 20,60 28,36 12,36"/>
+          </svg>
+          <h3>Interactive Learning</h3>
+          <p>Accelarated learning with our range of interactive learning modes through Live Games and Assignments.</p>
+        </div>
+        <div class="glass-card">
+          <svg viewBox="0 0 64 64" fill="none" stroke="#007aff" stroke-width="3">
+            <path d="M16 36v12a8 8 0 0 0 8 8h0a8 8 0 0 0 8-8V36M48 36v12a8 8 0 0 1-8 8h0a8 8 0 0 1-8-8V36"/>
+            <path d="M16 36V24a16 16 0 0 1 32 0v12"/>
+          </svg>
+          <h3>Listening Practice</h3>
+          <p>Live voices read out your vocabulary words for your students to practice spelling and translating.</p>
+        </div>
+        <div class="glass-card">
+          <svg viewBox="0 0 64 64" fill="#007aff">
+            <rect x="14" y="34" width="8" height="22"/>
+            <rect x="28" y="28" width="8" height="28"/>
+            <rect x="42" y="20" width="8" height="36"/>
+          </svg>
+          <h3>Leaderboards and Statistics</h3>
+          <p>Deep analytical data for teachers to see student progress.</p>
+        </div>
+        <div class="glass-card">
+          <svg viewBox="0 0 64 64" fill="none" stroke="#007aff" stroke-width="3">
+            <rect x="16" y="8" width="32" height="48" rx="2" ry="2"/>
+            <line x1="24" y1="24" x2="40" y2="24"/>
+            <line x1="24" y1="32" x2="40" y2="32"/>
+            <line x1="24" y1="40" x2="40" y2="40"/>
+          </svg>
+          <h3>Worksheet Lab 🧪</h3>
+          <p>Create custom worksheets in seconds from your vocabulary lists.</p>
+        </div>
+        <div class="glass-card">
+          <svg viewBox="0 0 64 64" fill="none" stroke="#007aff" stroke-width="3">
+            <path d="M8 16h24v32H8z"/>
+            <path d="M32 16h24v32H32z"/>
+            <line x1="16" y1="24" x2="24" y2="24"/>
+            <line x1="40" y1="24" x2="48" y2="24"/>
+          </svg>
+          <h3>Reading Lab 🧪</h3>
+          <p>Use our AI tools to quickly generate reading texts and activities based on your vocabulary lists.</p>
+        </div>
       </div>
-      <div class="feature-box">
-        <img src="{% static 'games.png' %}" alt="Interactive Learning">
-        <h3>Interactive Learning</h3>
-        <p>Accelarated learning with our range of interactive learning modes through Live Games and Assignments.</p>
-      </div>
-      <div class="feature-box">
-        <img src="{% static 'listening.png' %}" alt="Speaking Practice">
-        <h3>Listening Practice</h3>
-        <p>Live voices read out your vocabulary words for your students to practice spelling and translating.</p>
-      </div>
-      <div class="feature-box">
-        <img src="{% static 'trophy.png' %}" alt="Global Learning">
-        <h3>Leaderboards and Statistics</h3>
-        <p>Deep analytical data for teachers to see student progress.</p>
-      </div>
-      <div class="feature-box">
-        <img src="{% static 'worksheet.png' %}" alt="Worksheet Maker">
-        <h3>Worksheet Lab 🧪</h3>
-        <p>Create custom worksheets in seconds from your vocabulary lists.</p>
-      </div>
-      <div class="feature-box">
-        <img src="{% static 'parallel_texts.png' %}" alt="AI Generated Reading">
-        <h3>Reading Lab 🧪</h3>
-        <p>Use our AI tools to quickly generate reading texts and activities based on your vocabulary lists.</p>
-      </div>
-    </div>
-  </section>
+    </section>
 
   <!-- Comparison Section -->
   <section id="comparison">
@@ -566,10 +538,11 @@
     <p>Compare Pavonify with other leading language teaching platforms.</p>
 
     <div class="comparison-wrapper">
-      <!-- Trophy bird image positioned above the table -->
-      <img class="pavonify-bird-on-trophy" 
-           src="{% static 'pavonify_bird_on_trophy.png' %}" 
-           alt="Pavonify Trophy Bird">
+        <svg class="pavonify-bird-on-trophy" width="100" height="100" viewBox="0 0 64 64" fill="none" stroke="#007aff" stroke-width="2">
+          <path d="M16 12h32v8a16 16 0 1 1-32 0v-8z"/>
+          <path d="M24 44h16v8H24z"/>
+          <path d="M20 52h24v4H20z"/>
+        </svg>
       
       <!-- New wrapper for the table so it can scroll independently -->
       <div class="table-scroll">
@@ -659,8 +632,8 @@
       </div>
     </div>
     <div style="text-align: left; margin-top: 20px;">
-      Register and try our features for ✨Free!✨ 
-      <button class="register-btn" onclick="window.location.href='{% url 'register_teacher' %}'">Register Now</button>
+      Register and try our features for ✨Free!✨
+      <button class="btn-primary" onclick="window.location.href='{% url 'register_teacher' %}'">Register Now</button>
     </div>
   </section>
 
@@ -688,10 +661,8 @@
     <h2>Contact Us</h2>
     <p>Have questions or feedback? Feel free to reach out via email: <a href="mailto:sam@pavonify.com">sam@pavonify.com</a></p>
   </section>
-  <img class="student-bird" src="{% static 'pavonify_bird_student.png' %}" alt="Pavonify Learning">
-
   <!-- Footer -->
-  <footer>
+  <footer class="glass-card">
     <p>&copy; 2025 Pavonify. All rights reserved.</p>
     <p><a href="{% static 'Privacy Policy for Pavonify.pdf' %}" target="_blank">Privacy Policy</a></p>
   </footer>
