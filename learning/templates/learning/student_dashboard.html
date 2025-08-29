@@ -343,6 +343,39 @@
     <!-- Independent Practice Pane -->
     <div class="pane" id="practice">
       <h2>Independent Practice</h2>
+
+      {% if review_queue %}
+        <div class="review-queue" style="margin-bottom: 20px;">
+          <h3>Review Queue</h3>
+          <form method="get" class="review-filters" style="margin-bottom: 10px;">
+            <label for="class-select">Class:</label>
+            <select name="class" id="class-select" onchange="this.form.submit()">
+              <option value="">All</option>
+              {% for class in classes %}
+                <option value="{{ class.id }}" {% if class_filter == class.id|stringformat:'s' %}selected{% endif %}>{{ class.name }}</option>
+              {% endfor %}
+            </select>
+            <label for="list-select" style="margin-left:10px;">List:</label>
+            <select name="list" id="list-select" onchange="this.form.submit()">
+              <option value="">All</option>
+              {% for list in vocab_lists %}
+                <option value="{{ list.id }}" {% if list_filter == list.id|stringformat:'s' %}selected{% endif %}>{{ list.name }}</option>
+              {% endfor %}
+            </select>
+          </form>
+          <ul class="review-list">
+            {% for item in review_queue %}
+              <li style="margin-bottom:5px;">
+                {{ item.vocab_list.name }} - {{ item.count }} due
+                <a href="{% url 'flashcard_mode' item.vocab_list.id %}?word_ids={{ item.word_ids }}" class="btn mode-btn" style="margin-left:10px;">Practice</a>
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% else %}
+        <p class="no-classes" style="text-align: center; font-size: 16px; font-weight: bold;">No words due for review.</p>
+      {% endif %}
+
       {% if vocab_lists %}
         <div class="vocab-container" style="display: flex; flex-wrap: wrap; gap: 15px; justify-content: center;">
           {% for vocab_list in vocab_lists %}

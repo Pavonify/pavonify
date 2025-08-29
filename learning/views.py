@@ -497,7 +497,35 @@ def student_login(request):
 from django.shortcuts import render, get_object_or_404, redirect
 from django.utils.timezone import now
 from django.db.models import Sum
-from .models import Student, Class, Assignment, AssignmentProgress, VocabularyList
+from .models import Student, Class, Assignment, AssignmentProgress, VocabularyList, Progress
+
+
+def get_due_words(student, class_id=None, vocab_list_id=None):
+    """Return due words for a student grouped by vocabulary list."""
+    due_qs = (
+        Progress.objects.filter(student=student, next_due__lte=now())
+        .select_related("word__list")
+    )
+
+    if class_id:
+        due_qs = due_qs.filter(word__list__classes__id=class_id)
+
+    if vocab_list_id:
+        due_qs = due_qs.filter(word__list__id=vocab_list_id)
+
+    grouped = {}
+    for prog in due_qs:
+        vocab_list = prog.word.list
+        grouped.setdefault(vocab_list, []).append(prog.word.id)
+
+    return [
+        {
+            "vocab_list": vocab_list,
+            "word_ids": ",".join(str(i) for i in ids),
+            "count": len(ids),
+        }
+        for vocab_list, ids in grouped.items()
+    ]
 
 def student_dashboard(request):
     # Ensure the student is logged in
@@ -544,6 +572,12 @@ def student_dashboard(request):
     # Fetch vocabulary lists linked to the student's classes
     vocab_lists = VocabularyList.objects.filter(classes__in=classes).distinct()
 
+    # Optional filters for review queue
+    class_filter = request.GET.get("class")
+    list_filter = request.GET.get("list")
+
+    review_queue = get_due_words(student, class_filter, list_filter)
+
     leaderboard_categories = [
         {"category": "total_points", "icon": "🔥", "title": "Total Points"},
         {"category": "monthly_points", "icon": "📅", "title": "Monthly Points"},
@@ -555,6 +589,9 @@ def student_dashboard(request):
         "classes": classes,
         "vocab_lists": vocab_lists,
         "leaderboard_categories": leaderboard_categories,
+        "review_queue": review_queue,
+        "class_filter": class_filter,
+        "list_filter": list_filter,
     })
 
 
