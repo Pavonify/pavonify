@@ -559,6 +559,23 @@ def student_dashboard(request):
     })
 
 
+def my_words(request):
+    """Display all vocabulary words available to the logged-in student."""
+    student_id = request.session.get("student_id")
+    if not student_id:
+        return redirect("student_login")
+
+    student = get_object_or_404(Student, id=student_id)
+    words = VocabularyWord.objects.filter(
+        list__classes__in=student.classes.all()
+    ).distinct()
+
+    return render(request, "learning/my_words.html", {
+        "student": student,
+        "words": words,
+    })
+
+
 
 def student_logout(request):
     # Clear all session data
