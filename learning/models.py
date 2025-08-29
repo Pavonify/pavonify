@@ -153,7 +153,9 @@ class Progress(models.Model):
     correct_attempts = models.IntegerField(default=0)
     incorrect_attempts = models.IntegerField(default=0)
     next_due = models.DateTimeField(null=True, blank=True)
-    interval = models.IntegerField(default=1)
+    review_interval = models.IntegerField(default=1)
+    last_seen = models.DateTimeField(null=True, blank=True)
+    review_count = models.PositiveIntegerField(default=0)
     points = models.IntegerField(default=0)  # Points for this specific word interaction
 
     def update_points(self, points_awarded):
