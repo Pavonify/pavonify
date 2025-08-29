@@ -68,6 +68,7 @@ urlpatterns = [
     path('flashcard-mode/<int:vocab_list_id>/', views.flashcard_mode, name='flashcard_mode'),
     path('match-up-mode/<int:vocab_list_id>/', views.match_up_mode, name='match_up_mode'),
     path('gap-fill-mode/<int:vocab_list_id>/', views.gap_fill_mode, name='gap_fill_mode'),
+    path('practice/update_progress/', views.update_progress, name='update_progress'),
     path("lead-teacher-dashboard/", views.lead_teacher_dashboard, name="lead_teacher_dashboard"),
     path("lead-teacher-login/", views.lead_teacher_login, name="lead_teacher_login"),
     path("school-signup/", views.school_signup, name="school_signup"),  # Placeholder for future payment page

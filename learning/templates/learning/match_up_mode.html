@@ -152,9 +152,11 @@
   </div>
 
   <script>
-    const tiles = document.querySelectorAll(".tile");
-    const targets = document.querySelectorAll(".target");
+    const sourceContainer = document.getElementById("source-words");
+    const targetContainer = document.getElementById("target-words");
     const completedMessage = document.getElementById("completed-message");
+    const fetchUrl = "{% url 'match_up_mode' vocab_list.id %}";
+    const updateUrl = "{% url 'update_progress' %}";
     const timeInModeEl = document.getElementById("time-in-mode");
     const sessionPointsEl = document.getElementById("session-points");
     const weeklyPointsEl = document.getElementById("weekly-points");
@@ -171,59 +173,91 @@
       timeInModeEl.textContent = timeInMode;
     }, 1000);
 
-    tiles.forEach(tile => {
-      tile.addEventListener("dragstart", e => {
-        e.dataTransfer.setData("text", e.target.dataset.id);
-        e.dataTransfer.setData("text-tile", e.target.textContent);
-      });
-    });
-
-    targets.forEach(target => {
-      target.addEventListener("dragover", e => {
-        e.preventDefault();
+    function attachListeners() {
+      document.querySelectorAll(".tile").forEach(tile => {
+        tile.addEventListener("dragstart", e => {
+          e.dataTransfer.setData("text", e.target.dataset.id);
+          e.dataTransfer.setData("text-tile", e.target.textContent);
+        });
       });
 
-      target.addEventListener("drop", e => {
-        const sourceId = e.dataTransfer.getData("text");
-        const sourceWord = e.dataTransfer.getData("text-tile");
-        const targetId = e.target.dataset.id;
+      document.querySelectorAll(".target").forEach(target => {
+        target.addEventListener("dragover", e => {
+          e.preventDefault();
+        });
 
-        if (sourceId === targetId) {
-          // Correct match
-          e.target.classList.add("correct");
-          e.target.textContent = `${sourceWord} = ${e.target.textContent}`;
+        target.addEventListener("drop", e => {
+          const sourceId = e.dataTransfer.getData("text");
+          const sourceWord = e.dataTransfer.getData("text-tile");
+          const targetId = e.target.dataset.id;
 
-          const tile = document.querySelector(`.tile[data-id='${sourceId}']`);
-          if (tile) tile.remove();
+          if (sourceId === targetId) {
+            e.target.classList.add("correct");
+            e.target.textContent = `${sourceWord} = ${e.target.textContent}`;
 
-          // Update session points
-          sessionPoints += 2;
-          sessionPointsEl.textContent = sessionPoints;
+            const tile = document.querySelector(`.tile[data-id='${sourceId}']`);
+            if (tile) tile.remove();
 
-          // Update weekly and total points
-          weeklyPoints += 2;
-          totalPoints += 2;
-          weeklyPointsEl.textContent = weeklyPoints;
-          totalPointsEl.textContent = totalPoints;
+            sessionPoints += 2;
+            sessionPointsEl.textContent = sessionPoints;
+            weeklyPoints += 2;
+            totalPoints += 2;
+            weeklyPointsEl.textContent = weeklyPoints;
+            totalPointsEl.textContent = totalPoints;
 
-          // Update points on the server
-          fetch("/update-points/", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "X-CSRFToken": getCSRFToken(),
-            },
-            body: JSON.stringify({ points: 2 }),
-          }).catch(err => console.error("Error updating points:", err));
+            fetch("/update-points/", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": getCSRFToken(),
+              },
+              body: JSON.stringify({ points: 2 }),
+            }).catch(err => console.error("Error updating points:", err));
 
-          // Check if all tiles are matched
-          const remainingTiles = document.querySelectorAll(".tile");
-          if (remainingTiles.length === 0) {
-            completedMessage.classList.add("visible");
+            sendResult(sourceId, true);
+
+            const remainingTiles = document.querySelectorAll(".tile");
+            if (remainingTiles.length === 0) {
+              fetchMoreWords();
+            }
           }
-        }
+        });
       });
-    });
+    }
+
+    function fetchMoreWords() {
+      fetch(fetchUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(r => r.json())
+        .then(data => {
+          sourceContainer.innerHTML = '';
+          targetContainer.innerHTML = '';
+          data.words.forEach(w => {
+            const tile = document.createElement('div');
+            tile.className = 'tile';
+            tile.draggable = true;
+            tile.dataset.id = w.id;
+            tile.textContent = w.word;
+            sourceContainer.appendChild(tile);
+            const target = document.createElement('div');
+            target.className = 'target';
+            target.dataset.id = w.id;
+            target.textContent = w.translation;
+            targetContainer.appendChild(target);
+          });
+          completedMessage.classList.remove('visible');
+          attachListeners();
+        });
+    }
+
+    function sendResult(wordId, correct) {
+      fetch(updateUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCSRFToken() },
+        body: JSON.stringify({ word_id: wordId, correct })
+      });
+    }
+
+    attachListeners();
 
     // Helper function to get CSRF token
     function getCSRFToken() {

@@ -147,8 +147,9 @@
   </div>
 
   <script>
-    // Parse words from Django context (ensure proper JSON formatting)
-    const words = JSON.parse('{{ words|safe }}'.replace(/&quot;/g, '"'));
+    const fetchUrl = "{% url 'gap_fill_mode' vocab_list.id %}";
+    const updateUrl = "{% url 'update_progress' %}";
+    let wordsQueue = {{ words|safe }};
     const wordPrompt = document.getElementById("word-prompt");
     const gapFillInput = document.getElementById("gap-fill-input");
     const statusMessage = document.getElementById("status-message");
@@ -157,9 +158,10 @@
     const timeInModeEl = document.getElementById("time-in-mode");
     const sessionPointsEl = document.getElementById("session-points");
 
-    let currentIndex = Math.floor(Math.random() * words.length);
+    let currentIndex = 0;
     let sessionPoints = 0;
     let timeInMode = 0;
+    const threshold = 3;
 
     // Timer for time spent in mode
     setInterval(() => {
@@ -169,9 +171,9 @@
 
     // Display the current word with masked letters
     function displayWord() {
-      const currentWord = words[currentIndex].translation;
+      const currentWord = wordsQueue[currentIndex].translation;
       const maskedWord = maskLetters(currentWord);
-      wordPrompt.textContent = `${words[currentIndex].word} = ${maskedWord}`;
+      wordPrompt.textContent = `${wordsQueue[currentIndex].word} = ${maskedWord}`;
       gapFillInput.value = "";
       gapFillInput.focus();
     }
@@ -199,7 +201,8 @@
     gapFillForm.addEventListener("submit", (event) => {
       event.preventDefault();
       const userAnswer = gapFillInput.value.trim();
-      const correctAnswer = words[currentIndex].translation;
+      const wordData = wordsQueue[currentIndex];
+      const correctAnswer = wordData.translation;
 
       if (userAnswer.toLowerCase() === correctAnswer.toLowerCase()) {
         statusMessage.textContent = "Correct!";
@@ -212,18 +215,40 @@
 
         // Update server points
         updateServerPoints(5);
+        sendResult(true, wordData.id);
 
         setTimeout(() => {
           statusMessage.style.display = "none";
-          currentIndex = Math.floor(Math.random() * words.length);
+          currentIndex++;
+          if (wordsQueue.length - currentIndex < threshold) {
+            fetchMoreWords();
+          }
+          if (currentIndex >= wordsQueue.length) {
+            currentIndex = 0;
+          }
           displayWord();
         }, 1000);
       } else {
         statusMessage.textContent = "Try Again!";
         statusMessage.style.color = "red";
         statusMessage.style.display = "block";
+        sendResult(false, wordData.id);
       }
     });
+
+    function sendResult(correct, wordId) {
+      fetch(updateUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCSRFToken() },
+        body: JSON.stringify({ word_id: wordId, correct })
+      });
+    }
+
+    function fetchMoreWords() {
+      fetch(fetchUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(r => r.json())
+        .then(data => { wordsQueue = wordsQueue.concat(data.words); });
+    }
 
     // Function to update points on the server
     function updateServerPoints(points) {

@@ -35,6 +35,7 @@ from django.core.paginator import Paginator
 import google.generativeai as genai
 import math
 import re
+from .spaced_repetition import get_due_words, schedule_review
 
 # Configure Gemini API
 genai.configure(api_key="AIzaSyAhBjjphW7nVHETfDtewuy_qiFXspa1yO4")
@@ -644,9 +645,10 @@ def flashcard_mode(request, vocab_list_id):
     if not student.classes.filter(vocabulary_lists=vocab_list).exists():
         return HttpResponseForbidden("You do not have access to this vocabulary list.")
 
-    # Serialize words for JavaScript
-    words = list(vocab_list.words.values('word', 'translation'))
-    random.shuffle(words)  # Shuffle the words list to randomize
+    words_objs = get_due_words(student, vocab_list, limit=20)
+    words = [{"id": w.id, "word": w.word, "translation": w.translation} for w in words_objs]
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return JsonResponse({"words": words})
 
     return render(request, "learning/flashcard_mode.html", {
         "vocab_list": vocab_list,
@@ -669,16 +671,14 @@ def match_up_mode(request, vocab_list_id=None, assignment_id=None):
 
     student = get_object_or_404(Student, id=request.session.get('student_id'))
 
-    # Fetch all words in the vocabulary list
-    all_words = list(vocab_list.words.all())
-
-    # Randomly sample 10 words or less if the list contains fewer than 10
-    words = sample(all_words, min(len(all_words), 10))
-
-    # Separate source and target words, shuffle targets for the match-up
-    source_words = words[:]
+    words_objs = get_due_words(student, vocab_list, limit=10)
+    words = [{"id": w.id, "word": w.word, "translation": w.translation} for w in words_objs]
+    source_words = words
     target_words = words[:]
     random.shuffle(target_words)
+
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return JsonResponse({"words": words})
 
     return render(request, "learning/match_up_mode.html", {
         "vocab_list": vocab_list,
@@ -697,14 +697,31 @@ def gap_fill_mode(request, vocab_list_id):
     if not student.classes.filter(vocabulary_lists=vocab_list).exists():
         return HttpResponseForbidden("You do not have access to this vocabulary list.")
 
-    # Randomly shuffle the words in the vocabulary list
-    words = list(vocab_list.words.values('word', 'translation'))
-    random.shuffle(words)
+    words_objs = get_due_words(student, vocab_list, limit=20)
+    words = [{"id": w.id, "word": w.word, "translation": w.translation} for w in words_objs]
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return JsonResponse({"words": words})
 
     return render(request, "learning/gap_fill_mode.html", {
         "vocab_list": vocab_list,
-        "words": json.dumps(words),  # Serialize as JSON
+        "words": words,
     })
+
+
+@csrf_exempt
+@require_POST
+def update_progress(request):
+    student = get_object_or_404(Student, id=request.session.get("student_id"))
+    try:
+        data = json.loads(request.body.decode())
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+    word_id = data.get("word_id")
+    correct = data.get("correct")
+    if word_id is None or correct is None:
+        return JsonResponse({"error": "Missing parameters"}, status=400)
+    schedule_review(student, word_id, bool(correct))
+    return JsonResponse({"status": "ok"})
 
 
 @login_required
@@ -829,18 +846,14 @@ def destroy_the_wall(request, vocab_list_id):
     if not student.classes.filter(vocabulary_lists=vocab_list).exists():
         return HttpResponseForbidden("You do not have access to this vocabulary list.")
 
-    # Fetch all words for the vocabulary list
-    all_words = list(vocab_list.words.values('word', 'translation'))
-
-    # Randomly select up to 30 words
-    selected_words = sample(all_words, min(30, len(all_words)))
-
-    # Shuffle the selected words for display order
-    shuffle(selected_words)
+    words_objs = get_due_words(student, vocab_list, limit=30)
+    words = [{"id": w.id, "word": w.word, "translation": w.translation} for w in words_objs]
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return JsonResponse({"words": words})
 
     return render(request, "learning/destroy_the_wall.html", {
         "vocab_list": vocab_list,
-        "words_json": json.dumps(selected_words),  # Serialize for JavaScript
+        "words_json": json.dumps(words),
         "student": student,
     })
 
@@ -848,12 +861,15 @@ def destroy_the_wall(request, vocab_list_id):
 @student_login_required
 def unscramble_the_word(request, vocab_list_id):
     vocab_list = get_object_or_404(VocabularyList, id=vocab_list_id)
-    words = list(vocab_list.words.values('word', 'translation'))
-    shuffle(words)  # Randomize the order of the words
+    student = get_object_or_404(Student, id=request.session.get("student_id"))
+    words_objs = get_due_words(student, vocab_list, limit=20)
+    words = [{"id": w.id, "word": w.word, "translation": w.translation} for w in words_objs]
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return JsonResponse({"words": words})
     return render(request, "learning/unscramble_the_word.html", {
         "vocab_list": vocab_list,
         "words_json": json.dumps(words, cls=DjangoJSONEncoder),
-        "student": request.user,  # For the stats
+        "student": student,
     })
 
 
@@ -1051,15 +1067,10 @@ def gap_fill_mode_assignment(request, assignment_id):
     student = get_object_or_404(Student, id=request.session.get("student_id"))
     vocab_list = assignment.vocab_list
 
-    # Include the id along with the word and translation
-    vocab_words = list(VocabularyWord.objects.filter(list=vocab_list))
-    words_list = [
-        {"id": w.id, "word": w.word, "translation": w.translation}
-        for w in vocab_words
-    ]
-
-    # Debug print to verify words list
-    print("DEBUG: Words List:", words_list)
+    words_objs = get_due_words(student, vocab_list, limit=20)
+    words_list = [{"id": w.id, "word": w.word, "translation": w.translation} for w in words_objs]
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return JsonResponse({"words": words_list})
 
     # Fetch assignment progress for current points (if any)
     assignment_progress = AssignmentProgress.objects.filter(
@@ -1085,16 +1096,15 @@ def destroy_wall_mode_assignment(request, assignment_id):
     student = get_object_or_404(Student, id=request.session.get("student_id"))
     vocab_list = assignment.vocab_list
 
-    # Include the word's id along with word and translation
-    all_words = list(vocab_list.words.values('id', 'word', 'translation'))
-    selected_words = sample(all_words, min(30, len(all_words)))
-    shuffle(selected_words)
+    words_objs = get_due_words(student, vocab_list, limit=30)
+    words = [{"id": w.id, "word": w.word, "translation": w.translation} for w in words_objs]
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return JsonResponse({"words": words})
 
     context = {
         "assignment": assignment,
-        "words_json": json.dumps(selected_words),
+        "words_json": json.dumps(words),
         "student": student,
-        # Points awarded per correct brick click in destroy the wall mode
         "points": assignment.points_per_destroy_wall,
     }
     return render(request, "learning/assignment_modes/destroy_the_wall_assignment.html", context)
@@ -1116,15 +1126,14 @@ def match_up_mode_assignment(request, vocab_list_id=None, assignment_id=None):
     student = get_object_or_404(Student, id=request.session.get('student_id'))
 
     # Fetch all words in the vocabulary list
-    all_words = list(vocab_list.words.all())
-
-    # Randomly sample 10 words or less if the list contains fewer than 10
-    words = sample(all_words, min(len(all_words), 10))
-
-    # Separate source and target words, shuffle targets for the match-up
-    source_words = words[:]
+    words_objs = get_due_words(student, vocab_list, limit=10)
+    words = [{"id": w.id, "word": w.word, "translation": w.translation} for w in words_objs]
+    source_words = words
     target_words = words[:]
     random.shuffle(target_words)
+
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return JsonResponse({"words": words})
 
     context = {
         "vocab_list": vocab_list,
@@ -1238,17 +1247,16 @@ def unscramble_the_word_assignment(request, assignment_id):
     # Fetch the associated vocabulary list
     vocab_list = assignment.vocab_list
 
-    # Get all words from the vocabulary list
-    words = list(vocab_list.words.values('id', 'word', 'translation'))
-
-    # Shuffle words for display order
-    shuffle(words)
+    words_objs = get_due_words(student, vocab_list, limit=20)
+    words = [{"id": w.id, "word": w.word, "translation": w.translation} for w in words_objs]
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return JsonResponse({"words": words})
 
     return render(request, "learning/assignment_modes/unscramble_the_word_assignment.html", {
         "assignment": assignment,
-        "words_json": json.dumps(words),  # Serialize words for JavaScript
+        "words_json": json.dumps(words),
         "student": student,
-        "points": assignment.points_per_unscramble,  # Pass the points value for Unscramble mode
+        "points": assignment.points_per_unscramble,
     })
 
 
@@ -1268,8 +1276,10 @@ def flashcard_mode_assignment(request, assignment_id):
     if not student.classes.filter(vocabulary_lists=vocab_list).exists():
         return HttpResponseForbidden("You do not have access to this vocabulary list.")
 
-    words = list(vocab_list.words.values('word', 'translation'))
-    random.shuffle(words)  
+    words_objs = get_due_words(student, vocab_list, limit=20)
+    words = [{"id": w.id, "word": w.word, "translation": w.translation} for w in words_objs]
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return JsonResponse({"words": words})
 
     return render(request, "learning/assignment_modes/flashcard_mode_assignment.html", {
         "vocab_list": vocab_list,
@@ -1384,20 +1394,18 @@ def listening_dictation_view(request, vocab_list_id):
     student = get_object_or_404(Student, id=request.session.get("student_id"))
 
 
-    # Fetch words and randomize them **server-side**
-    words_queryset = list(vocab_list.words.all())
-    random.shuffle(words_queryset)
-    words = [{'word': word.word, 'translation': word.translation} for word in words_queryset]
-
-    words_json = json.dumps(words)
+    words_objs = get_due_words(student, vocab_list, limit=20)
+    words = [{"id": w.id, "word": w.word, "translation": w.translation} for w in words_objs]
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return JsonResponse({"words": words})
 
     return render(request, 'learning/listening_dictation.html', {
         'vocab_list': vocab_list,
-        'words_json': words_json,
+        'words_json': json.dumps(words),
         'target_language': vocab_list.target_language,
-        'student': student,  
-        'weekly_points': student.weekly_points,  # ✅ Pass correct weekly points
-        'total_points': student.total_points,  # ✅ Pass correct total points
+        'student': student,
+        'weekly_points': student.weekly_points,
+        'total_points': student.total_points,
     })
 
 @student_login_required
@@ -1406,20 +1414,18 @@ def listening_translation_view(request, vocab_list_id):
     student = get_object_or_404(Student, id=request.session.get("student_id"))
 
 
-    # Fetch words and randomize them **server-side**
-    words_queryset = list(vocab_list.words.all())
-    random.shuffle(words_queryset)
-    words = [{'word': word.word, 'translation': word.translation} for word in words_queryset]
-
-    words_json = json.dumps(words)
+    words_objs = get_due_words(student, vocab_list, limit=20)
+    words = [{"id": w.id, "word": w.word, "translation": w.translation} for w in words_objs]
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return JsonResponse({"words": words})
 
     return render(request, 'learning/listening_translation.html', {
         'vocab_list': vocab_list,
-        'words_json': words_json,
+        'words_json': json.dumps(words),
         'target_language': vocab_list.target_language,
-        'student': student,  
-        'weekly_points': student.weekly_points,  # ✅ Pass correct weekly points
-        'total_points': student.total_points,  # ✅ Pass correct total points
+        'student': student,
+        'weekly_points': student.weekly_points,
+        'total_points': student.total_points,
     })
 
 @student_login_required
@@ -1437,15 +1443,17 @@ def listening_dictation_assignment(request, assignment_id):
     if not student.classes.filter(vocabulary_lists=vocab_list).exists():
         return HttpResponseForbidden("You do not have access to this vocabulary list.")
 
-    # Get all words in the vocabulary list
-    words = list(vocab_list.words.values('id', 'word', 'translation'))
+    words_objs = get_due_words(student, vocab_list, limit=20)
+    words = [{"id": w.id, "word": w.word, "translation": w.translation} for w in words_objs]
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return JsonResponse({"words": words})
 
     return render(request, "learning/assignment_modes/listening_dictation_assignment.html", {
         "assignment": assignment,
         "vocab_list": vocab_list,
-        "words_json": json.dumps(words),  # Serialize for JavaScript
+        "words_json": json.dumps(words),
         "target_language": vocab_list.target_language,
-        "points": assignment.points_per_listening_dictation,  # Per-interaction points for Listening Dictation
+        "points": assignment.points_per_listening_dictation,
     })
 
 
@@ -1461,15 +1469,15 @@ def listening_translation_assignment(request, assignment_id):
     # Get the vocabulary list assigned to this assignment
     vocab_list = assignment.vocab_list
 
-    # Fetch words including the 'id' field and randomize them server-side
-    words_queryset = list(VocabularyWord.objects.filter(list=vocab_list).values("id", "word", "translation"))
-    random.shuffle(words_queryset)
-    words_json = json.dumps(words_queryset)  # Convert to JSON for frontend
+    words_objs = get_due_words(student, vocab_list, limit=20)
+    words = [{"id": w.id, "word": w.word, "translation": w.translation} for w in words_objs]
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return JsonResponse({"words": words})
 
     return render(request, 'learning/assignment_modes/listening_translation_assignment.html', {
         'assignment': assignment,
         'vocab_list': vocab_list,
-        'words_json': words_json,
+        'words_json': json.dumps(words),
         'target_language': vocab_list.target_language,
         'student': student,
         'weekly_points': student.weekly_points,
