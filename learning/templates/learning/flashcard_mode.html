@@ -131,51 +131,65 @@
       </div>
     </div>
     <div class="navigation-buttons">
-      <button id="prev-btn">Back</button>
-      <button id="next-btn">Next</button>
+      <button id="incorrect-btn">Didn't Know</button>
+      <button id="correct-btn">Knew It</button>
     </div>
     <div class="dashboard-link">
       <a href="{% url 'student_dashboard' %}">Return to Dashboard</a>
     </div>
 
     <script>
+      const fetchUrl = "{% url 'flashcard_mode' vocab_list.id %}";
+      const updateUrl = "{% url 'update_progress' %}";
+      let wordsQueue = {{ words|safe }};
       let currentIndex = 0;
-      const words = {{ words|safe }};
+      const threshold = 3;
       const card = document.getElementById("card");
       const front = document.getElementById("front");
       const back = document.getElementById("back");
 
-      function updateCard(newIndex) {
-        const newWord = words[newIndex];
-        currentIndex = newIndex;
-
-        // Update card content
-        front.textContent = newWord.word;
-        back.textContent = newWord.translation;
-
-        // Reset the flip state if needed
-        if (card.classList.contains("flipped")) {
-          card.classList.remove("flipped");
-        }
+      function getCSRFToken() {
+        return document.cookie.split('; ').find(r => r.startsWith('csrftoken='))?.split('=')[1];
       }
 
-      card.addEventListener("click", () => {
-        // Toggle the flip state
-        card.classList.toggle("flipped");
+      function updateCard() {
+        const currentWord = wordsQueue[currentIndex];
+        front.textContent = currentWord.word;
+        back.textContent = currentWord.translation;
+        card.classList.remove('flipped');
+      }
+
+      function sendResult(correct) {
+        const word = wordsQueue[currentIndex];
+        fetch(updateUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCSRFToken() },
+          body: JSON.stringify({ word_id: word.id, correct })
+        });
+        currentIndex++;
+        if (wordsQueue.length - currentIndex < threshold) {
+          fetchMoreWords();
+        }
+        if (currentIndex >= wordsQueue.length) {
+          currentIndex = 0;
+        }
+        updateCard();
+      }
+
+      function fetchMoreWords() {
+        fetch(fetchUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+          .then(r => r.json())
+          .then(data => { wordsQueue = wordsQueue.concat(data.words); });
+      }
+
+      card.addEventListener('click', () => {
+        card.classList.toggle('flipped');
       });
 
-      document.getElementById("prev-btn").addEventListener("click", () => {
-        const newIndex = (currentIndex - 1 + words.length) % words.length;
-        updateCard(newIndex);
-      });
+      document.getElementById('correct-btn').addEventListener('click', () => sendResult(true));
+      document.getElementById('incorrect-btn').addEventListener('click', () => sendResult(false));
 
-      document.getElementById("next-btn").addEventListener("click", () => {
-        const newIndex = (currentIndex + 1) % words.length;
-        updateCard(newIndex);
-      });
-
-      // Initialize the first card
-      updateCard(currentIndex);
+      updateCard();
     </script>
   </div>
 </body>
