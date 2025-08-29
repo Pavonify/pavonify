@@ -81,6 +81,17 @@ class VocabularyWordAdmin(admin.ModelAdmin):
     vocab_list_name.short_description = "Vocabulary List"
 
 
+# **📌 Progress Admin**
+@admin.register(Progress)
+class ProgressAdmin(admin.ModelAdmin):
+    list_display = (
+        'student', 'word', 'correct_attempts', 'incorrect_attempts',
+        'next_due', 'review_interval', 'last_seen', 'review_count', 'points'
+    )
+    list_filter = ('student', 'word')
+    search_fields = ('student__username', 'word__word')
+
+
 # **📌 Assignment Progress Admin**
 @admin.register(AssignmentProgress)
 class AssignmentProgressAdmin(admin.ModelAdmin):
