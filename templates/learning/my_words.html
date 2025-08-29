@@ -1,0 +1,106 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>My Words</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .filters {
+            margin-bottom: 20px;
+        }
+        .filters select {
+            margin-right: 10px;
+        }
+        details {
+            margin-bottom: 15px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 8px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        .memory-meter {
+            width: 100px;
+            height: 10px;
+            background-color: #eee;
+        }
+        .memory-meter .fill {
+            height: 100%;
+        }
+        .memory-meter .fill.high {
+            background-color: #4caf50;
+        }
+        .memory-meter .fill.medium {
+            background-color: #ffc107;
+        }
+        .memory-meter .fill.low {
+            background-color: #f44336;
+        }
+    </style>
+</head>
+<body>
+    <h1>My Words</h1>
+
+    <form method="get" class="filters">
+        {% if classes %}
+        <label for="class_select">Class:</label>
+        <select name="class" id="class_select">
+            <option value="">All</option>
+            {% for cls in classes %}
+            <option value="{{ cls.id }}" {% if cls.id|stringformat:'s' == selected_class %}selected{% endif %}>{{ cls.name }}</option>
+            {% endfor %}
+        </select>
+        {% endif %}
+        {% if vocab_lists %}
+        <label for="list_select">List:</label>
+        <select name="list" id="list_select">
+            <option value="">All</option>
+            {% for lst in vocab_lists %}
+            <option value="{{ lst.id }}" {% if lst.id|stringformat:'s' == selected_list %}selected{% endif %}>{{ lst.name }}</option>
+            {% endfor %}
+        </select>
+        {% endif %}
+        <button type="submit">Apply</button>
+    </form>
+
+    {% for vocab_list, progresses in grouped_progress %}
+    <details>
+        <summary>{{ vocab_list.name }}</summary>
+        <table>
+            <thead>
+                <tr>
+                    <th>Word</th>
+                    <th>Last Seen</th>
+                    <th>Total Attempts</th>
+                    <th>Memory</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in progresses %}
+                <tr>
+                    <td>{{ p.text }}</td>
+                    <td>{{ p.last_seen|date:"Y-m-d H:i"|default:"Never" }}</td>
+                    <td>{{ p.total_attempts }}</td>
+                    <td>
+                        <div class="memory-meter">
+                            <div class="fill {{ p.memory_color }}" style="width: {{ p.memory_percent }}%;"></div>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </details>
+    {% empty %}
+    <p>No words to display.</p>
+    {% endfor %}
+</body>
+</html>

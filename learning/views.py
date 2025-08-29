@@ -35,7 +35,8 @@ from django.core.paginator import Paginator
 import google.generativeai as genai
 import math
 import re
-from .spaced_repetition import get_due_words, schedule_review
+from .spaced_repetition import get_due_words, schedule_review, _get_user_from_student
+from collections import defaultdict
 
 # Configure Gemini API
 genai.configure(api_key="AIzaSyAhBjjphW7nVHETfDtewuy_qiFXspa1yO4")
@@ -1709,6 +1710,55 @@ def reading_lab_display(request, text_id):
     return render(request, "learning/reading_lab_display.html", {
         "reading_lab_text": reading_lab_text,
     })
+
+
+@student_login_required
+def my_words(request):
+    """Display a student's progress grouped by vocabulary list."""
+    student_id = request.session.get("student_id")
+    student = get_object_or_404(Student, id=student_id)
+    user = _get_user_from_student(student)
+
+    progress_qs = Progress.objects.filter(student=user).select_related("word", "word__list")
+
+    class_id = request.GET.get("class")
+    list_id = request.GET.get("list")
+
+    if class_id:
+        progress_qs = progress_qs.filter(word__list__classes__id=class_id)
+    if list_id:
+        progress_qs = progress_qs.filter(word__list__id=list_id)
+
+    grouped = defaultdict(list)
+    for prog in progress_qs:
+        total_attempts = prog.correct_attempts + prog.incorrect_attempts
+        memory_percent = int(prog.correct_attempts / total_attempts * 100) if total_attempts > 0 else 0
+        if memory_percent >= 80:
+            color = "high"
+        elif memory_percent >= 50:
+            color = "medium"
+        else:
+            color = "low"
+        grouped[prog.word.list].append({
+            "text": prog.word.word,
+            "last_seen": prog.last_seen,
+            "total_attempts": total_attempts,
+            "memory_percent": memory_percent,
+            "memory_color": color,
+        })
+
+    classes = student.classes.all()
+    vocab_lists = VocabularyList.objects.filter(words__progress__student=user).distinct()
+
+    context = {
+        "grouped_progress": grouped.items(),
+        "classes": classes,
+        "vocab_lists": vocab_lists,
+        "selected_class": class_id,
+        "selected_list": list_id,
+    }
+
+    return render(request, "learning/my_words.html", context)
 
 def get_words(request):
     """ AJAX endpoint to fetch words for a selected vocabulary list """
