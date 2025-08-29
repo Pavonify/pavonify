@@ -104,3 +104,21 @@ class SRSTests(TestCase):
         limited = get_due_words(self.student, limit=1)
         self.assertEqual(len(limited), 1)
         self.assertEqual(limited[0], self.word1)
+
+    def test_memory_score(self):
+        # fresh progress should be cold when not seen
+        self.assertEqual(self.progress1.memory_score(), "cold")
+
+        # simulate recent review within interval -> hot
+        Progress.objects.filter(pk=self.progress1.pk).update(
+            last_seen=timezone.now() - timedelta(days=1), interval=2, review_count=1
+        )
+        self.progress1.refresh_from_db()
+        self.assertEqual(self.progress1.memory_score(), "hot")
+
+        # simulate overdue review -> cold
+        Progress.objects.filter(pk=self.progress1.pk).update(
+            last_seen=timezone.now() - timedelta(days=3), review_count=1
+        )
+        self.progress1.refresh_from_db()
+        self.assertEqual(self.progress1.memory_score(), "cold")
