@@ -86,7 +86,7 @@ class VocabularyWordAdmin(admin.ModelAdmin):
 class ProgressAdmin(admin.ModelAdmin):
     list_display = (
         'student', 'word', 'correct_attempts', 'incorrect_attempts',
-        'next_due', 'review_interval', 'last_seen', 'review_count', 'points'
+        'next_due', 'interval', 'last_seen', 'review_count', 'points'
     )
     list_filter = ('student', 'word')
     search_fields = ('student__username', 'word__word')

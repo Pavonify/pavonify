@@ -155,7 +155,7 @@ class Progress(models.Model):
     last_seen = models.DateTimeField(null=True, blank=True)
     review_count = models.IntegerField(default=0)
     next_due = models.DateTimeField(null=True, blank=True)
-    review_interval = models.IntegerField(default=1)
+    interval = models.IntegerField(default=1)
     last_seen = models.DateTimeField(null=True, blank=True)
     review_count = models.PositiveIntegerField(default=0)
     points = models.IntegerField(default=0)  # Points for this specific word interaction

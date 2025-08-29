@@ -9,15 +9,4 @@ class Migration(migrations.Migration):
         ("learning", "0028_grammarladder_ladderitem"),
     ]
 
-    operations = [
-        migrations.AddField(
-            model_name="progress",
-            name="last_seen",
-            field=models.DateTimeField(blank=True, null=True),
-        ),
-        migrations.AddField(
-            model_name="progress",
-            name="review_count",
-            field=models.IntegerField(default=0),
-        ),
-    ]
+    operations = []
