@@ -1,0 +1,21 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>My Words</title>
+</head>
+<body>
+    <h1>My Words</h1>
+    {% if words %}
+    <ul>
+        {% for word in words %}
+        <li>{{ word.word }} - {{ word.translation }}</li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <p>No words available.</p>
+    {% endif %}
+</body>
+</html>
+
