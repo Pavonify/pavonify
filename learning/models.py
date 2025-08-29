@@ -152,6 +152,8 @@ class Progress(models.Model):
     word = models.ForeignKey(VocabularyWord, on_delete=models.CASCADE)
     correct_attempts = models.IntegerField(default=0)
     incorrect_attempts = models.IntegerField(default=0)
+    last_seen = models.DateTimeField(null=True, blank=True)
+    review_count = models.IntegerField(default=0)
     next_due = models.DateTimeField(null=True, blank=True)
     review_interval = models.IntegerField(default=1)
     last_seen = models.DateTimeField(null=True, blank=True)
