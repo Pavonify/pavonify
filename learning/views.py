@@ -1317,16 +1317,7 @@ def create_checkout_session(request):
         session = stripe.checkout.Session.create(
             payment_method_types=["card"],
             line_items=[{
-                "price_data": {
-                    "currency": "gbp",
-                    "product_data": {
-                        "name": "Pavonify Premium",
-                    },
-                    "unit_amount": 299,  # 299 pence = £2.99
-                    "recurring": {
-                        "interval": "month",
-                    },
-                },
+                "price": "price_1QpQcMJYDgv8Jx3VdIdRmwsL",
                 "quantity": 1,
             }],
             mode="subscription",
@@ -1340,7 +1331,7 @@ def create_checkout_session(request):
             },
         )
         return JsonResponse({"sessionId": session.id})
-    
+
     except stripe.error.StripeError as e:
         return JsonResponse({"error": str(e)}, status=400)
 
