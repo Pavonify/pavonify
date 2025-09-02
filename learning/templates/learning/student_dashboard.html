@@ -354,15 +354,7 @@
                 <span class="arrow" style="font-size: 20px; font-weight: bold;">➡️</span>
                 <img src="{% static 'flags/'|add:vocab_list.target_language|add:'.png' %}" alt="{{ vocab_list.target_language }}" class="flag-icon" style="width: 30px; height: 30px; border-radius: 50%; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);">
               </div>
-              <div class="practice-modes" style="display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 10px;">
-                <a href="{% url 'flashcard_mode' vocab_list.id %}" class="btn mode-btn">Flashcards</a>
-                <a href="{% url 'match_up_mode' vocab_list.id %}" class="btn mode-btn">Match-Up</a>
-                <a href="{% url 'gap_fill_mode' vocab_list.id %}" class="btn mode-btn">Gap-Fill</a>
-                <a href="{% url 'destroy_the_wall' vocab_list.id %}" class="btn mode-btn">Destroy the Wall</a>
-                <a href="{% url 'unscramble_the_word' vocab_list.id %}" class="btn mode-btn">Unscramble</a>
-                <a href="{% url 'listening_dictation' vocab_list.id %}" class="btn mode-btn">Listening Dictation</a>
-                <a href="{% url 'listening_translation' vocab_list.id %}" class="btn mode-btn">Listening Translation</a>
-              </div>
+              <a href="{% url 'practice_session' vocab_list.id %}" class="btn mode-btn">Practice!</a>
             </div>
           {% endfor %}
         </div>
