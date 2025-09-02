@@ -26,13 +26,8 @@
             color: #fff;
             position: relative;
         }
-        .pane-header {
-            display: flex;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-        .pane-header h1 {
-            flex: 1;
+        .pane h1 {
+            margin-top: 0;
             text-align: center;
             margin: 0;
         }
@@ -53,7 +48,9 @@
             background: #065f93;
         }
         .back-button {
-            margin-right: 10px;
+            position: absolute;
+            top: 10px;
+            left: 10px;
         }
         .back-button:hover {
             background: #065f93;
@@ -108,10 +105,8 @@
 </head>
 <body>
 <div class="pane">
-    <div class="pane-header">
-        <button class="back-button" onclick="window.history.back()">Back</button>
-        <h1>Practice Session - {{ vocab_list.name }}</h1>
-    </div>
+    <button class="back-button" onclick="window.history.back()">Back</button>
+    <h1>Practice Session - {{ vocab_list.name }}</h1>
     <p><strong>Session Points:</strong> <span id="session-points">0</span></p>
     <div id="activity-container"></div>
 </div>
