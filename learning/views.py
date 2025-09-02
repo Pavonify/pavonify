@@ -659,7 +659,15 @@ def practice_session(request, vocab_list_id):
 
     queue_key = f"practice_queue_{vocab_list_id}"
     queue = request.session.get(queue_key, [])
-    activities = ["flashcard", "typing", "match"]
+    activities = [
+        "show_word",
+        "flashcard",
+        "shimmer",
+        "typing",
+        "fill_gaps",
+        "multiple_choice",
+        "true_false",
+    ]
 
     def _init_queue():
         words = get_due_words(student, vocab_list, limit=20)
@@ -681,9 +689,23 @@ def practice_session(request, vocab_list_id):
             queue.pop(0)
         request.session[queue_key] = queue
 
-        if activity == "flashcard":
+        if activity == "show_word":
+            payload = {
+                "type": "show_word",
+                "word_id": word.id,
+                "prompt": word.translation,
+                "answer": word.word,
+            }
+        elif activity == "flashcard":
             payload = {
                 "type": "flashcard",
+                "word_id": word.id,
+                "prompt": word.word,
+                "answer": word.translation,
+            }
+        elif activity == "shimmer":
+            payload = {
+                "type": "shimmer",
                 "word_id": word.id,
                 "prompt": word.word,
                 "answer": word.translation,
@@ -695,7 +717,21 @@ def practice_session(request, vocab_list_id):
                 "prompt": word.word,
                 "answer": word.translation,
             }
-        else:  # match (multiple choice)
+        elif activity == "fill_gaps":
+            masked = list(word.word)
+            indices = list(range(len(masked)))
+            random.shuffle(indices)
+            for i in indices[: len(masked) // 2]:
+                if masked[i].isalpha():
+                    masked[i] = "_"
+            payload = {
+                "type": "fill_gaps",
+                "word_id": word.id,
+                "prompt": "".join(masked),
+                "translation": word.translation,
+                "answer": word.word,
+            }
+        elif activity == "multiple_choice":
             translations = list(
                 VocabularyWord.objects.filter(list=vocab_list)
                 .exclude(id=word.id)
@@ -705,12 +741,30 @@ def practice_session(request, vocab_list_id):
             options = translations[:3] + [word.translation]
             random.shuffle(options)
             payload = {
-                "type": "match",
+                "type": "multiple_choice",
                 "word_id": word.id,
                 "prompt": word.word,
                 "options": options,
                 "answer": word.translation,
             }
+        elif activity == "true_false":
+            translations = list(
+                VocabularyWord.objects.filter(list=vocab_list)
+                .exclude(id=word.id)
+                .values_list("translation", flat=True)
+            )
+            shown = word.translation
+            if translations and random.choice([True, False]):
+                shown = random.choice(translations)
+            payload = {
+                "type": "true_false",
+                "word_id": word.id,
+                "prompt": word.word,
+                "shown_translation": shown,
+                "answer": shown == word.translation,
+            }
+        else:
+            payload = {"type": "unknown"}
         return JsonResponse(payload)
 
     if not queue:
