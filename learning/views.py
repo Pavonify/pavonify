@@ -640,11 +640,80 @@ def view_attached_vocab(request, class_id):
     
     # Debug output:
     print(f"DEBUG: Class {class_instance.id} now has {attached_vocab_lists.count()} vocabulary list(s) attached.")
-    
+
     return render(request, "learning/view_attached_vocab.html", {
         "class_instance": class_instance,
         "attached_vocab_lists": attached_vocab_lists,
     })
+
+
+@student_login_required
+def practice_session(request, vocab_list_id):
+    """Rotate through practice activities using a session-based queue."""
+    student = get_object_or_404(Student, id=request.session.get("student_id"))
+    vocab_list = get_object_or_404(VocabularyList, id=vocab_list_id)
+
+    # Ensure the student has access to this vocabulary list
+    if not student.classes.filter(vocabulary_lists=vocab_list).exists():
+        return HttpResponseForbidden("You do not have access to this vocabulary list.")
+
+    queue_key = f"practice_queue_{vocab_list_id}"
+    activity_key = f"practice_activity_{vocab_list_id}"
+
+    queue = request.session.get(queue_key, [])
+    if not queue:
+        words = get_due_words(student, vocab_list, limit=20)
+        queue = [w.id for w in words]
+        request.session[queue_key] = queue
+
+    activities = ["flashcard", "typing", "matchup"]
+    idx = request.session.get(activity_key, 0)
+    activity = activities[idx]
+    request.session[activity_key] = (idx + 1) % len(activities)
+
+    def _fetch_words(ids):
+        word_objs = VocabularyWord.objects.filter(id__in=ids)
+        return [{"id": w.id, "word": w.word, "translation": w.translation} for w in word_objs]
+
+    if activity == "matchup":
+        needed = 5
+        if len(queue) < needed:
+            more = get_due_words(student, vocab_list, limit=needed - len(queue))
+            queue.extend([w.id for w in more])
+            request.session[queue_key] = queue
+        word_ids = queue[:needed]
+        request.session[queue_key] = queue[needed:]
+        words = _fetch_words(word_ids)
+        source_words = words
+        target_words = words[:]
+        random.shuffle(target_words)
+    else:
+        if not queue:
+            more = get_due_words(student, vocab_list, limit=20)
+            queue.extend([w.id for w in more])
+            request.session[queue_key] = queue
+        word_id = queue.pop(0)
+        request.session[queue_key] = queue
+        words = _fetch_words([word_id])
+
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        payload = {"activity": activity, "words": words}
+        if activity == "matchup":
+            payload.update({"source_words": source_words, "target_words": target_words})
+        return JsonResponse(payload)
+
+    template_map = {
+        "flashcard": "learning/flashcard_mode.html",
+        "typing": "learning/gap_fill_mode.html",
+        "matchup": "learning/match_up_mode.html",
+    }
+
+    context = {"vocab_list": vocab_list, "student": student}
+    if activity == "matchup":
+        context.update({"source_words": source_words, "target_words": target_words})
+    else:
+        context["words"] = words
+    return render(request, template_map[activity], context)
 @student_login_required
 def flashcard_mode(request, vocab_list_id):
     # Debugging session and user data
