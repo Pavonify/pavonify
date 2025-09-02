@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Practice Session - Pavonify</title>
+    <title>Practice Session - {{ vocab_list.name }}</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -17,27 +17,69 @@
             min-height: 100vh;
         }
         .pane {
-            background: #fff;
-            border-radius: 8px;
+            background: #fec10e;
+            border-radius: 10px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             padding: 20px;
             width: 100%;
             max-width: 600px;
+            color: #fff;
         }
-        .pane h1 {
-            margin-top: 0;
-            color: #0aa2ef;
+        .pane-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .pane-header h1 {
+            flex: 1;
             text-align: center;
+            margin: 0;
         }
         #activity-container {
             margin-top: 20px;
             text-align: center;
         }
+        .pane button {
+            background: #086baf;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            padding: 8px 12px;
+            cursor: pointer;
+            margin: 4px;
+        }
+        .pane button:hover {
+            background: #065f93;
+        }
+        .back-button {
+            margin-right: 10px;
+        }
+        .shimmer {
+            position: relative;
+            overflow: hidden;
+        }
+        .shimmer::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0) 100%);
+            animation: shimmer 1.5s infinite;
+        }
+        @keyframes shimmer {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
     </style>
 </head>
 <body>
 <div class="pane">
-    <h1>Practice Session</h1>
+    <div class="pane-header">
+        <button class="back-button" onclick="window.history.back()">Back</button>
+        <h1>Practice Session - {{ vocab_list.name }}</h1>
+    </div>
     <p><strong>Session Points:</strong> <span id="session-points">0</span></p>
     <div id="activity-container"></div>
 </div>
@@ -70,18 +112,53 @@
         }
 
         switch (activity.type) {
+            case 'show_word':
+                renderShowWord(activity);
+                break;
             case 'flashcard':
                 renderFlashcard(activity);
+                break;
+            case 'shimmer':
+                renderShimmer(activity);
                 break;
             case 'typing':
                 renderTyping(activity);
                 break;
-            case 'match':
-                renderMatchUp(activity);
+            case 'fill_gaps':
+                renderFillGaps(activity);
+                break;
+            case 'multiple_choice':
+                renderMultipleChoice(activity);
+                break;
+            case 'true_false':
+                renderTrueFalse(activity);
                 break;
             default:
                 container.innerHTML = '<p>Unknown activity type.</p>';
         }
+    }
+
+    function renderShowWord(activity) {
+        const container = document.getElementById('activity-container');
+        container.innerHTML = `
+            <div class="show-word">
+                <p>${activity.prompt}</p>
+                <button id="reveal-word">Show Word</button>
+                <div id="revealed-word" style="display:none; margin-top:10px;">${activity.answer}</div>
+                <div style="margin-top:10px;">
+                    <button id="show-word-next" style="display:none;">Next</button>
+                </div>
+            </div>
+        `;
+
+        document.getElementById('reveal-word').addEventListener('click', () => {
+            document.getElementById('revealed-word').style.display = 'block';
+            document.getElementById('show-word-next').style.display = 'inline-block';
+        });
+
+        document.getElementById('show-word-next').addEventListener('click', () => {
+            submitResponse(activity.word_id, true).then(fetchActivity);
+        });
     }
 
     function renderFlashcard(activity) {
@@ -103,7 +180,22 @@
         });
 
         document.getElementById('flashcard-done').addEventListener('click', () => {
-            submitResponse(activity.word_id, true);
+            submitResponse(activity.word_id, true).then(fetchActivity);
+        });
+    }
+
+    function renderShimmer(activity) {
+        const container = document.getElementById('activity-container');
+        container.innerHTML = `
+            <div class="shimmer-card">
+                <p class="shimmer">${activity.prompt}</p>
+                <p class="shimmer">${activity.answer}</p>
+                <button id="shimmer-next">Next</button>
+            </div>
+        `;
+
+        document.getElementById('shimmer-next').addEventListener('click', () => {
+            submitResponse(activity.word_id, true).then(fetchActivity);
         });
     }
 
@@ -119,14 +211,35 @@
         document.getElementById('typing-submit').addEventListener('click', () => {
             const answer = document.getElementById('typing-input').value;
             const correct = answer.trim().toLowerCase() === (activity.answer || '').toLowerCase();
-            submitResponse(activity.word_id, correct, answer);
+            submitResponse(activity.word_id, correct).then(() => {
+                showResult(correct, activity.answer);
+            });
         });
     }
 
-    function renderMatchUp(activity) {
+    function renderFillGaps(activity) {
         const container = document.getElementById('activity-container');
         container.innerHTML = `
-            <div class="match-up">
+            <div class="fill-gaps">
+                <p>${activity.translation}</p>
+                <p>${activity.prompt}</p>
+                <input type="text" id="fill-gaps-input" />
+                <button id="fill-gaps-submit">Submit</button>
+            </div>
+        `;
+        document.getElementById('fill-gaps-submit').addEventListener('click', () => {
+            const answer = document.getElementById('fill-gaps-input').value;
+            const correct = answer.trim().toLowerCase() === (activity.answer || '').toLowerCase();
+            submitResponse(activity.word_id, correct).then(() => {
+                showResult(correct, activity.answer);
+            });
+        });
+    }
+
+    function renderMultipleChoice(activity) {
+        const container = document.getElementById('activity-container');
+        container.innerHTML = `
+            <div class="multiple-choice">
                 <p>${activity.prompt}</p>
                 <div id="match-options">
                     ${activity.options.map(opt => `<button class="match-option">${opt}</button>`).join('')}
@@ -137,12 +250,37 @@
             btn.addEventListener('click', (e) => {
                 const selected = e.target.textContent;
                 const correct = selected === String(activity.answer);
-                submitResponse(activity.word_id, correct, selected);
+                submitResponse(activity.word_id, correct).then(() => {
+                    showResult(correct, activity.answer);
+                });
             });
         });
     }
 
-    async function submitResponse(wordId, correct, answer=null) {
+    function renderTrueFalse(activity) {
+        const container = document.getElementById('activity-container');
+        container.innerHTML = `
+            <div class="true-false">
+                <p>${activity.prompt} - ${activity.shown_translation}</p>
+                <button id="true-btn">True</button>
+                <button id="false-btn">False</button>
+            </div>
+        `;
+        document.getElementById('true-btn').addEventListener('click', () => {
+            const correct = activity.answer === true;
+            submitResponse(activity.word_id, correct).then(() => {
+                showResult(correct, activity.answer ? 'True' : 'False');
+            });
+        });
+        document.getElementById('false-btn').addEventListener('click', () => {
+            const correct = activity.answer === false;
+            submitResponse(activity.word_id, correct).then(() => {
+                showResult(correct, activity.answer ? 'True' : 'False');
+            });
+        });
+    }
+
+    async function submitResponse(wordId, correct) {
         try {
             await fetch("{% url 'update_progress' %}", {
                 method: 'POST',
@@ -166,12 +304,17 @@
                 sessionPoints += 5;
                 document.getElementById('session-points').textContent = sessionPoints;
             }
-
-            // Fetch next activity
-            await fetchActivity();
         } catch (error) {
             console.error('Failed to submit response:', error);
         }
+    }
+
+    function showResult(correct, correctAnswer) {
+        const container = document.getElementById('activity-container');
+        container.innerHTML =
+            `<p>${correct ? 'Correct!' : 'Incorrect. Correct answer: ' + correctAnswer}</p>` +
+            `<button id="next-activity">Next</button>`;
+        document.getElementById('next-activity').addEventListener('click', fetchActivity);
     }
 
     function getCookie(name) {
