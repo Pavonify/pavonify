@@ -834,7 +834,7 @@ def update_points(request):
         student_id = request.session.get("student_id")
         points = data.get("points", 0)
 
-        if student_id and points:
+        if student_id is not None and points is not None:
             student = Student.objects.get(id=student_id)
             student.total_points += points
             student.weekly_points += points
@@ -844,9 +844,10 @@ def update_points(request):
             new_trophies = check_and_award_trophies(student)
 
             return JsonResponse({
-                "success": True, 
+                "success": True,
+                "weekly_points": student.weekly_points,
                 "total_points": student.total_points,
-                "new_trophies": new_trophies
+                "new_trophies": new_trophies,
             })
 
         else:
