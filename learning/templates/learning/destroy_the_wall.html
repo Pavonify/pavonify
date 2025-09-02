@@ -150,6 +150,8 @@
     const weeklyPointsEl = document.getElementById("weekly-points");
     const totalPointsEl = document.getElementById("total-points");
     const timeInModeEl = document.getElementById("time-in-mode");
+    const progressUrl = "{% url 'update_progress' %}";
+    const pointsUrl = "{% url 'update_points' %}";
 
     let sessionPoints = 0;
     let weeklyPoints = parseInt(weeklyPointsEl.textContent);
@@ -196,28 +198,49 @@
       brick.dataset.translation = word.translation;
 
       brick.addEventListener("click", () => {
-        // Check if the brick's translation matches the target
-        if (brick.dataset.translation === shuffledWords[currentWordIndex].translation) {
+        const isCorrect = brick.dataset.translation === shuffledWords[currentWordIndex].translation;
+
+        // Update progress then points sequentially
+        fetch(progressUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": getCSRFToken(),
+          },
+          body: JSON.stringify({
+            word_id: shuffledWords[currentWordIndex].id,
+            correct: isCorrect,
+          }),
+        })
+          .then(() =>
+            fetch(pointsUrl, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": getCSRFToken(),
+              },
+              body: JSON.stringify({ points: isCorrect ? 1 : 0 }),
+            })
+          )
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.success) {
+              sessionPoints += isCorrect ? 1 : 0;
+              sessionPointsEl.textContent = sessionPoints;
+              weeklyPoints = data.weekly_points;
+              totalPoints = data.total_points;
+              weeklyPointsEl.textContent = weeklyPoints;
+              totalPointsEl.textContent = totalPoints;
+              if (data.new_trophies && data.new_trophies.length > 0) {
+                alert("New trophies: " + data.new_trophies.join(", "));
+              }
+            }
+          })
+          .catch((err) => console.error("Error updating progress or points:", err));
+
+        if (isCorrect) {
           showFeedback("Correct!", "green");
           brick.style.visibility = "hidden";
-
-          // Update points
-          sessionPoints++;
-          weeklyPoints++;
-          totalPoints++;
-          sessionPointsEl.textContent = sessionPoints;
-          weeklyPointsEl.textContent = weeklyPoints;
-          totalPointsEl.textContent = totalPoints;
-
-          // Update points on the server
-          fetch("/update-points/", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "X-CSRFToken": getCSRFToken(),
-            },
-            body: JSON.stringify({ points: 1 }),
-          }).catch(err => console.error("Error updating points:", err));
 
           // Wait 1 second before moving to the next target word
           setTimeout(() => {
