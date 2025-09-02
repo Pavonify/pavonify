@@ -671,12 +671,14 @@ def practice_session(request, vocab_list_id):
         if not queue:
             return JsonResponse({"completed": True})
 
-        item = queue.pop(0)
+        item = queue[0]
         word = VocabularyWord.objects.get(id=item["id"])
         activity = activities[item["step"]]
 
         if item["step"] + 1 < len(activities):
-            queue.append({"id": item["id"], "step": item["step"] + 1})
+            queue[0]["step"] += 1
+        else:
+            queue.pop(0)
         request.session[queue_key] = queue
 
         if activity == "flashcard":
