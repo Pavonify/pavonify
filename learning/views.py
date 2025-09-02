@@ -726,6 +726,19 @@ def gap_fill_mode(request, vocab_list_id):
     })
 
 
+@student_login_required
+def practice_session(request, vocab_list_id):
+    """Unified practice session for a vocabulary list."""
+    vocab_list = get_object_or_404(VocabularyList, id=vocab_list_id)
+    student = get_object_or_404(Student, id=request.session.get("student_id"))
+    if not student.classes.filter(vocabulary_lists=vocab_list).exists():
+        return HttpResponseForbidden("You do not have access to this vocabulary list.")
+
+    return render(request, "learning/practice_session.html", {
+        "vocab_list": vocab_list,
+    })
+
+
 @csrf_exempt
 @require_POST
 def update_progress(request):
