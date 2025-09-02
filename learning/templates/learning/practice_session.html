@@ -1,0 +1,193 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Practice Session - Pavonify</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #f5f5f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .pane {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 20px;
+            width: 100%;
+            max-width: 600px;
+        }
+        .pane h1 {
+            margin-top: 0;
+            color: #0aa2ef;
+            text-align: center;
+        }
+        #activity-container {
+            margin-top: 20px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+<div class="pane">
+    <h1>Practice Session</h1>
+    <p><strong>Session Points:</strong> <span id="session-points">0</span></p>
+    <div id="activity-container"></div>
+</div>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        fetchActivity();
+    });
+
+    let sessionPoints = 0;
+
+    async function fetchActivity() {
+        try {
+            const response = await fetch("{% url 'practice_session' %}");
+            const activity = await response.json();
+            renderActivity(activity);
+        } catch (error) {
+            console.error('Failed to fetch activity:', error);
+        }
+    }
+
+    function renderActivity(activity) {
+        const container = document.getElementById('activity-container');
+        container.innerHTML = '';
+
+        if (activity.completed) {
+            container.innerHTML = '<p>Session complete!</p>';
+            return;
+        }
+
+        switch (activity.type) {
+            case 'flashcard':
+                renderFlashcard(activity);
+                break;
+            case 'typing':
+                renderTyping(activity);
+                break;
+            case 'match':
+                renderMatchUp(activity);
+                break;
+            default:
+                container.innerHTML = '<p>Unknown activity type.</p>';
+        }
+    }
+
+    function renderFlashcard(activity) {
+        const container = document.getElementById('activity-container');
+        container.innerHTML = `
+            <div class="flashcard">
+                <p>${activity.prompt}</p>
+                <button id="show-answer">Show Answer</button>
+                <div id="answer" style="display:none; margin-top:10px;">${activity.answer}</div>
+                <div style="margin-top:10px;">
+                    <button id="flashcard-done" style="display:none;">I got it!</button>
+                </div>
+            </div>
+        `;
+
+        document.getElementById('show-answer').addEventListener('click', () => {
+            document.getElementById('answer').style.display = 'block';
+            document.getElementById('flashcard-done').style.display = 'inline-block';
+        });
+
+        document.getElementById('flashcard-done').addEventListener('click', () => {
+            submitResponse(activity.id, true);
+        });
+    }
+
+    function renderTyping(activity) {
+        const container = document.getElementById('activity-container');
+        container.innerHTML = `
+            <div class="typing">
+                <p>${activity.prompt}</p>
+                <input type="text" id="typing-input" />
+                <button id="typing-submit">Submit</button>
+            </div>
+        `;
+        document.getElementById('typing-submit').addEventListener('click', () => {
+            const answer = document.getElementById('typing-input').value;
+            const correct = answer.trim().toLowerCase() === (activity.answer || '').toLowerCase();
+            submitResponse(activity.id, correct, answer);
+        });
+    }
+
+    function renderMatchUp(activity) {
+        const container = document.getElementById('activity-container');
+        container.innerHTML = `
+            <div class="match-up">
+                <p>${activity.prompt}</p>
+                <div id="match-options">
+                    ${activity.options.map(opt => `<button class="match-option" data-value="${opt.value}">${opt.label}</button>`).join('')}
+                </div>
+            </div>
+        `;
+        container.querySelectorAll('.match-option').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const selected = e.target.getAttribute('data-value');
+                const correct = selected === String(activity.answer);
+                submitResponse(activity.id, correct, selected);
+            });
+        });
+    }
+
+    async function submitResponse(activityId, correct, answer=null) {
+        try {
+            await fetch("{% url 'update_progress' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({ activity_id: activityId, correct: correct, answer: answer })
+            });
+
+            await fetch("{% url 'update_points' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({ points: correct ? 5 : 0 })
+            });
+
+            if (correct) {
+                sessionPoints += 5;
+                document.getElementById('session-points').textContent = sessionPoints;
+            }
+
+            // Fetch next activity
+            const response = await fetch("{% url 'practice_session' %}?next=1");
+            const nextActivity = await response.json();
+            renderActivity(nextActivity);
+        } catch (error) {
+            console.error('Failed to submit response:', error);
+        }
+    }
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+</script>
+</body>
+</html>
