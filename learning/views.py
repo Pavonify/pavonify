@@ -649,7 +649,7 @@ def view_attached_vocab(request, class_id):
 
 @student_login_required
 def practice_session(request, vocab_list_id):
-    """Rotate through practice activities using a session-based queue."""
+    """Serve a rotating sequence of practice activities via AJAX."""
     student = get_object_or_404(Student, id=request.session.get("student_id"))
     vocab_list = get_object_or_404(VocabularyList, id=vocab_list_id)
 
@@ -658,62 +658,66 @@ def practice_session(request, vocab_list_id):
         return HttpResponseForbidden("You do not have access to this vocabulary list.")
 
     queue_key = f"practice_queue_{vocab_list_id}"
-    activity_key = f"practice_activity_{vocab_list_id}"
-
     queue = request.session.get(queue_key, [])
-    if not queue:
+    activities = ["flashcard", "typing", "match"]
+
+    def _init_queue():
         words = get_due_words(student, vocab_list, limit=20)
-        queue = [w.id for w in words]
-        request.session[queue_key] = queue
+        return [{"id": w.id, "step": 0} for w in words]
 
-    activities = ["flashcard", "typing", "matchup"]
-    idx = request.session.get(activity_key, 0)
-    activity = activities[idx]
-    request.session[activity_key] = (idx + 1) % len(activities)
-
-    def _fetch_words(ids):
-        word_objs = VocabularyWord.objects.filter(id__in=ids)
-        return [{"id": w.id, "word": w.word, "translation": w.translation} for w in word_objs]
-
-    if activity == "matchup":
-        needed = 5
-        if len(queue) < needed:
-            more = get_due_words(student, vocab_list, limit=needed - len(queue))
-            queue.extend([w.id for w in more])
-            request.session[queue_key] = queue
-        word_ids = queue[:needed]
-        request.session[queue_key] = queue[needed:]
-        words = _fetch_words(word_ids)
-        source_words = words
-        target_words = words[:]
-        random.shuffle(target_words)
-    else:
+    if request.headers.get("x-requested-with") == "XMLHttpRequest" or request.GET.get("next"):
         if not queue:
-            more = get_due_words(student, vocab_list, limit=20)
-            queue.extend([w.id for w in more])
-            request.session[queue_key] = queue
-        word_id = queue.pop(0)
-        request.session[queue_key] = queue
-        words = _fetch_words([word_id])
+            queue = _init_queue()
+        if not queue:
+            return JsonResponse({"completed": True})
 
-    if request.headers.get("x-requested-with") == "XMLHttpRequest":
-        payload = {"activity": activity, "words": words}
-        if activity == "matchup":
-            payload.update({"source_words": source_words, "target_words": target_words})
+        item = queue[0]
+        word = VocabularyWord.objects.get(id=item["id"])
+        activity = activities[item["step"]]
+
+        if item["step"] + 1 < len(activities):
+            item["step"] += 1
+        else:
+            queue.pop(0)
+        request.session[queue_key] = queue
+
+        if activity == "flashcard":
+            payload = {
+                "type": "flashcard",
+                "word_id": word.id,
+                "prompt": word.word,
+                "answer": word.translation,
+            }
+        elif activity == "typing":
+            payload = {
+                "type": "typing",
+                "word_id": word.id,
+                "prompt": word.word,
+                "answer": word.translation,
+            }
+        else:  # match (multiple choice)
+            translations = list(
+                VocabularyWord.objects.filter(list=vocab_list)
+                .exclude(id=word.id)
+                .values_list("translation", flat=True)
+            )
+            random.shuffle(translations)
+            options = translations[:3] + [word.translation]
+            random.shuffle(options)
+            payload = {
+                "type": "match",
+                "word_id": word.id,
+                "prompt": word.word,
+                "options": options,
+                "answer": word.translation,
+            }
         return JsonResponse(payload)
 
-    template_map = {
-        "flashcard": "learning/flashcard_mode.html",
-        "typing": "learning/gap_fill_mode.html",
-        "matchup": "learning/match_up_mode.html",
-    }
+    if not queue:
+        queue = _init_queue()
+        request.session[queue_key] = queue
 
-    context = {"vocab_list": vocab_list, "student": student}
-    if activity == "matchup":
-        context.update({"source_words": source_words, "target_words": target_words})
-    else:
-        context["words"] = words
-    return render(request, template_map[activity], context)
+    return render(request, "learning/practice_session.html", {"vocab_list": vocab_list})
 @student_login_required
 def flashcard_mode(request, vocab_list_id):
     # Debugging session and user data

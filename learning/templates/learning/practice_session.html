@@ -29,6 +29,12 @@
             color: #0aa2ef;
             text-align: center;
         }
+        .back-button {
+            display: inline-block;
+            margin-bottom: 10px;
+            color: #0aa2ef;
+            text-decoration: none;
+        }
         #activity-container {
             margin-top: 20px;
             text-align: center;
@@ -37,6 +43,7 @@
 </head>
 <body>
 <div class="pane">
+    <a href="{% url 'student_dashboard' %}" class="back-button">Back</a>
     <h1>Practice Session</h1>
     <p><strong>Session Points:</strong> <span id="session-points">0</span></p>
     <div id="activity-container"></div>
@@ -50,7 +57,9 @@
 
     async function fetchActivity() {
         try {
-            const response = await fetch("{% url 'practice_session' %}");
+            const response = await fetch("{% url 'practice_session' vocab_list.id %}?next=1", {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
             const activity = await response.json();
             renderActivity(activity);
         } catch (error) {
@@ -101,7 +110,7 @@
         });
 
         document.getElementById('flashcard-done').addEventListener('click', () => {
-            submitResponse(activity.id, true);
+            submitResponse(activity.word_id, true);
         });
     }
 
@@ -117,7 +126,7 @@
         document.getElementById('typing-submit').addEventListener('click', () => {
             const answer = document.getElementById('typing-input').value;
             const correct = answer.trim().toLowerCase() === (activity.answer || '').toLowerCase();
-            submitResponse(activity.id, correct, answer);
+            submitResponse(activity.word_id, correct, answer);
         });
     }
 
@@ -127,20 +136,20 @@
             <div class="match-up">
                 <p>${activity.prompt}</p>
                 <div id="match-options">
-                    ${activity.options.map(opt => `<button class="match-option" data-value="${opt.value}">${opt.label}</button>`).join('')}
+                    ${activity.options.map(opt => `<button class="match-option">${opt}</button>`).join('')}
                 </div>
             </div>
         `;
         container.querySelectorAll('.match-option').forEach(btn => {
             btn.addEventListener('click', (e) => {
-                const selected = e.target.getAttribute('data-value');
+                const selected = e.target.textContent;
                 const correct = selected === String(activity.answer);
-                submitResponse(activity.id, correct, selected);
+                submitResponse(activity.word_id, correct, selected);
             });
         });
     }
 
-    async function submitResponse(activityId, correct, answer=null) {
+    async function submitResponse(wordId, correct, answer=null) {
         try {
             await fetch("{% url 'update_progress' %}", {
                 method: 'POST',
@@ -148,7 +157,7 @@
                     'Content-Type': 'application/json',
                     'X-CSRFToken': getCookie('csrftoken')
                 },
-                body: JSON.stringify({ activity_id: activityId, correct: correct, answer: answer })
+                body: JSON.stringify({ word_id: wordId, correct: correct })
             });
 
             await fetch("{% url 'update_points' %}", {
@@ -166,9 +175,7 @@
             }
 
             // Fetch next activity
-            const response = await fetch("{% url 'practice_session' %}?next=1");
-            const nextActivity = await response.json();
-            renderActivity(nextActivity);
+            await fetchActivity();
         } catch (error) {
             console.error('Failed to submit response:', error);
         }
