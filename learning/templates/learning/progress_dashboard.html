@@ -1,0 +1,57 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Progress Dashboard</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+</head>
+<body class="bg-light">
+  <div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h1 class="h3">Progress Dashboard</h1>
+      <a href="{% url 'student_dashboard' %}">Back to Student Dashboard</a>
+    </div>
+
+    <h2 class="h5">Points</h2>
+    <div class="mb-3">
+      <label>Total Points: {{ total_points }}</label>
+      <div class="progress">
+        <div class="progress-bar" role="progressbar" style="width: {{ total_pct }}%;" aria-valuenow="{{ total_pct }}" aria-valuemin="0" aria-valuemax="100"></div>
+      </div>
+    </div>
+    <div class="mb-3">
+      <label>Monthly Points: {{ monthly_points }}</label>
+      <div class="progress">
+        <div class="progress-bar bg-success" role="progressbar" style="width: {{ monthly_pct }}%;" aria-valuenow="{{ monthly_pct }}" aria-valuemin="0" aria-valuemax="100"></div>
+      </div>
+    </div>
+    <div class="mb-3">
+      <label>Weekly Points: {{ weekly_points }}</label>
+      <div class="progress">
+        <div class="progress-bar bg-info" role="progressbar" style="width: {{ weekly_pct }}%;" aria-valuenow="{{ weekly_pct }}" aria-valuemin="0" aria-valuemax="100"></div>
+      </div>
+    </div>
+
+    <h2 class="h5 mt-4">Streaks</h2>
+    <p>Current Streak: {{ current_streak }} days</p>
+    <p>Highest Streak: {{ highest_streak }} days</p>
+
+    <h2 class="h5 mt-4">Trophies ({{ trophy_count }})</h2>
+    <div class="d-flex flex-wrap">
+      {% for s_trophy in trophies %}
+        <div class="text-center m-2">
+          {% if s_trophy.trophy.icon %}
+            <img src="{{ s_trophy.trophy.icon.url }}" alt="{{ s_trophy.trophy.name }}" style="height:50px;">
+          {% else %}
+            <img src="{% static 'trophies/default_trophy.png' %}" alt="{{ s_trophy.trophy.name }}" style="height:50px;">
+          {% endif %}
+          <div>{{ s_trophy.trophy.name }}</div>
+        </div>
+      {% empty %}
+        <p>No trophies earned yet.</p>
+      {% endfor %}
+    </div>
+  </div>
+</body>
+</html>

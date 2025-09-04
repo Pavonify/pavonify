@@ -61,6 +61,7 @@ urlpatterns = [
     ),
     path("student-login/", views.student_login, name="student_login"),
     path("student-dashboard/", views.student_dashboard, name="student_dashboard"),
+    path("progress-dashboard/", views.progress_dashboard, name="progress_dashboard"),
     path("my-words/", views.my_words, name="my_words"),
     path('attach-vocabulary/<uuid:class_id>/', views.attach_vocab_list, name='attach_vocabulary'),
     path('view-vocabulary/<int:vocab_list_id>/', views.view_vocabulary, name='view_vocabulary'),

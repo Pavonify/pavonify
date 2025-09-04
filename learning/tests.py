@@ -1,6 +1,7 @@
 from datetime import date, timedelta
 from django.test import TestCase
 from django.utils import timezone
+from django.urls import reverse
 
 from .models import (
     User,
@@ -122,3 +123,31 @@ class SRSTests(TestCase):
         )
         self.progress1.refresh_from_db()
         self.assertEqual(self.progress1.memory_score(), "cold")
+
+
+class ProgressDashboardViewTests(TestCase):
+    def setUp(self):
+        self.school = School.objects.create(name="Test School")
+        self.student = Student.objects.create(
+            school=self.school,
+            first_name="Test",
+            last_name="Student",
+            year_group=1,
+            date_of_birth=date(2010, 1, 1),
+            username="student1",
+            password="pass",
+        )
+
+    def test_requires_login(self):
+        response = self.client.get(reverse("progress_dashboard"))
+        self.assertEqual(response.status_code, 302)
+
+    def test_progress_dashboard_context(self):
+        session = self.client.session
+        session["student_id"] = str(self.student.id)
+        session.save()
+
+        response = self.client.get(reverse("progress_dashboard"))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["total_points"], self.student.total_points)
+        self.assertEqual(response.context["trophy_count"], 0)

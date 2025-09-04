@@ -246,7 +246,7 @@
       <span>Welcome, {{ student.first_name }}</span>
     </div>
     <div class="nav-right">
-      <a href="#" data-pane="progress" class="active">My Progress</a>
+      <a href="{% url 'progress_dashboard' %}" class="active">My Progress</a>
       <a href="#" data-pane="classes">My Classes</a>
       <a href="#" data-pane="assignments">My Assignments</a>
       <a href="#" data-pane="practice">Independent Practice</a>
