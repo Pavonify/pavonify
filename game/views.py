@@ -13,6 +13,7 @@ from django.views.decorators.csrf import csrf_exempt
 import json
 
 from django.contrib.auth import get_user_model
+from django.contrib import messages
 
 User = get_user_model()
 
@@ -48,8 +49,8 @@ def host_game(request):
         # Initialize country ownership: set every country to neutral for this game.
         for country in Country.objects.all():
             GameCountryOwnership.objects.create(live_game=game, country=country)
-        
-        # Redirect to the game lobby page (adjust URL name as needed)
+
+        messages.success(request, "Game created successfully!")
         return redirect("game_lobby", game_id=game.id)
 
     # On GET, show available vocabulary lists and teacher's classes.
