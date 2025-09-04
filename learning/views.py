@@ -8,7 +8,7 @@ from django.contrib import messages
 from django.http import HttpResponseRedirect
 from .utils import generate_student_username, generate_random_password
 import datetime
-from datetime import datetime
+from datetime import datetime, timedelta
 import random
 from django.utils import timezone
 from django.db.models import Q
@@ -529,7 +529,7 @@ def student_dashboard(request):
             assignment.student_progress = progress.points_earned if progress else 0
             assignment.target_points = assignment.target_points or 1
             assignment.progress_percentage = (assignment.student_progress / assignment.target_points) * 100
-            assignment.is_complete = assignment.student_progress >= assignment.target_points
+            assignment.is_complete = progress.completed if progress else False
 
         # Process expired assignments
         for assignment in expired_assignments:
@@ -537,7 +537,7 @@ def student_dashboard(request):
             assignment.student_progress = progress.points_earned if progress else 0
             assignment.target_points = assignment.target_points or 1
             assignment.progress_percentage = (assignment.student_progress / assignment.target_points) * 100
-            assignment.is_complete = assignment.student_progress >= assignment.target_points
+            assignment.is_complete = progress.completed if progress else False
 
         # Assign processed assignments back to the class instance
         class_instance.live_assignments = live_assignments
@@ -1128,8 +1128,7 @@ def update_assignment_points(request):
             assignment_progress, created = AssignmentProgress.objects.get_or_create(
                 student=student, assignment=assignment
             )
-            assignment_progress.points_earned += points
-            assignment_progress.save()
+            assignment_progress.update_progress(points, timedelta())
 
             # Update Student's Points (total, weekly, monthly)
             student.add_points(points)

@@ -240,6 +240,7 @@ class AssignmentProgress(models.Model):
     assignment = models.ForeignKey(Assignment, on_delete=models.CASCADE)
     points_earned = models.IntegerField(default=0)
     time_spent = models.DurationField(default=timedelta())
+    completed = models.BooleanField(default=False)
 
     def __str__(self):
         return f"{self.student.username} - {self.assignment.name}"
@@ -253,7 +254,7 @@ class AssignmentProgress(models.Model):
 
         self.time_spent += time_spent
         self.completed = self.points_earned >= self.assignment.target_points
-        self.save()
+        self.save(update_fields=["points_earned", "time_spent", "completed"])
 
 class Trophy(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

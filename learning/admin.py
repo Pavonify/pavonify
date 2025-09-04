@@ -100,7 +100,7 @@ class AssignmentProgressAdmin(admin.ModelAdmin):
     list_filter = ('assignment', 'student')
 
     def completed_status(self, obj):
-        return "✅ Completed" if obj.points_earned >= obj.assignment.target_points else "❌ In Progress"
+        return "✅ Completed" if obj.completed else "❌ In Progress"
     completed_status.short_description = "Status"
 
 
