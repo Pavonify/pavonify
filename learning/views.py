@@ -2095,13 +2095,22 @@ def class_leaderboard(request, class_id):
     class_instance = get_object_or_404(Class, id=class_id)
     if request.user not in class_instance.teachers.all():
         return HttpResponseForbidden("You do not have permission to view this class leaderboard.")
-    
-    # Get all students in the class, ordered by total_points descending.
-    students = class_instance.students.all().order_by('-total_points')
-    
+    category = request.GET.get("category", "total_points")
+    if category not in {"total_points", "weekly_points", "monthly_points"}:
+        category = "total_points"
+
+    students = class_instance.students.all().order_by(f"-{category}")
+    column_labels = {
+        "total_points": "Total Points",
+        "weekly_points": "Weekly Points",
+        "monthly_points": "Monthly Points",
+    }
+
     context = {
         "class_instance": class_instance,
         "students": students,
+        "current_category": category,
+        "column_label": column_labels[category],
     }
     return render(request, "learning/class_leaderboard.html", context)
 
@@ -2111,12 +2120,22 @@ def refresh_leaderboard(request, class_id):
     class_instance = get_object_or_404(Class, id=class_id)
     if request.user not in class_instance.teachers.all():
         return HttpResponseForbidden("You do not have permission to view this class leaderboard.")
-    
-    students = class_instance.students.all().order_by('-total_points')
-    
+    category = request.GET.get("category", "total_points")
+    if category not in {"total_points", "weekly_points", "monthly_points"}:
+        category = "total_points"
+
+    students = class_instance.students.all().order_by(f"-{category}")
+    column_labels = {
+        "total_points": "Total Points",
+        "weekly_points": "Weekly Points",
+        "monthly_points": "Monthly Points",
+    }
+
     return render(request, "learning/leaderboard_fragment.html", {
          "class_instance": class_instance,
          "students": students,
+         "current_category": category,
+         "column_label": column_labels[category],
     })
 
 
