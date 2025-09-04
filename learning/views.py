@@ -1872,51 +1872,85 @@ def reading_lab_display(request, text_id):
 
 @student_login_required
 def my_words(request):
-    """Display a student's progress grouped by vocabulary list."""
+    """Display a student's vocabulary words with optional search and sort."""
     student_id = request.session.get("student_id")
     student = get_object_or_404(Student, id=student_id)
     user = _get_user_from_student(student)
 
     progress_qs = Progress.objects.filter(student=user).select_related("word", "word__list")
 
+    # Filtering by class or specific vocabulary list
     class_id = request.GET.get("class")
     list_id = request.GET.get("list")
-
     if class_id:
         progress_qs = progress_qs.filter(word__list__classes__id=class_id)
     if list_id:
         progress_qs = progress_qs.filter(word__list__id=list_id)
 
-    grouped = defaultdict(list)
+    # Searching by word or translation
+    search_query = request.GET.get("search")
+    if search_query:
+        progress_qs = progress_qs.filter(
+            Q(word__word__icontains=search_query)
+            | Q(word__translation__icontains=search_query)
+        )
+
+    # Build progress data
+    progress_data = []
     for prog in progress_qs:
         total_attempts = prog.correct_attempts + prog.incorrect_attempts
-        memory_percent = int(prog.correct_attempts / total_attempts * 100) if total_attempts > 0 else 0
-        if memory_percent >= 80:
-            color = "high"
-        elif memory_percent >= 50:
-            color = "medium"
-        else:
-            color = "low"
-        grouped[prog.word.list].append({
-            "text": prog.word.word,
-            "last_seen": prog.last_seen,
-            "total_attempts": total_attempts,
-            "memory_percent": memory_percent,
-            "memory_color": color,
-        })
+        memory_percent = (
+            int(prog.correct_attempts / total_attempts * 100)
+            if total_attempts > 0
+            else 0
+        )
+        progress_data.append(
+            {
+                "text": prog.word.word,
+                "translation": prog.word.translation,
+                "list": prog.word.list.name,
+                "last_seen": prog.last_seen,
+                "total_attempts": total_attempts,
+                "memory_percent": memory_percent,
+            }
+        )
 
     classes = student.classes.all()
-    vocab_lists = VocabularyList.objects.filter(words__progress__student=user).distinct()
+    vocab_lists = (
+        VocabularyList.objects.filter(words__progress__student=user).distinct()
+    )
 
-    context = {
-        "grouped_progress": grouped.items(),
-        "classes": classes,
-        "vocab_lists": vocab_lists,
-        "selected_class": class_id,
-        "selected_list": list_id,
-    }
+    # Sorting options
+    sort_key = request.GET.get("sort")
+    if sort_key == "last_seen":
+        progress_data.sort(
+            key=lambda x: x["last_seen"] or datetime.min, reverse=True
+        )
+    elif sort_key == "attempts":
+        progress_data.sort(key=lambda x: x["total_attempts"], reverse=True)
+    elif sort_key == "memory":
+        progress_data.sort(key=lambda x: x["memory_percent"], reverse=True)
 
-    return render(request, "learning/my_words.html", context)
+    # AJAX response for dynamic updates
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        for item in progress_data:
+            item["last_seen"] = (
+                item["last_seen"].isoformat() if item["last_seen"] else None
+            )
+        return JsonResponse({"words": progress_data})
+
+    return render(
+        request,
+        "learning/my_words.html",
+        {
+            "student": student,
+            "words": progress_data,
+            "classes": classes,
+            "vocab_lists": vocab_lists,
+            "selected_class": class_id,
+            "selected_list": list_id,
+        },
+    )
 
 def get_words(request):
     """ AJAX endpoint to fetch words for a selected vocabulary list """
