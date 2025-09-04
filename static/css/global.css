@@ -1,0 +1,131 @@
+@import url('https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css');
+
+/* Layout for dashboard pages */
+.dashboard-layout {
+    font-family: Arial, sans-serif;
+    display: flex;
+    margin: 0;
+    min-height: 100vh;
+}
+.sidebar {
+    background-color: #0aa2ef;
+    color: white;
+    padding: 20px;
+    width: 250px;
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+}
+.sidebar img {
+    display: block;
+    margin: 0 auto 20px;
+    max-width: 100%;
+    width: calc(100% - 30px);
+    border-radius: 5px;
+}
+.sidebar nav a {
+    display: block;
+    color: white;
+    text-decoration: none;
+    padding: 10px 15px;
+    margin: 5px 0;
+    border-radius: 5px;
+    background-color: #0a8fd9;
+    text-align: center;
+}
+.sidebar nav a:hover {
+    background-color: #086baf;
+}
+.main-content {
+    flex-grow: 1;
+    padding: 20px;
+    background-color: #f9f9f9;
+}
+.pane {
+    background-color: #fec10e;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    color: white;
+    margin-bottom: 20px;
+}
+
+/* My Words page styles */
+.my-words {
+    --primary: #1A73E8;
+    --accent: #F2A03D;
+    --background: #F2EFE9;
+    --dark: #0D0D0D;
+    --highlight: #A6173D;
+    font-family: 'Poppins', sans-serif;
+    background-color: var(--background);
+    color: var(--dark);
+    line-height: 1.6;
+}
+.my-words * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+.my-words-pane {
+    background: #fff;
+    border-radius: 10px;
+    padding: 20px;
+    margin: 40px auto;
+    max-width: 1000px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+.my-words-pane h1 {
+    color: var(--primary);
+    margin-bottom: 20px;
+    text-align: center;
+}
+.my-words .filters {
+    text-align: center;
+    margin-bottom: 20px;
+}
+.my-words .filters select,
+.my-words .filters button {
+    padding: 8px 12px;
+    margin-right: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+.my-words .filters button {
+    background-color: var(--primary);
+    color: #fff;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+.my-words .filters button:hover {
+    background-color: var(--accent);
+}
+.my-words details {
+    margin-bottom: 15px;
+}
+.my-words-pane table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+.my-words-pane th,
+.my-words-pane td {
+    padding: 8px;
+    border: 1px solid #ddd;
+    text-align: left;
+}
+.memory-meter {
+    width: 100px;
+    height: 10px;
+    background-color: #eee;
+}
+.memory-meter .fill {
+    height: 100%;
+}
+.memory-meter .fill.high {
+    background-color: #4caf50;
+}
+.memory-meter .fill.medium {
+    background-color: #ffc107;
+}
+.memory-meter .fill.low {
+    background-color: #f44336;
+}
