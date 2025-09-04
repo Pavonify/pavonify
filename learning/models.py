@@ -104,6 +104,8 @@ class Student(models.Model):
     total_points = models.PositiveIntegerField(default=0)
     weekly_points = models.PositiveIntegerField(default=0)
     monthly_points = models.PositiveIntegerField(default=0)
+    weekly_points_last_reset = models.DateField(default=now)
+    monthly_points_last_reset = models.DateField(default=now)
 
     # 🛠️ New fields for tracking achievements
     last_activity = models.DateField(null=True, blank=True)  # Last day they practiced
@@ -125,6 +127,28 @@ class Student(models.Model):
         self.last_activity = today
         if self.current_streak > self.highest_streak:
             self.highest_streak = self.current_streak
+        self.save()
+
+    def reset_periodic_points(self):
+        today = now().date()
+        if (
+            self.weekly_points_last_reset.isocalendar()[1] != today.isocalendar()[1]
+            or self.weekly_points_last_reset.year != today.year
+        ):
+            self.weekly_points = 0
+            self.weekly_points_last_reset = today
+        if (
+            self.monthly_points_last_reset.month != today.month
+            or self.monthly_points_last_reset.year != today.year
+        ):
+            self.monthly_points = 0
+            self.monthly_points_last_reset = today
+
+    def add_points(self, amount):
+        self.reset_periodic_points()
+        self.total_points += amount
+        self.weekly_points += amount
+        self.monthly_points += amount
         self.save()
 
 class VocabularyList(models.Model):
