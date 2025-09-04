@@ -2200,29 +2200,31 @@ def refresh_leaderboard(request, class_id):
 
 
 @student_login_required
-@csrf_exempt  # Ensure your AJAX requests include the CSRF token; remove if not needed
+@require_POST
 def log_assignment_attempt(request):
-    if request.method != "POST":
-        return HttpResponseBadRequest("Only POST requests are allowed.")
-    
     try:
         data = json.loads(request.body)
         assignment_id = data.get("assignment_id")
         word_id = data.get("word_id")
         is_correct = data.get("is_correct")
-        
+
         # Validate required fields
         if assignment_id is None or word_id is None or is_correct is None:
             return HttpResponseBadRequest("Missing required parameters.")
-        
+
         assignment = get_object_or_404(Assignment, id=assignment_id)
         student = get_object_or_404(Student, id=request.session.get("student_id"))
+
+        # Ensure the student is enrolled in the assignment's class
+        if not assignment.class_assigned.students.filter(id=student.id).exists():
+            return HttpResponseForbidden("You are not enrolled in this class.")
+
         vocab_word = get_object_or_404(VocabularyWord, id=word_id)
 
         mode = data.get("mode")
         if not mode:
             return HttpResponseBadRequest("Missing mode parameter.")
-        
+
         # Create the assignment attempt record.
         AssignmentAttempt.objects.create(
             student=student,
