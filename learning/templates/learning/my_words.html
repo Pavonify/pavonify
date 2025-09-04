@@ -7,15 +7,67 @@
 </head>
 <body>
     <h1>My Words</h1>
-    {% if words %}
-    <ul>
-        {% for word in words %}
-        <li>{{ word.word }} - {{ word.translation }}</li>
-        {% endfor %}
-    </ul>
-    {% else %}
+
+    <input type="text" id="search" placeholder="Search words">
+    <select id="sort">
+        <option value="">Sort By</option>
+        <option value="last_seen">Last Seen</option>
+        <option value="attempts">Attempts</option>
+        <option value="memory">Memory Strength</option>
+    </select>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Word</th>
+                <th>Translation</th>
+                <th>Last Seen</th>
+                <th>Attempts</th>
+                <th>Memory</th>
+            </tr>
+        </thead>
+        <tbody id="words-body">
+            {% for word in words %}
+            <tr>
+                <td>{{ word.text }}</td>
+                <td>{{ word.translation }}</td>
+                <td>{% if word.last_seen %}{{ word.last_seen }}{% endif %}</td>
+                <td>{{ word.total_attempts }}</td>
+                <td>{{ word.memory_percent }}%</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% if not words %}
     <p>No words available.</p>
     {% endif %}
+
+    <script>
+    function fetchWords() {
+        const search = document.getElementById('search').value;
+        const sort = document.getElementById('sort').value;
+        const params = new URLSearchParams();
+        if (search) params.append('search', search);
+        if (sort) params.append('sort', sort);
+        fetch(`{% url 'my_words' %}?${params.toString()}`, {
+            headers: {'X-Requested-With': 'XMLHttpRequest'}
+        })
+        .then(response => response.json())
+        .then(data => {
+            const tbody = document.getElementById('words-body');
+            tbody.innerHTML = '';
+            data.words.forEach(w => {
+                const tr = document.createElement('tr');
+                const lastSeen = w.last_seen ? new Date(w.last_seen).toLocaleString() : '';
+                tr.innerHTML = `<td>${w.text}</td><td>${w.translation || ''}</td><td>${lastSeen}</td><td>${w.total_attempts}</td><td>${w.memory_percent}%</td>`;
+                tbody.appendChild(tr);
+            });
+        });
+    }
+
+    document.getElementById('search').addEventListener('input', fetchWords);
+    document.getElementById('sort').addEventListener('change', fetchWords);
+    </script>
 </body>
 </html>
 
