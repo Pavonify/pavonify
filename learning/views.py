@@ -1,7 +1,8 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import login, logout, get_user_model
-from django.db.models import Sum
+from django.db.models import Sum, Count, F, Subquery, OuterRef, Q
+from django.db.models.functions import Coalesce
 from .models import Progress, VocabularyWord, VocabularyList, User, Class, Student, School, Assignment, AssignmentProgress, Trophy, StudentTrophy, ReadingLabText, AssignmentAttempt, GrammarLadder, LadderItem
 from .forms import VocabularyListForm, CustomUserCreationForm, BulkAddWordsForm, ClassForm, ShareClassForm, TeacherRegistrationForm
 from django.contrib import messages
@@ -11,7 +12,6 @@ import datetime
 from datetime import datetime
 import random
 from django.utils import timezone
-from django.db.models import Q
 from django.urls import reverse
 from functools import wraps
 from django.http import HttpResponseForbidden, Http404, HttpResponseBadRequest
@@ -2249,89 +2249,88 @@ def assignment_analytics(request, assignment_id):
     
     # Overview: Get progress for each student for this assignment.
     progress_list = AssignmentProgress.objects.filter(assignment=assignment)
-    
-    # Get all attempts for this assignment, ordered by timestamp.
-    attempts = list(
-        AssignmentAttempt.objects.filter(assignment=assignment)
-        .select_related("vocabulary_word")
-        .order_by("timestamp")
+
+    attempts_qs = AssignmentAttempt.objects.filter(assignment=assignment)
+
+    # --- Student Summary Aggregation using ORM ---
+    first_correct_subquery = AssignmentAttempt.objects.filter(
+        assignment=assignment,
+        student=OuterRef("student"),
+        vocabulary_word=OuterRef("vocabulary_word"),
+        is_correct=True,
+    ).order_by("timestamp").values("timestamp")[:1]
+
+    wrong_before_subquery = AssignmentAttempt.objects.filter(
+        assignment=assignment,
+        student=OuterRef("student"),
+        vocabulary_word=OuterRef("vocabulary_word"),
+        is_correct=False,
+        timestamp__lt=Subquery(first_correct_subquery),
+    ).values("student").annotate(cnt=Count("id")).values("cnt")
+
+    student_word_qs = (
+        attempts_qs.values("student", "vocabulary_word", word=F("vocabulary_word__translation"))
+        .annotate(first_correct=Subquery(first_correct_subquery))
+        .filter(first_correct__isnull=False)
+        .annotate(wrong_before=Coalesce(Subquery(wrong_before_subquery), 0))
     )
-    
-    # --- Student Summary Aggregation ---
+
+    student_word_data = list(student_word_qs)
+    student_ids = {row["student"] for row in student_word_data}
+    student_map = {s.id: s for s in Student.objects.filter(id__in=student_ids)}
+
     student_summary = {}
-    for att in attempts:
-        student_id = att.student.id
-        word_id = att.vocabulary_word.id
-        if student_id not in student_summary:
-            student_summary[student_id] = {
-                "student": att.student,
-                "words": {}  # keyed by word_id with data: target word, wrong count, aced flag
-            }
-        if word_id not in student_summary[student_id]["words"]:
-            # Use the target word (translation) here:
-            student_summary[student_id]["words"][word_id] = {"word": att.vocabulary_word.translation, "wrong": 0, "aced": False}
-        if not student_summary[student_id]["words"][word_id]["aced"]:
-            if att.is_correct:
-                student_summary[student_id]["words"][word_id]["aced"] = True
-            else:
-                student_summary[student_id]["words"][word_id]["wrong"] += 1
+    for row in student_word_data:
+        sid = row["student"]
+        summary = student_summary.setdefault(
+            sid, {"student": student_map[sid], "words_aced": [], "attempts_wrong": []}
+        )
+        summary["words_aced"].append(row["word"])
+        if row["wrong_before"] > 0:
+            summary["attempts_wrong"].append((row["word"], row["wrong_before"]))
+    student_summary_list = list(student_summary.values())
 
-    student_summary_list = []
-    for s in student_summary.values():
-        words_aced = []
-        attempts_wrong = []
-        for data in s["words"].values():
-            if data["aced"]:
-                words_aced.append(data["word"])
-                if data["wrong"] > 0:
-                    attempts_wrong.append((data["word"], data["wrong"]))
-        student_summary_list.append({
-            "student": s["student"],
-            "words_aced": words_aced,
-            "attempts_wrong": attempts_wrong,
-        })
-    
-    # --- Word Summary Aggregation ---
-    word_summary_dict = {}
-    for att in attempts:
-        word_id = att.vocabulary_word.id
-        if word_id not in word_summary_dict:
-            # Use the target word (translation) instead of the source word
-            word_summary_dict[word_id] = {"word": att.vocabulary_word.translation, "wrong_attempts": 0, "students": set()}
-        if not att.is_correct:
-            word_summary_dict[word_id]["wrong_attempts"] += 1
-            word_summary_dict[word_id]["students"].add(att.student.id)
-    word_summary_list = []
-    for w in word_summary_dict.values():
-        word_summary_list.append({
-            "word": w["word"],
-            "wrong_attempts": w["wrong_attempts"],
-            "students_difficulty": len(w["students"]),
-        })
-    
-    # --- Feedback Aggregation ---
-    first_attempts = {}
-    for att in attempts:
-        key = (att.student.id, att.vocabulary_word.id)
-        if key not in first_attempts:
-            first_attempts[key] = att.is_correct
+    # --- Word Summary Aggregation using ORM ---
+    word_summary_qs = (
+        attempts_qs.values(word=F("vocabulary_word__translation"))
+        .annotate(
+            wrong_attempts=Count("id", filter=Q(is_correct=False)),
+            students_difficulty=Count(
+                "student", filter=Q(is_correct=False), distinct=True
+            ),
+        )
+    )
+    word_summary_list = list(word_summary_qs)
 
-    easy_words = []
-    difficult_words = []
-    for key, is_correct in first_attempts.items():
-        word_id = key[1]
-        if word_id in word_summary_dict:
-            # Again, use the target word
-            word_text = word_summary_dict[word_id]["word"]
-            if is_correct:
-                easy_words.append(word_text)
-            else:
-                difficult_words.append(word_text)
-    word_cloud_easy = list(set(easy_words))
-    word_cloud_difficult = list(set(difficult_words))
-    
     # Top 10 Difficult Words by distinct student count.
-    top_difficult_words = sorted(word_summary_list, key=lambda x: x["students_difficulty"], reverse=True)[:10]
+    top_difficult_words = list(word_summary_qs.order_by("-students_difficulty")[:10])
+
+    # --- Feedback Aggregation using first attempts ---
+    first_attempt_qs = (
+        attempts_qs.values("student", "vocabulary_word", word=F("vocabulary_word__translation"))
+        .annotate(
+            first_is_correct=Subquery(
+                AssignmentAttempt.objects.filter(
+                    assignment=assignment,
+                    student=OuterRef("student"),
+                    vocabulary_word=OuterRef("vocabulary_word"),
+                )
+                .order_by("timestamp")
+                .values("is_correct")[:1]
+            )
+        )
+    )
+
+    easy_words = set()
+    difficult_words = set()
+    for row in first_attempt_qs:
+        if row["first_is_correct"]:
+            easy_words.add(row["word"])
+        else:
+            difficult_words.add(row["word"])
+
+    word_cloud_easy = list(easy_words)
+    word_cloud_difficult = list(difficult_words)
     
     context = {
         "assignment": assignment,
@@ -2345,8 +2344,6 @@ def assignment_analytics(request, assignment_id):
     
     return render(request, "learning/assignment_analytics.html", context)
 
-
-from django.db.models import Count
 
 @login_required
 def grammar_lab(request):
