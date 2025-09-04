@@ -560,6 +560,32 @@ def student_dashboard(request):
     })
 
 
+def progress_dashboard(request):
+    """Aggregate and display overall progress for a logged-in student."""
+    student_id = request.session.get("student_id")
+    if not student_id:
+        return redirect("student_login")
+
+    student = get_object_or_404(Student, id=student_id)
+    trophies = student.trophies.select_related("trophy")
+
+    context = {
+        "student": student,
+        "total_points": student.total_points,
+        "monthly_points": student.monthly_points,
+        "weekly_points": student.weekly_points,
+        "current_streak": student.current_streak,
+        "highest_streak": student.highest_streak,
+        "trophies": trophies,
+        "trophy_count": trophies.count(),
+        "total_pct": min(student.total_points, 100),
+        "monthly_pct": min(student.monthly_points, 100),
+        "weekly_pct": min(student.weekly_points, 100),
+    }
+
+    return render(request, "learning/progress_dashboard.html", context)
+
+
 def my_words(request):
     """Display all vocabulary words available to the logged-in student."""
     student_id = request.session.get("student_id")
