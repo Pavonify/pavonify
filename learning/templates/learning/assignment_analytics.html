@@ -197,6 +197,7 @@
     <!-- Word Summary Tab -->
     <div class="tab-content" id="word-summary">
       <h2>Word Summary</h2>
+      <p class="legend"><em>Difficulty meter shows percentage of attempts that were incorrect.</em></p>
       <table>
         <thead>
           <tr>
@@ -210,7 +211,7 @@
           <tr>
             <td>{{ word.word }}</td>
             <td>
-              <div class="difficulty-bar" style="width: {{ word.wrong_attempts|floatformat:0 }}%;"></div>
+              <div class="difficulty-bar" title="{{ word.difficulty_percentage|floatformat:1 }}% of attempts incorrect" style="width: {{ word.difficulty_percentage|floatformat:0 }}%;"></div>
             </td>
             <td>{{ word.students_difficulty }} students found this word difficult</td>
           </tr>
