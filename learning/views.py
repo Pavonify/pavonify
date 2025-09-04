@@ -963,10 +963,7 @@ def update_points(request):
 
         if student_id is not None and points is not None:
             student = Student.objects.get(id=student_id)
-            student.total_points += points
-            student.weekly_points += points
-            student.monthly_points += points
-            student.save()
+            student.add_points(points)
 
             new_trophies = check_and_award_trophies(student)
 
@@ -1108,9 +1105,8 @@ def update_assignment_points(request):
             assignment_progress.points_earned += points
             assignment_progress.save()
 
-            # Update Student's Total Points
-            student.total_points += points
-            student.save()
+            # Update Student's Points (total, weekly, monthly)
+            student.add_points(points)
 
             # Award any trophies the student qualifies for
             new_trophies = check_and_award_trophies(student)
