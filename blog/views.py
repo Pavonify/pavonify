@@ -1,9 +1,12 @@
 from django.shortcuts import render, get_object_or_404
+from django.contrib import messages
 from .models import BlogPost
 
 def blog_list(request):
     """Show all blog posts."""
     posts = BlogPost.objects.all()
+    if not posts:
+        messages.info(request, "No blog posts available.")
     return render(request, "blog/blog_list.html", {"posts": posts})
 
 def blog_detail(request, slug):
