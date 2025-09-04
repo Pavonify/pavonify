@@ -812,8 +812,8 @@ a.btn:hover, button.btn:hover {
               },
           });
           const data = await response.json();
-          if (data.sessionId) {
-              window.location.href = `https://checkout.stripe.com/pay/${data.sessionId}`;
+          if (data.checkout_url) {
+              window.location.href = data.checkout_url;
           } else {
               alert("Error: " + data.error);
           }
