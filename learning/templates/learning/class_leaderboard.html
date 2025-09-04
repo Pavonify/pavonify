@@ -133,6 +133,14 @@
   <!-- Leaderboard Pane -->
   <div class="pane">
     <h2>Leaderboard for {{ class_instance.name }}</h2>
+    <div class="category-select" style="margin-bottom: 10px;">
+      <label for="category-select">Category:</label>
+      <select id="category-select">
+        <option value="total_points" {% if current_category == 'total_points' %}selected{% endif %}>Total Points</option>
+        <option value="monthly_points" {% if current_category == 'monthly_points' %}selected{% endif %}>Monthly Points</option>
+        <option value="weekly_points" {% if current_category == 'weekly_points' %}selected{% endif %}>Weekly Points</option>
+      </select>
+    </div>
     <div id="leaderboard-container">
       {% include "learning/leaderboard_fragment.html" %}
     </div>
@@ -144,6 +152,8 @@
     const refreshIntervalInput = document.getElementById("refresh-interval");
     const setRefreshButton = document.getElementById("set-refresh");
     const leaderboardContainer = document.getElementById("leaderboard-container");
+    const categorySelect = document.getElementById("category-select");
+    let currentCategory = "{{ current_category }}";
 
     // Default refresh interval (in milliseconds)
     let refreshInterval = parseInt(refreshIntervalInput.value) * 1000;
@@ -157,7 +167,7 @@
     }
 
     function refreshLeaderboard() {
-      fetch("{% url 'refresh_leaderboard' class_instance.id %}")
+      fetch(`{% url 'refresh_leaderboard' class_instance.id %}?category=${currentCategory}`)
         .then(response => response.text())
         .then(html => {
           leaderboardContainer.innerHTML = html;
@@ -175,6 +185,11 @@
       }
       refreshInterval = intervalValue * 1000;
       startRefreshTimer();
+    });
+
+    categorySelect.addEventListener("change", () => {
+      currentCategory = categorySelect.value;
+      refreshLeaderboard();
     });
 
     // Start the timer with the default interval when the page loads.

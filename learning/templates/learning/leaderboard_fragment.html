@@ -3,7 +3,7 @@
     <tr>
       <th>Rank</th>
       <th>Student Name</th>
-      <th>Total Points</th>
+      <th>{{ column_label }}</th>
     </tr>
   </thead>
   <tbody>
@@ -21,7 +21,15 @@
         {% endif %}
       </td>
       <td>{{ student.first_name }} {{ student.last_name }}</td>
-      <td>{{ student.total_points }} pts</td>
+      <td>
+        {% if current_category == "weekly_points" %}
+          {{ student.weekly_points }} pts
+        {% elif current_category == "monthly_points" %}
+          {{ student.monthly_points }} pts
+        {% else %}
+          {{ student.total_points }} pts
+        {% endif %}
+      </td>
     </tr>
     {% empty %}
     <tr>
