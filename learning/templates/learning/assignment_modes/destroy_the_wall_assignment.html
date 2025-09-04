@@ -51,6 +51,7 @@
     <script>
         // Parse the JSON with words; each word now includes id, word, and translation.
         const words = JSON.parse(`{{ words_json|safe }}`);
+        const csrfToken = "{{ csrf_token }}";
         const targetWordElement = document.getElementById("target-word");
         const wall = document.getElementById("wall");
 
@@ -75,7 +76,7 @@
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    "X-CSRFToken": "{{ csrf_token }}"
+                    "X-CSRFToken": csrfToken
                 },
                 body: JSON.stringify({
                     assignment_id: "{{ assignment.id }}",
