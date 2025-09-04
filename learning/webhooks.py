@@ -7,6 +7,7 @@ from django.utils.timezone import now
 from datetime import timedelta
 from django.conf import settings
 
+stripe.api_key = settings.STRIPE_SECRET_KEY  # Ensure API key is set for webhook calls
 logger = logging.getLogger(__name__)
 
 @csrf_exempt

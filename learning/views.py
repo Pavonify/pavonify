@@ -1454,7 +1454,7 @@ def create_checkout_session(request):
                 }
             },
         )
-        return JsonResponse({"sessionId": session.id})
+        return JsonResponse({"checkout_url": session.url})
 
     except stripe.error.StripeError as e:
         return JsonResponse({"error": str(e)}, status=400)
