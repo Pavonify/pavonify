@@ -2,6 +2,8 @@ from datetime import date, timedelta
 from django.test import TestCase
 from django.utils import timezone
 from django.urls import reverse
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 
 from .models import (
     User,
@@ -11,6 +13,9 @@ from .models import (
     VocabularyList,
     VocabularyWord,
     Progress,
+    Assignment,
+    AssignmentAttempt,
+    AssignmentProgress,
 )
 from .srs import schedule_review, get_due_words
 
@@ -151,3 +156,90 @@ class ProgressDashboardViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context["total_points"], self.student.total_points)
         self.assertEqual(response.context["trophy_count"], 0)
+
+
+class AssignmentAnalyticsQueryTests(TestCase):
+    def setUp(self):
+        self.school = School.objects.create(name="Test School")
+        self.teacher = User.objects.create_user(
+            username="teacher2",
+            password="pass",
+            is_teacher=True,
+            email="teacher2@example.com",
+        )
+        self.classroom = Class.objects.create(
+            school=self.school, name="Class A", language="Spanish"
+        )
+        self.classroom.teachers.add(self.teacher)
+
+        self.student1 = Student.objects.create(
+            school=self.school,
+            first_name="Stu1",
+            last_name="Dent",
+            year_group=1,
+            date_of_birth=date(2010, 1, 1),
+            username="s1",
+            password="pass",
+        )
+        self.student2 = Student.objects.create(
+            school=self.school,
+            first_name="Stu2",
+            last_name="Dent",
+            year_group=1,
+            date_of_birth=date(2010, 1, 1),
+            username="s2",
+            password="pass",
+        )
+        self.student1.classes.add(self.classroom)
+        self.student2.classes.add(self.classroom)
+
+        self.vocab_list = VocabularyList.objects.create(
+            name="Basics",
+            source_language="en",
+            target_language="es",
+            teacher=self.teacher,
+        )
+        self.classroom.vocabulary_lists.add(self.vocab_list)
+        self.word = VocabularyWord.objects.create(
+            word="hello", translation="hola", list=self.vocab_list
+        )
+        self.assignment = Assignment.objects.create(
+            name="Assignment",
+            class_assigned=self.classroom,
+            vocab_list=self.vocab_list,
+            deadline=timezone.now(),
+            target_points=10,
+            teacher=self.teacher,
+        )
+        AssignmentProgress.objects.create(
+            student=self.student1, assignment=self.assignment
+        )
+        AssignmentProgress.objects.create(
+            student=self.student2, assignment=self.assignment
+        )
+
+    def test_assignment_analytics_query_efficiency(self):
+        self.client.force_login(self.teacher)
+        url = reverse("assignment_analytics", args=[self.assignment.id])
+
+        AssignmentAttempt.objects.create(
+            student=self.student1,
+            assignment=self.assignment,
+            vocabulary_word=self.word,
+            mode="flashcards",
+            is_correct=True,
+        )
+        with CaptureQueriesContext(connection) as ctx1:
+            self.client.get(url)
+
+        AssignmentAttempt.objects.create(
+            student=self.student2,
+            assignment=self.assignment,
+            vocabulary_word=self.word,
+            mode="flashcards",
+            is_correct=False,
+        )
+        with CaptureQueriesContext(connection) as ctx2:
+            self.client.get(url)
+
+        self.assertEqual(len(ctx2), len(ctx1))
