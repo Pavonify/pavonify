@@ -53,7 +53,6 @@ from .models import (
     GrammarLadder,
     LadderItem,
     Announcement,
-    Teacher,  # used in register_success
 )
 
 # Configure Stripe and Gemini
@@ -1822,3 +1821,15 @@ def grammar_ladder_detail(request, ladder_id):
         "ladder": ladder,
         "formset": formset,
     })
+
+@require_POST
+@login_required
+def delete_reading_lab_text(request, text_id):
+    """
+    Delete a ReadingLabText (teacher-only).
+    Expects a POST to /reading-lab/<text_id>/delete/ or similar route.
+    Returns JSON {"success": True} on success.
+    """
+    text = get_object_or_404(ReadingLabText, id=text_id, teacher=request.user)
+    text.delete()
+    return JsonResponse({"success": True})
