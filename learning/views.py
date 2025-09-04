@@ -2298,16 +2298,29 @@ def assignment_analytics(request, assignment_id):
         word_id = att.vocabulary_word.id
         if word_id not in word_summary_dict:
             # Use the target word (translation) instead of the source word
-            word_summary_dict[word_id] = {"word": att.vocabulary_word.translation, "wrong_attempts": 0, "students": set()}
+            word_summary_dict[word_id] = {
+                "word": att.vocabulary_word.translation,
+                "wrong_attempts": 0,
+                "total_attempts": 0,
+                "students": set(),
+            }
+
+        # Track total attempts for percentage calculation
+        word_summary_dict[word_id]["total_attempts"] += 1
+
         if not att.is_correct:
             word_summary_dict[word_id]["wrong_attempts"] += 1
             word_summary_dict[word_id]["students"].add(att.student.id)
+
     word_summary_list = []
     for w in word_summary_dict.values():
+        total = w["total_attempts"]
+        percentage = (w["wrong_attempts"] / total) * 100 if total else 0
         word_summary_list.append({
             "word": w["word"],
             "wrong_attempts": w["wrong_attempts"],
             "students_difficulty": len(w["students"]),
+            "difficulty_percentage": percentage,
         })
     
     # --- Feedback Aggregation ---
