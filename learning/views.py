@@ -2255,7 +2255,7 @@ def assignment_analytics(request, assignment_id):
     # Get all attempts for this assignment, ordered by timestamp.
     attempts = list(
         AssignmentAttempt.objects.filter(assignment=assignment)
-        .select_related("vocabulary_word")
+        .select_related("student", "vocabulary_word")
         .order_by("timestamp")
     )
     
