@@ -1833,3 +1833,304 @@ def delete_reading_lab_text(request, text_id):
     text = get_object_or_404(ReadingLabText, id=text_id, teacher=request.user)
     text.delete()
     return JsonResponse({"success": True})
+
+@login_required
+def worksheet_lab_view(request):
+    vocab_list_id = request.GET.get('vocab_list')
+    vocab_list = get_object_or_404(VocabularyList, id=vocab_list_id)
+
+    # Fetch words related to the selected vocabulary list
+    words_queryset = vocab_list.words.all()
+    words = [{'word': word.word, 'translation': word.translation} for word in words_queryset]
+
+    # Serialize the words to JSON
+    words_json = json.dumps(words)
+
+    # Get the user's premium status (safe even if field doesn’t exist)
+    is_premium = getattr(request.user, "is_premium", False)
+
+    return render(request, 'learning/worksheet_lab.html', {
+        'vocab_list': vocab_list,
+        'words_json': words_json,
+        'is_premium': is_premium,
+    })
+
+def custom_404_view(request, exception=None):
+    """Project-wide 404 handler."""
+    return render(request, "404.html", status=404)
+
+def progress_dashboard(request):
+    """Aggregate and display overall progress for a logged-in student."""
+    student_id = request.session.get("student_id")
+    if not student_id:
+        return redirect("student_login")
+
+    student = get_object_or_404(Student, id=student_id)
+    trophies = student.trophies.select_related("trophy")
+
+    context = {
+        "student": student,
+        "total_points": student.total_points,
+        "monthly_points": student.monthly_points,
+        "weekly_points": student.weekly_points,
+        "current_streak": student.current_streak,
+        "highest_streak": student.highest_streak,
+        "trophies": trophies,
+        "trophy_count": trophies.count(),
+        "total_pct": min(student.total_points, 100),
+        "monthly_pct": min(student.monthly_points, 100),
+        "weekly_pct": min(student.weekly_points, 100),
+    }
+    return render(request, "learning/progress_dashboard.html", context)
+
+@login_required
+def attach_vocab_list(request, class_id):
+    """
+    Attach a vocabulary list to a class (teacher-only).
+    URL expects class_id. The POST must include either `vocab_list_id` or `vocab_list`.
+    """
+    # Ensure the logged-in user actually teaches this class
+    class_instance = get_object_or_404(Class, id=class_id, teachers=request.user)
+
+    if request.method != "POST":
+        return HttpResponseBadRequest("POST required")
+
+    # Allow either field name (seen both variants in templates)
+    vocab_list_id = request.POST.get("vocab_list_id") or request.POST.get("vocab_list")
+    if not vocab_list_id:
+        messages.error(request, "No vocabulary list selected.")
+        return redirect("teacher_dashboard")
+
+    # Only allow attaching lists owned by the teacher
+    vocab_list = get_object_or_404(VocabularyList, id=vocab_list_id, teacher=request.user)
+
+    # Create the association in both directions (ManyToMany on both models)
+    class_instance.vocabulary_lists.add(vocab_list)
+    vocab_list.classes.add(class_instance)
+
+    messages.success(
+        request,
+        f"'{vocab_list.name}' has been successfully attached to '{class_instance.name}'."
+    )
+    return redirect("teacher_dashboard")
+
+@login_required
+def view_vocabulary(request, vocab_list_id):
+    vocab_list = get_object_or_404(VocabularyList, id=vocab_list_id)
+    return render(request, 'learning/view_vocabulary.html', {'vocab_list': vocab_list})
+
+@login_required
+def view_attached_vocab(request, class_id):
+    # Get the class instance and ensure the logged-in teacher has access
+    class_instance = get_object_or_404(Class, id=class_id)
+    if request.user not in class_instance.teachers.all():
+        return HttpResponseForbidden("You do not have permission to manage this class.")
+
+    if request.method == "POST":
+        vocab_list_id = request.POST.get("vocab_list_id")
+        if vocab_list_id:
+            vocab_list = get_object_or_404(VocabularyList, id=vocab_list_id)
+            class_instance.vocabulary_lists.remove(vocab_list)
+            vocab_list.classes.remove(class_instance)
+            messages.success(
+                request,
+                f"Vocabulary list '{vocab_list.name}' has been disassociated from class '{class_instance.name}'."
+            )
+        else:
+            messages.error(request, "No vocabulary list selected.")
+        return redirect("view_attached_vocab", class_id=class_id)
+
+    attached_vocab_lists = class_instance.vocabulary_lists.all()
+    # Optional debug
+    # print(f"DEBUG: Class {class_instance.id} has {attached_vocab_lists.count()} vocabulary list(s) attached.")
+
+    return render(request, "learning/view_attached_vocab.html", {
+        "class_instance": class_instance,
+        "attached_vocab_lists": attached_vocab_lists,
+    })
+
+@csrf_exempt
+def update_points(request):
+    """
+    Add points to the currently logged-in student (session-based) and award any trophies.
+    Body: {"points": <int>}
+    """
+    if request.method != "POST":
+        return JsonResponse({"success": False, "error": "Invalid request method"})
+
+    try:
+        data = json.loads(request.body)
+        student_id = request.session.get("student_id")
+        points = data.get("points", 0)
+
+        if student_id is not None and points is not None:
+            student = get_object_or_404(Student, id=student_id)
+            student.add_points(points)
+
+            new_trophies = check_and_award_trophies(student)
+
+            return JsonResponse({
+                "success": True,
+                "weekly_points": student.weekly_points,
+                "total_points": student.total_points,
+                "new_trophies": new_trophies,
+            })
+        else:
+            return JsonResponse({"success": False, "error": "Invalid student ID or points"})
+
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)})
+
+@student_login_required
+def destroy_the_wall(request, vocab_list_id):
+    vocab_list = get_object_or_404(VocabularyList, id=vocab_list_id)
+
+    # Ensure the student has access to this vocabulary list
+    student = get_object_or_404(Student, id=request.session.get("student_id"))
+    if not student.classes.filter(vocabulary_lists=vocab_list).exists():
+        return HttpResponseForbidden("You do not have access to this vocabulary list.")
+
+    words_objs = get_due_words(student, vocab_list, limit=30)
+    words = [{"id": w.id, "word": w.word, "translation": w.translation} for w in words_objs]
+
+    # AJAX feed for the game
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return JsonResponse({"words": words})
+
+    # Page render
+    return render(request, "learning/destroy_the_wall.html", {
+        "vocab_list": vocab_list,
+        "words_json": json.dumps(words),
+        "student": student,
+    })
+
+@student_login_required
+def unscramble_the_word(request, vocab_list_id):
+    vocab_list = get_object_or_404(VocabularyList, id=vocab_list_id)
+    student = get_object_or_404(Student, id=request.session.get("student_id"))
+
+    # optional: ensure access
+    if not student.classes.filter(vocabulary_lists=vocab_list).exists():
+        return HttpResponseForbidden("You do not have access to this vocabulary list.")
+
+    words_objs = get_due_words(student, vocab_list, limit=20)
+    words = [{"id": w.id, "word": w.word, "translation": w.translation} for w in words_objs]
+
+    # AJAX feed
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return JsonResponse({"words": words})
+
+    # Page render
+    return render(request, "learning/unscramble_the_word.html", {
+        "vocab_list": vocab_list,
+        "words_json": json.dumps(words, cls=DjangoJSONEncoder),
+        "student": student,
+    })
+
+@student_login_required
+def listening_dictation_assignment(request, assignment_id):
+    """
+    Assignment mode for Listening Dictation. Fetches words from the assignment's vocabulary list.
+    """
+    assignment = get_object_or_404(Assignment, id=assignment_id)
+    student = get_object_or_404(Student, id=request.session.get("student_id"))
+
+    vocab_list = assignment.vocab_list
+
+    # Ensure student has access to this vocabulary list
+    if not student.classes.filter(vocabulary_lists=vocab_list).exists():
+        return HttpResponseForbidden("You do not have access to this vocabulary list.")
+
+    words_objs = get_due_words(student, vocab_list, limit=20)
+    words = [{"id": w.id, "word": w.word, "translation": w.translation} for w in words_objs]
+
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return JsonResponse({"words": words})
+
+    return render(request, "learning/assignment_modes/listening_dictation_assignment.html", {
+        "assignment": assignment,
+        "vocab_list": vocab_list,
+        "words_json": json.dumps(words),
+        "target_language": vocab_list.target_language,
+        "points": assignment.points_per_listening_dictation,
+    })
+
+
+@student_login_required
+def listening_translation_assignment(request, assignment_id):
+    """
+    Assignment mode for Listening Translation. Fetches words from the assignment's vocabulary list.
+    """
+    assignment = get_object_or_404(Assignment, id=assignment_id)
+    student = get_object_or_404(Student, id=request.session.get("student_id"))
+
+    vocab_list = assignment.vocab_list
+
+    # Ensure student has access to this vocabulary list
+    if not student.classes.filter(vocabulary_lists=vocab_list).exists():
+        return HttpResponseForbidden("You do not have access to this vocabulary list.")
+
+    words_objs = get_due_words(student, vocab_list, limit=20)
+    words = [{"id": w.id, "word": w.word, "translation": w.translation} for w in words_objs]
+
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return JsonResponse({"words": words})
+
+    return render(request, "learning/assignment_modes/listening_translation_assignment.html", {
+        "assignment": assignment,
+        "vocab_list": vocab_list,
+        "words_json": json.dumps(words),
+        "target_language": vocab_list.target_language,
+        "student": student,
+        "weekly_points": student.weekly_points,
+        "total_points": student.total_points,
+        "points": assignment.points_per_listening_translation,
+    })
+
+@student_login_required
+def listening_dictation_view(request, vocab_list_id):
+    vocab_list = get_object_or_404(VocabularyList, id=vocab_list_id)
+    student = get_object_or_404(Student, id=request.session.get("student_id"))
+
+    # optional access check (keeps behavior consistent with other views)
+    if not student.classes.filter(vocabulary_lists=vocab_list).exists():
+        return HttpResponseForbidden("You do not have access to this vocabulary list.")
+
+    words_objs = get_due_words(student, vocab_list, limit=20)
+    words = [{"id": w.id, "word": w.word, "translation": w.translation} for w in words_objs]
+
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return JsonResponse({"words": words})
+
+    return render(request, 'learning/listening_dictation.html', {
+        'vocab_list': vocab_list,
+        'words_json': json.dumps(words),
+        'target_language': vocab_list.target_language,
+        'student': student,
+        'weekly_points': student.weekly_points,
+        'total_points': student.total_points,
+    })
+
+
+@student_login_required
+def listening_translation_view(request, vocab_list_id):
+    vocab_list = get_object_or_404(VocabularyList, id=vocab_list_id)
+    student = get_object_or_404(Student, id=request.session.get("student_id"))
+
+    if not student.classes.filter(vocabulary_lists=vocab_list).exists():
+        return HttpResponseForbidden("You do not have access to this vocabulary list.")
+
+    words_objs = get_due_words(student, vocab_list, limit=20)
+    words = [{"id": w.id, "word": w.word, "translation": w.translation} for w in words_objs]
+
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return JsonResponse({"words": words})
+
+    return render(request, 'learning/listening_translation.html', {
+        'vocab_list': vocab_list,
+        'words_json': json.dumps(words),
+        'target_language': vocab_list.target_language,
+        'student': student,
+        'weekly_points': student.weekly_points,
+        'total_points': student.total_points,
+    })
