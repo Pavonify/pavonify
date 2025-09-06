@@ -111,8 +111,6 @@
   </style>
 </head>
 <body>
-{% include 'includes/teacher_nav.html' %}
-
   <div class="container">
     <h1>Vocabulary List: {{ vocab_list.name }}</h1>
     
@@ -148,6 +146,7 @@
     
     <div class="buttons no-print">
       <button onclick="window.print();">Print</button>
+      <a href="{% url 'teacher_dashboard' %}" class="back-link">Back to Dashboard</a>
     </div>
   </div>
 {% include 'messages.html' %}

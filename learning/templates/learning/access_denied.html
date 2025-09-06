@@ -7,10 +7,9 @@
     <title>Access Denied</title>
 </head>
 <body>
-{% include 'includes/student_nav.html' %}
-
     <h1>Access Denied</h1>
     <p>You do not have permission to access this assignment.</p>
+    <a href="{% url 'student_dashboard' %}">Return to Dashboard</a>
 {% include 'messages.html' %}
 </body>
 </html>

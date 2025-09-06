@@ -145,8 +145,6 @@
   </style>
 </head>
 <body>
-{% include 'includes/teacher_nav.html' %}
-
   <div class="main-content">
     <div class="pane">
       <h2>📚 Reading Lab</h2>
@@ -229,6 +227,7 @@
         </div>
 
         <button type="submit" class="btn">🔄 Generate Text</button>
+        <a href="{% url 'teacher_dashboard' %}" class="back-btn">⬅️ Back to Dashboard</a>
       </form>
     </div>
   </div>

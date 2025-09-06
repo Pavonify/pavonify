@@ -33,12 +33,11 @@
     </style>
 </head>
 <body>
-{% include 'includes/teacher_nav.html' %}
-
     <div class="container">
         <h1>🎉 Payment Successful! 🎉</h1>
         <p>Thank you for subscribing to Pavonify Premium.</p>
         <p>Your subscription has been activated.</p>
+        <a href="{% url 'teacher_dashboard' %}" class="btn">Go to Dashboard</a>
     </div>
 {% include 'messages.html' %}
 </body>
