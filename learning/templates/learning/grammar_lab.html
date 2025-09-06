@@ -99,13 +99,14 @@ body {
 
 </head>
 <body>
+{% include 'includes/teacher_nav.html' %}
+
 <div class="grammar-lab-container">
   <div class="grammar-sidebar">
     <div class="tab active">Grammar Lab</div>
     <div class="tab">Grammar Ladder 🪜</div>
     <div class="tab disabled">More coming soon...</div>
   <a class="tab" href="{% url 'teacher_dashboard' %}" style="margin-top:auto; background-color:#34A853; color:white; text-decoration:none;">
-    ⬅️Back to Dashboard
   </a>
   </div>
   <div class="grammar-content">

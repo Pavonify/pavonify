@@ -1,3 +1,4 @@
+{% include 'includes/teacher_nav.html' %}
 <h2>Attach Vocabulary Lists to {{ class_instance.name }}</h2>
 <form method="post">
     {% csrf_token %}
@@ -11,4 +12,3 @@
     </ul>
     <button type="submit">Attach</button>
 </form>
-<a href="{% url 'teacher_dashboard' %}">Back to Dashboard</a>

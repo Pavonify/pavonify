@@ -1,3 +1,4 @@
+{% include 'includes/teacher_nav.html' %}
 <style>
   /* Global Box-Sizing */
   *, *::before, *::after {
@@ -117,5 +118,4 @@
     {{ form.as_p }}
     <button type="submit">Add Words</button>
   </form>
-  <a href="{% url 'teacher_dashboard' %}" class="back-link">Back to Dashboard</a>
 </div>

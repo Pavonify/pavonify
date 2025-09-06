@@ -120,6 +120,8 @@
   </style>
 </head>
 <body>
+{% include 'includes/student_nav.html' %}
+
   <!-- Fixed Stats Box -->
   <div class="stats" id="stats">
     <h3>Stats</h3>
@@ -148,7 +150,6 @@
     </div>
 
     <div class="completed-message" id="completed-message">Complete!</div>
-    <a href="{% url 'student_dashboard' %}" class="back-button">Back to Dashboard</a>
   </div>
 
   <script>

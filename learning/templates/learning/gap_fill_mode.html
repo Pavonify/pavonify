@@ -123,6 +123,8 @@
   </style>
 </head>
 <body>
+{% include 'includes/student_nav.html' %}
+
   <!-- Stats Box -->
   <div class="stats" id="stats">
     <h3>Stats</h3>
@@ -143,7 +145,6 @@
       <button type="submit" id="submit-button">Submit</button>
     </form>
     <div id="status-message" style="display: none;"></div>
-    <a href="{% url 'student_dashboard' %}" class="back-button">Back to Dashboard</a>
   </div>
 
   <script>

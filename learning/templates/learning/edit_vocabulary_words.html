@@ -111,6 +111,8 @@
   </style>
 </head>
 <body>
+{% include 'includes/teacher_nav.html' %}
+
   <div class="container">
     <h1>Edit Words for "{{ vocab_list.name }}"</h1>
     
@@ -155,7 +157,6 @@
     </form>
     
     <div class="button-group">
-      <a href="{% url 'teacher_dashboard' %}" class="btn">Back to Dashboard</a>
     </div>
   </div>
 {% include 'messages.html' %}

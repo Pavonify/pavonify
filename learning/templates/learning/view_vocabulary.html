@@ -4,6 +4,8 @@
     <title>View Vocabulary</title>
 </head>
 <body>
+{% include 'includes/student_nav.html' %}
+
     <h1>{{ vocab_list.name }}</h1>
     <p>Source Language: {{ vocab_list.source_language }}</p>
     <p>Target Language: {{ vocab_list.target_language }}</p>
@@ -16,7 +18,6 @@
         <li>No words in this vocabulary list.</li>
         {% endfor %}
     </ul>
-    <a href="{% url 'student_dashboard' %}">Back to Dashboard</a>
 {% include 'messages.html' %}
 </body>
 </html>

@@ -145,6 +145,8 @@
   </style>
 </head>
 <body>
+{% include 'includes/student_nav.html' %}
+
   <!-- Stats Box -->
   <div class="stats" id="stats">
     <h3>Stats</h3>
@@ -171,7 +173,6 @@
 
     <div id="feedback"></div>
 
-    <a href="{% url 'student_dashboard' %}" class="back-button">Back to Dashboard</a>
   </div>
 
   <script>

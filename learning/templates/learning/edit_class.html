@@ -138,7 +138,6 @@
       background-color: #086baf;
     }
     
-    /* Back to Dashboard Link */
     .back-link {
       display: inline-block;
       margin-top: 20px;
@@ -155,6 +154,8 @@
   </style>
 </head>
 <body>
+{% include 'includes/teacher_nav.html' %}
+
   <!-- Page Header -->
   <div class="page-header">
     <h1>Edit Class - {{ class_instance.name }}</h1>
@@ -207,8 +208,6 @@
       <button type="submit" name="delete_selected">Delete Selected</button>
     </form>
     
-    <!-- Back to Dashboard Link at the Bottom -->
-    <a href="{% url 'teacher_dashboard' %}" class="back-link">Back to Dashboard</a>
   </div>
 {% include 'messages.html' %}
 </body>
