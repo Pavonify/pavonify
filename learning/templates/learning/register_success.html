@@ -6,9 +6,10 @@
     <title>Registration Successful</title>
 </head>
 <body>
+{% include 'includes/teacher_nav.html' %}
+
     <h1>🎉 Registration Complete!</h1>
     <p>Thank you for signing up for Premium. You can now access all features.</p>
-    <a href="{% url 'teacher_dashboard' %}">Go to Dashboard</a>
 {% include 'messages.html' %}
 </body>
 </html>

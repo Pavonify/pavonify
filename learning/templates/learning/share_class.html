@@ -1,3 +1,4 @@
+{% include 'includes/teacher_nav.html' %}
 {% block content %}
 <h1>Share Class: {{ class_instance.name }}</h1>
 
@@ -20,7 +21,6 @@
     {% endfor %}
 </ul>
 
-<a href="{% url 'teacher_dashboard' %}">Back to Dashboard</a>
 
 <script>
     document.getElementById('shareForm').addEventListener('submit', function(event) {

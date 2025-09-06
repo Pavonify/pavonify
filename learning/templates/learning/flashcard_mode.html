@@ -127,6 +127,8 @@
   </style>
 </head>
 <body>
+{% include 'includes/student_nav.html' %}
+
   <div class="pane">
     <h1>Flashcard Mode: {{ vocab_list.name }}</h1>
     <div class="card-container">
@@ -140,7 +142,6 @@
       <button id="correct-btn">Knew It</button>
     </div>
     <div class="dashboard-link">
-      <a href="{% url 'student_dashboard' %}">Return to Dashboard</a>
     </div>
 
     <script>

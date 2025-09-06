@@ -120,6 +120,8 @@
   </style>
 </head>
 <body>
+{% include 'includes/student_nav.html' %}
+
   <!-- Fixed Stats Box -->
   <div class="stats" id="stats">
     <h3>Stats</h3>
@@ -132,7 +134,6 @@
 
   <!-- Main Content Pane -->
   <div class="pane">
-    <a href="{% url 'student_dashboard' %}" class="back-button">Back to Dashboard</a>
     <h1>Destroy the Wall</h1>
     <p class="instruction">Click on the correct word to match the source word!</p>
     <div id="target-word"></div>
