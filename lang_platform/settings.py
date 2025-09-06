@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     'django_q',
     'django_countries',
     'game',
+    'srs',
 ]
 
 

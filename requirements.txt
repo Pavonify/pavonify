@@ -33,3 +33,4 @@ whitenoise
 google-generativeai
 channels==4.0.0
 channels_redis==4.0.0
+djangorestframework==3.15.2
