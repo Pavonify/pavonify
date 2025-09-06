@@ -88,6 +88,27 @@ def student_logout(request):
 # ----------------------------
 
 @login_required
+def worksheet_lab_view(request):
+    vocab_list_id = request.GET.get('vocab_list')
+    vocab_list = get_object_or_404(VocabularyList, id=vocab_list_id)
+
+    # Fetch words related to the selected vocabulary list
+    words_queryset = vocab_list.words.all()
+    words = [{'word': word.word, 'translation': word.translation} for word in words_queryset]
+
+    # Serialize the words to JSON
+    words_json = json.dumps(words)
+
+    # Get the user's premium status (safe check if attribute missing)
+    is_premium = getattr(request.user, "is_premium", False) if request.user.is_authenticated else False
+
+    return render(request, 'learning/worksheet_lab.html', {
+        'vocab_list': vocab_list,
+        'words_json': words_json,
+        'is_premium': is_premium,
+    })
+
+@login_required
 def teacher_dashboard(request):
     if not request.user.is_teacher:
         return redirect("login")
