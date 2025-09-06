@@ -156,8 +156,6 @@
     </style>
 </head>
 <body>
-{% include 'includes/student_nav.html' %}
-
 
     <!-- Fixed Floating Header -->
     <div class="assignment-header">
@@ -169,6 +167,7 @@
             </div>
             <div class="info-box">Deadline: {{ assignment.deadline|date:"M d, Y H:i" }}</div>
             <div class="info-box"><span id="countdown-timer"></span></div>
+            <a href="{% url 'student_dashboard' %}" class="btn">Dashboard</a>
         </div>
     </div>
 

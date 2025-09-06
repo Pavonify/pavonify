@@ -1,4 +1,3 @@
-{% include 'includes/teacher_nav.html' %}
 <h2>Class: {{ class_instance.name }}</h2>
 <p>Language: {{ class_instance.language }}</p>
 <h3>Vocabulary Lists</h3>
@@ -9,3 +8,4 @@
         </li>
     {% endfor %}
 </ul>
+<a href="{% url 'student_dashboard' %}">Back to Dashboard</a>

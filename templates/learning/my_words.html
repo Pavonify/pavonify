@@ -9,9 +9,8 @@
     <link rel="stylesheet" href="{% static 'css/global.css' %}">
 </head>
 <body class="my-words">
-{% include 'includes/student_nav.html' %}
-
     <div class="my-words-pane">
+        <a href="{% url 'student_dashboard' %}" class="btn btn-primary mb-3">Back to Dashboard</a>
         <h1>My Words</h1>
 
         <form method="get" class="filters">

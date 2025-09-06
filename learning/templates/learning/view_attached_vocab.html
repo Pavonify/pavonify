@@ -82,8 +82,6 @@
   </style>
 </head>
 <body>
-{% include 'includes/teacher_nav.html' %}
-
   <div class="container">
     <h1>Attached Vocabulary Lists for {{ class_instance.name }}</h1>
     <ul>
@@ -102,6 +100,7 @@
       <li>No vocabulary lists are currently attached to this class.</li>
       {% endfor %}
     </ul>
+    <a href="{% url 'teacher_dashboard' %}" class="back-link">Back to Dashboard</a>
   </div>
 {% include 'messages.html' %}
 </body>

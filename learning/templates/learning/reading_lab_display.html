@@ -126,8 +126,6 @@
     </style>
 </head>
 <body>
-{% include 'includes/teacher_nav.html' %}
-
     <div class="main-content">
         <div class="pane">
             <h2>Generated Parallel Text 📖</h2>
@@ -146,7 +144,9 @@
                 </div>
             </div>
 
+            <!-- Buttons: Generate Another Text, Back to Dashboard -->
             <a href="{% url 'reading_lab' %}" class="btn">🔄 Generate Another Text</a>
+            <a href="{% url 'teacher_dashboard' %}" class="btn back-btn">⬅️ Back to Dashboard</a>
 
             <!-- Single-button form to generate all activities -->
             <form method="post">
