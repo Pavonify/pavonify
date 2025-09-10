@@ -1,15 +1,16 @@
 from pathlib import Path
 import os
 import dj_database_url
+from django.core.exceptions import ImproperlyConfigured
 
 # Base Directory
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Stripe Keys
-STRIPE_PUBLIC_KEY = os.getenv("pk_live_51QoMKjJYDgv8Jx3VXa5Vl07vwlhb0xMnrK0Jm9pO4T2YxGX9Wb3WN48LWWEAkGnXguh9Z6hC5kAygaqncQchbzJe00huvjYgCH", "")
-STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY")
+STRIPE_PUBLIC_KEY = os.getenv("STRIPE_PUBLIC_KEY", "")
+STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "")
 STRIPE_PRICE_ID = os.getenv("STRIPE_PRICE_ID", "price_1QpQcMJYDgv8Jx3VdIdRmwsL")
-STRIPE_WEBHOOK_SECRET = os.getenv("whsec_wT7g2urYrVwg96Tqv9AvBLwfqejaqQhS", "")
+STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
 
 # settings.py
 RECAPTCHA_SITE_KEY = '6Lf2tuAqAAAAAJQf5hVLPgoyF-38eAybdJVRBA_W'
@@ -91,11 +92,13 @@ TEMPLATES = [
 WSGI_APPLICATION = 'lang_platform.wsgi.application'
 
 # Database Configuration
-DATABASES = {
-    'default': dj_database_url.config(
-        default=os.getenv('DATABASE_URL', 'sqlite:///db.sqlite3')
-    )
-}
+DATABASE_URL = os.getenv("DATABASE_URL")
+if DATABASE_URL:
+    DATABASES = {"default": dj_database_url.parse(DATABASE_URL)}
+else:
+    DATABASES = {"default": dj_database_url.config(default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}")}
+    if not DEBUG:
+        raise ImproperlyConfigured("DATABASE_URL environment variable required in production")
 
 # Password Validation
 AUTH_PASSWORD_VALIDATORS = [
