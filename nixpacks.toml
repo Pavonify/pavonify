@@ -1,3 +1,8 @@
+# nixpacks.toml
+[phases.setup]
+# Ensure Python is present so `pip` exists
+nixPkgs = ["python312", "python312Packages.pip"]
+
 [phases.install]
 cmds = ["pip install --upgrade pip && pip install -r requirements.txt"]
 
