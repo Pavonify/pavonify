@@ -5,6 +5,27 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Practice Session - {{ vocab_list.name }}</title>
+    <script>
+        (function() {
+            const getCookie = name => {
+                const value = `; ${document.cookie}`;
+                const parts = value.split(`; ${name}=`);
+                if (parts.length === 2) return parts.pop().split(';').shift();
+            };
+            const nativeFetch = window.fetch;
+            window.fetch = function(url, options = {}) {
+                const opts = { ...options };
+                opts.credentials = opts.credentials || 'include';
+                const headers = new Headers(opts.headers || {});
+                if (!headers.has('X-CSRFToken')) {
+                    const token = getCookie('csrftoken');
+                    if (token) headers.set('X-CSRFToken', token);
+                }
+                opts.headers = headers;
+                return nativeFetch(url, opts);
+            };
+        })();
+    </script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -38,15 +59,6 @@
             position: absolute;
             top: 10px;
             left: 10px;
-            background: #086baf;
-            color: #fff;
-            border: none;
-            border-radius: 5px;
-            padding: 8px 12px;
-            cursor: pointer;
-        }
-        .back-button:hover {
-            background: #065f93;
         }
         .shimmer {
             position: relative;
@@ -70,7 +82,7 @@
 </head>
 <body>
 <div class="pane">
-    <button class="back-button" onclick="window.history.back()">Back</button>
+    <button class="back-button btn btn-primary" onclick="window.history.back()">Back</button>
     <h1>Practice Session - {{ vocab_list.name }}</h1>
     <p><strong>Session Points:</strong> <span id="session-points">0</span></p>
     <div id="activity-container"></div>
@@ -85,7 +97,8 @@
     async function fetchActivity() {
         try {
             const response = await fetch("{% url 'practice_session' vocab_list.id %}?next=1", {
-                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                credentials: 'include'
             });
             const activity = await response.json();
             renderActivity(activity);
@@ -135,10 +148,10 @@
         container.innerHTML = `
             <div class="show-word">
                 <p>${activity.prompt}</p>
-                <button id="reveal-word">Show Word</button>
+                <button id="reveal-word" class="btn btn-primary">Show Word</button>
                 <div id="revealed-word" style="display:none; margin-top:10px;">${activity.answer}</div>
                 <div style="margin-top:10px;">
-                    <button id="show-word-next" style="display:none;">Next</button>
+                    <button id="show-word-next" class="btn btn-primary" style="display:none;">Next</button>
                 </div>
             </div>
         `;
@@ -158,10 +171,10 @@
         container.innerHTML = `
             <div class="flashcard">
                 <p>${activity.prompt}</p>
-                <button id="show-answer">Show Answer</button>
+                <button id="show-answer" class="btn btn-primary">Show Answer</button>
                 <div id="answer" style="display:none; margin-top:10px;">${activity.answer}</div>
                 <div style="margin-top:10px;">
-                    <button id="flashcard-done" style="display:none;">I got it!</button>
+                    <button id="flashcard-done" class="btn btn-primary" style="display:none;">I got it!</button>
                 </div>
             </div>
         `;
@@ -182,7 +195,7 @@
             <div class="shimmer-card">
                 <p class="shimmer">${activity.prompt}</p>
                 <p class="shimmer">${activity.answer}</p>
-                <button id="shimmer-next">Next</button>
+                <button id="shimmer-next" class="btn btn-primary">Next</button>
             </div>
         `;
 
@@ -197,7 +210,7 @@
             <div class="typing">
                 <p>${activity.prompt}</p>
                 <input type="text" id="typing-input" />
-                <button id="typing-submit">Submit</button>
+                <button id="typing-submit" class="btn btn-primary">Submit</button>
             </div>
         `;
         document.getElementById('typing-submit').addEventListener('click', () => {
@@ -214,7 +227,7 @@
                 <p>${activity.translation}</p>
                 <p>${activity.prompt}</p>
                 <input type="text" id="fill-gaps-input" />
-                <button id="fill-gaps-submit">Submit</button>
+                <button id="fill-gaps-submit" class="btn btn-primary">Submit</button>
             </div>
         `;
         document.getElementById('fill-gaps-submit').addEventListener('click', () => {
@@ -230,7 +243,7 @@
             <div class="multiple-choice">
                 <p>${activity.prompt}</p>
                 <div id="match-options">
-                    ${activity.options.map(opt => `<button class="match-option">${opt}</button>`).join('')}
+                    ${activity.options.map(opt => `<button class="match-option btn btn-primary">${opt}</button>`).join('')}
                 </div>
             </div>
         `;
@@ -248,8 +261,8 @@
         container.innerHTML = `
             <div class="true-false">
                 <p>${activity.prompt} - ${activity.shown_translation}</p>
-                <button id="true-btn">True</button>
-                <button id="false-btn">False</button>
+                <button id="true-btn" class="btn btn-primary">True</button>
+                <button id="false-btn" class="btn btn-primary">False</button>
             </div>
         `;
         document.getElementById('true-btn').addEventListener('click', () => {
@@ -268,6 +281,7 @@
                     'Content-Type': 'application/json',
                     'X-CSRFToken': getCookie('csrftoken')
                 },
+                credentials: 'include',
                 body: JSON.stringify({ word_id: wordId, correct: correct })
             });
 
@@ -277,6 +291,7 @@
                     'Content-Type': 'application/json',
                     'X-CSRFToken': getCookie('csrftoken')
                 },
+                credentials: 'include',
                 body: JSON.stringify({ points: correct ? 5 : 0 })
             });
 
