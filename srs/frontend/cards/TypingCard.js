@@ -15,7 +15,11 @@ export default function TypingCard({ word, onSubmit }) {
         value,
         onChange: e => setValue(e.target.value)
       }),
-      React.createElement('button', { key: 'btn', type: 'submit' }, 'Check')
+      React.createElement(
+        'button',
+        { key: 'btn', type: 'submit', className: 'btn btn-primary' },
+        'Check'
+      )
     ]
   );
 }

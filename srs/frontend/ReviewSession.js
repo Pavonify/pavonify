@@ -5,13 +5,19 @@ import MCQCard from './cards/MCQCard.js';
 import TypingCard from './cards/TypingCard.js';
 import ListeningCard from './cards/ListeningCard.js';
 
+function getCookie(name) {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop().split(';').shift();
+}
+
 export default function ReviewSession({ fetchImpl = fetch }) {
   const fetchFn = fetchImpl;
   const [queue, setQueue] = useState([]);
   const [current, setCurrent] = useState(null);
 
   useEffect(() => {
-    fetchFn('/api/srs/queue?limit=30&mode=mix')
+    fetchFn('/api/srs/queue?limit=30&mode=mix', { credentials: 'include' })
       .then(r => r.json())
       .then(setQueue);
   }, []);
@@ -28,18 +34,24 @@ export default function ReviewSession({ fetchImpl = fetch }) {
       is_correct,
       ...extra
     };
+    const remaining = queue.slice(1);
+    setQueue(remaining);
+    setCurrent(remaining[0] || null);
+
+    const csrftoken = getCookie('csrftoken');
+    const headers = { 'Content-Type': 'application/json' };
+    if (csrftoken) headers['X-CSRFToken'] = csrftoken;
+
     return fetchFn('/api/srs/attempt', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
+      headers,
+      body: JSON.stringify(payload),
+      credentials: 'include'
     }).then(() => {
-      const remaining = queue.slice(1);
       if (remaining.length === 0) {
-        return fetchFn('/api/srs/queue?limit=30&mode=mix')
+        return fetchFn('/api/srs/queue?limit=30&mode=mix', { credentials: 'include' })
           .then(r => r.json())
           .then(setQueue);
-      } else {
-        setQueue(remaining);
       }
     });
   }

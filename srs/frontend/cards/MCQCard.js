@@ -10,7 +10,9 @@ export default function MCQCard({ word, onSubmit }) {
         'button',
         {
           key: choice,
-          onClick: () => onSubmit(choice === word.answer)
+          type: 'button',
+          onClick: () => onSubmit(choice === word.answer),
+          className: 'btn btn-primary m-1'
         },
         choice
       )
