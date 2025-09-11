@@ -1,6 +1,7 @@
 import React from 'react';
 import { render, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import { jest } from '@jest/globals';
 import ExposureCard from '../cards/ExposureCard.js';
 import TappingCard from '../cards/TappingCard.js';
 import MCQCard from '../cards/MCQCard.js';
