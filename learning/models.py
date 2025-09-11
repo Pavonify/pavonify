@@ -131,18 +131,23 @@ class Student(models.Model):
 
     def reset_periodic_points(self):
         today = now().date()
+        updated = False
         if (
             self.weekly_points_last_reset.isocalendar()[1] != today.isocalendar()[1]
             or self.weekly_points_last_reset.year != today.year
         ):
             self.weekly_points = 0
             self.weekly_points_last_reset = today
+            updated = True
         if (
             self.monthly_points_last_reset.month != today.month
             or self.monthly_points_last_reset.year != today.year
         ):
             self.monthly_points = 0
             self.monthly_points_last_reset = today
+            updated = True
+        if updated:
+            self.save()
 
     def add_points(self, amount):
         self.reset_periodic_points()
