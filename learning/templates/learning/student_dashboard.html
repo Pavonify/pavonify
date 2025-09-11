@@ -12,6 +12,28 @@
   <!-- Google Fonts: Poppins and Fredoka One -->
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Fredoka+One&display=swap" rel="stylesheet">
 
+  <script>
+    (function() {
+      const getCookie = name => {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(';').shift();
+      };
+      const nativeFetch = window.fetch;
+      window.fetch = function(url, options = {}) {
+        const opts = { ...options };
+        opts.credentials = opts.credentials || 'include';
+        const headers = new Headers(opts.headers || {});
+        if (!headers.has('X-CSRFToken')) {
+          const token = getCookie('csrftoken');
+          if (token) headers.set('X-CSRFToken', token);
+        }
+        opts.headers = headers;
+        return nativeFetch(url, opts);
+      };
+    })();
+  </script>
+
   <style>
     :root {
       --primary: #1A73E8;

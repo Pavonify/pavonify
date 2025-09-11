@@ -5,7 +5,7 @@ export default function MyWordsPage({ fetchImpl = fetch }) {
   const [words, setWords] = useState([]);
 
   useEffect(() => {
-    fetchFn('/api/srs/my-words?filter=all')
+    fetchFn('/api/srs/my-words?filter=all', { credentials: 'include' })
       .then(r => r.json())
       .then(data => setWords(data.results || data));
   }, []);
