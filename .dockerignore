@@ -1,22 +1,27 @@
-# Bytecode / cache
+# Python
 __pycache__/
 *.py[cod]
-*.pyo
 *.log
 
-# Virtualenvs
+# Virtualenvs / artifacts
 venv/
 .venv/
 .env
+.env.*
+*.sqlite3
 
-# Git
-.git/
-.gitignore
-
-# Node / frontend
+# Node
 node_modules/
+dist/
+build/
 *.tsbuildinfo
 
-# Django static/media (if generated)
+# VCS & OS
+.git/
+.gitignore
+.DS_Store
+Thumbs.db
+
+# Django generated
 staticfiles/
 media/
