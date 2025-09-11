@@ -1,8 +1,2 @@
 [build]
-builder = "NIXPACKS"
-
-[deploy]
-# If your image supports apt (most do unless you’re on distroless):
-preDeployCommand = "apt-get update && apt-get install -y libstdc++6 || true"
-startCommand     = "/app/venv/bin/gunicorn lang_platform.wsgi:application --bind 0.0.0.0:${PORT} --workers 3 --timeout 120"
-
+builder = "DOCKERFILE"   # <- important
