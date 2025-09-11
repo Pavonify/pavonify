@@ -2,4 +2,5 @@
 builder = "NIXPACKS"
 
 [deploy]
-startCommand = "gunicorn lang_platform.wsgi:application --bind 0.0.0.0:$PORT --workers 3 --timeout 120"
+preDeployCommand = "ls -al /app/venv/bin && /app/venv/bin/gunicorn --version"
+startCommand     = "/app/venv/bin/gunicorn lang_platform.wsgi:application --bind 0.0.0.0:${PORT} --workers 3 --timeout 120"
