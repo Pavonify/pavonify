@@ -1,13 +1,19 @@
 # nixpacks.toml
 [phases.setup]
-# Ensure Python is present so `pip` exists
-nixPkgs = ["python312", "python312Packages.pip"]
+# ensure python + bash are available
+nixPkgs = ["python312", "python312Packages.pip", "bash"]
 
 [phases.install]
-cmds = ["pip install --upgrade pip && pip install -r requirements.txt"]
+# install deps into a project-local venv (avoids PEP 668 error)
+cmds = [
+  "python -m venv /app/venv",
+  "bash -lc 'source /app/venv/bin/activate && pip install --upgrade pip'",
+  "bash -lc 'source /app/venv/bin/activate && pip install -r requirements.txt'"
+]
 
 [phases.build]
 cmds = []
 
 [start]
-cmd = "gunicorn lang_platform.wsgi:application --bind 0.0.0.0:$PORT --workers 3 --timeout 120"
+# run gunicorn from the venv
+cmd = "bash -lc 'source /app/venv/bin/activate && gunicorn lang_platform.wsgi:application --bind 0.0.0.0:$PORT --workers 3 --timeout 120'"
