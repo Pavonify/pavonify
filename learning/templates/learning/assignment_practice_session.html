@@ -1,0 +1,617 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assignment: {{ assignment.name }}</title>
+    <script>
+        (function() {
+            const getCookie = name => {
+                const value = `; ${document.cookie}`;
+                const parts = value.split(`; ${name}=`);
+                if (parts.length === 2) return parts.pop().split(';').shift();
+            };
+            const nativeFetch = window.fetch;
+            window.fetch = function(url, options = {}) {
+                const opts = { ...options };
+                opts.credentials = opts.credentials || 'include';
+                const headers = new Headers(opts.headers || {});
+                if (!headers.has('X-CSRFToken')) {
+                    const token = getCookie('csrftoken');
+                    if (token) headers.set('X-CSRFToken', token);
+                }
+                opts.headers = headers;
+                return nativeFetch(url, opts);
+            };
+        })();
+    </script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #f5f5f5;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-size: 18px;
+        }
+        .pane {
+            background: #fec10e;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 30px;
+            width: 100%;
+            max-width: 700px;
+            color: #fff;
+            position: relative;
+        }
+        .header {
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+        }
+        #activity-container {
+            margin-top: 30px;
+            text-align: center;
+        }
+        .back-button {
+            position: absolute;
+            left: 10px;
+            top: 10px;
+            transform: none;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px 20px;
+            margin: 5px;
+            background-color: #1A73E8;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            text-transform: uppercase;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            text-decoration: none;
+            font-size: 16px;
+        }
+        .btn:hover {
+            background-color: #F2A03D;
+            transform: translateY(-2px);
+        }
+        .btn:active {
+            transform: translateY(0);
+        }
+        input[type="text"] {
+            padding: 10px;
+            font-size: 18px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+        #feedback {
+            min-height: 24px;
+            margin-top: 10px;
+            font-weight: bold;
+            text-align: center;
+        }
+        #feedback.correct { color: #4caf50; }
+        #feedback.incorrect { color: #e53935; }
+        #streak-container {
+            width: 100%;
+            background: rgba(255,255,255,0.3);
+            border-radius: 4px;
+            height: 10px;
+            margin-top: 5px;
+        }
+        #streak-bar {
+            height: 100%;
+            width: 0;
+            background: #4caf50;
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+        .vocab-word {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        .accent-panel {
+            margin: 20px auto 0;
+            background: #e0e0e0;
+            border-radius: 8px;
+            padding: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 6px;
+            max-width: 700px;
+        }
+        .accent-panel button {
+            background: #fff;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 5px 8px;
+            font-size: 20px;
+            cursor: pointer;
+        }
+        .match-up-container {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+        }
+        .match-column {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .match-tile, .match-target {
+            padding: 10px;
+            background: #fff;
+            color: #000;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            min-width: 120px;
+            min-height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .match-target.correct {
+            background: #4caf50;
+            color: #fff;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+<div class="pane">
+    <button class="back-button btn" onclick="window.history.back()">Back</button>
+    <div class="header">
+        <h1>Assignment: {{ assignment.name }}</h1>
+        <p><strong>Assignment Points:</strong> <span id="assignment-points">{{ current_points }}</span> / {{ total_points }}</p>
+    </div>
+    <p><strong>Session Points:</strong> <span id="session-points">0</span></p>
+    <div id="streak-container"><div id="streak-bar"></div></div>
+    <p>Streak: <span id="streak-count">0</span> | Multiplier: x<span id="multiplier">1</span></p>
+    <div id="feedback"></div>
+    <div id="activity-container"></div>
+</div>
+<div id="accent-panel" class="accent-panel"></div>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        fetchActivity();
+        initAccentKeyboard();
+    });
+
+    let sessionPoints = 0;
+    let assignmentPoints = {{ current_points }};
+    const totalAssignmentPoints = {{ total_points }};
+    let globalStreak = 0;
+    let multiplier = 1;
+    let prevMultiplier = 1;
+    const streakThresholds = [0, 10, 35, 85, 185];
+    const multiplierColors = {
+        1: '#4caf50',
+        2: '#2196f3',
+        3: '#ff9800',
+        4: '#e91e63',
+        5: '#9c27b0'
+    };
+
+    function playChirp(type) {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        if (type === 'correct') {
+            osc.frequency.value = 800;
+        } else if (type === 'incorrect') {
+            osc.frequency.value = 200;
+        } else if (type === 'multiplier') {
+            osc.frequency.value = 1200;
+        }
+
+        gain.gain.setValueAtTime(0.1, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.00001, ctx.currentTime + 0.5);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.5);
+    }
+
+    function initAccentKeyboard() {
+        const accentMap = {
+            es: ['á','é','í','ó','ú','ñ','ü','¿','¡'],
+            fr: ['à','â','ä','ç','é','è','ê','ë','î','ï','ô','ö','ù','û','ü','ÿ'],
+            de: ['ä','ö','ü','ß'],
+            it: ['à','è','é','ì','ò','ù'],
+        };
+        const language = "{{ vocab_list.target_language|lower }}";
+        const chars = accentMap[language] || [];
+        const panel = document.getElementById('accent-panel');
+        if (chars.length === 0) {
+            panel.style.display = 'none';
+            return;
+        }
+        panel.innerHTML = chars.map(ch => `<button class="accent-key">${ch}</button>`).join('');
+        panel.querySelectorAll('.accent-key').forEach(btn => {
+            btn.addEventListener('click', () => insertAccent(btn.textContent));
+        });
+    }
+
+    function insertAccent(char) {
+        const input = document.querySelector('#typing-input, #fill-gaps-input');
+        if (!input) return;
+        const start = input.selectionStart;
+        const end = input.selectionEnd;
+        const value = input.value;
+        input.value = value.slice(0, start) + char + value.slice(end);
+        input.focus();
+        input.selectionStart = input.selectionEnd = start + char.length;
+    }
+
+    async function fetchActivity() {
+        try {
+            const response = await fetch("{% url 'practice_session' vocab_list.id %}?next=1", {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                credentials: 'include'
+            });
+            const activity = await response.json();
+            renderActivity(activity);
+        } catch (error) {
+            console.error('Failed to fetch activity:', error);
+        }
+    }
+
+    function renderActivity(activity) {
+        const container = document.getElementById('activity-container');
+        container.innerHTML = '';
+
+        if (activity.completed) {
+            container.innerHTML = '<p>Session complete!</p>';
+            return;
+        }
+
+        switch (activity.type) {
+            case 'show_word':
+                renderShowWord(activity);
+                break;
+            case 'flashcard':
+                renderFlashcard(activity);
+                break;
+            case 'typing':
+                renderTyping(activity);
+                break;
+            case 'fill_gaps':
+                renderFillGaps(activity);
+                break;
+            case 'multiple_choice':
+                renderMultipleChoice(activity);
+                break;
+            case 'true_false':
+                renderTrueFalse(activity);
+                break;
+            case 'match_up':
+                renderMatchUp(activity);
+                break;
+            default:
+                container.innerHTML = '<p>Unknown activity type.</p>';
+        }
+    }
+
+    function renderShowWord(activity) {
+        const container = document.getElementById('activity-container');
+        container.innerHTML = `
+            <div class="show-word">
+                <p class="vocab-word">${activity.prompt}</p>
+                <button id="reveal-word" class="btn">Show Word</button>
+                <div id="revealed-word" style="display:none; margin-top:10px;">${activity.answer}</div>
+                <div style="margin-top:10px;">
+                    <button id="show-word-next" class="btn" style="display:none;">Next</button>
+                </div>
+            </div>
+        `;
+
+        document.getElementById('reveal-word').addEventListener('click', () => {
+            document.getElementById('revealed-word').style.display = 'block';
+            document.getElementById('show-word-next').style.display = 'inline-block';
+        });
+
+        document.getElementById('show-word-next').addEventListener('click', () => {
+            submitResponse(activity.word_id, true, null, null, false, true, 'show_word');
+        });
+    }
+
+    function renderFlashcard(activity) {
+        const container = document.getElementById('activity-container');
+        container.innerHTML = `
+            <div class="flashcard">
+                <p class="vocab-word">${activity.prompt}</p>
+                <button id="show-answer" class="btn">Show Answer</button>
+                <div id="answer" style="display:none; margin-top:10px;">${activity.answer}</div>
+                <div style="margin-top:10px;">
+                    <button id="flashcard-done" class="btn" style="display:none;">I got it!</button>
+                </div>
+            </div>
+        `;
+
+        document.getElementById('show-answer').addEventListener('click', () => {
+            document.getElementById('answer').style.display = 'block';
+            document.getElementById('flashcard-done').style.display = 'inline-block';
+        });
+
+        document.getElementById('flashcard-done').addEventListener('click', () => {
+            submitResponse(activity.word_id, true, null, null, false, true, 'flashcard');
+        });
+    }
+
+    function renderTyping(activity) {
+        const container = document.getElementById('activity-container');
+        container.innerHTML = `
+            <div class="typing">
+                <p class="vocab-word">${activity.prompt}</p>
+                <input type="text" id="typing-input" />
+                <button id="typing-submit" class="btn">Submit</button>
+            </div>
+        `;
+        document.getElementById('typing-submit').addEventListener('click', () => {
+            const answer = document.getElementById('typing-input').value;
+            const correct = answer.trim().toLowerCase() === (activity.answer || '').toLowerCase();
+            submitResponse(activity.word_id, correct, answer, activity.answer, true, true, 'typing');
+        });
+    }
+
+    function renderFillGaps(activity) {
+        const container = document.getElementById('activity-container');
+        container.innerHTML = `
+            <div class="fill-gaps">
+                <p class="vocab-word">${activity.translation}</p>
+                <p>${activity.prompt}</p>
+                <input type="text" id="fill-gaps-input" />
+                <button id="fill-gaps-submit" class="btn">Submit</button>
+            </div>
+        `;
+        document.getElementById('fill-gaps-submit').addEventListener('click', () => {
+            const answer = document.getElementById('fill-gaps-input').value;
+            const correct = answer.trim().toLowerCase() === (activity.answer || '').toLowerCase();
+            submitResponse(activity.word_id, correct, answer, activity.answer, true, true, 'fill_gaps');
+        });
+    }
+
+    function renderMultipleChoice(activity) {
+        const container = document.getElementById('activity-container');
+        container.innerHTML = `
+            <div class="multiple-choice">
+                <p class="vocab-word">${activity.prompt}</p>
+                <div id="match-options">
+                    ${activity.options.map(opt => `<button class="match-option btn">${opt}</button>`).join('')}
+                </div>
+            </div>
+        `;
+        container.querySelectorAll('.match-option').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const selected = e.target.textContent;
+                const correct = selected === String(activity.answer);
+                submitResponse(activity.word_id, correct, selected, activity.answer, true, true, 'multiple_choice');
+            });
+        });
+    }
+
+    function renderTrueFalse(activity) {
+        const container = document.getElementById('activity-container');
+        container.innerHTML = `
+            <div class="true-false">
+                <p><span class="vocab-word">${activity.prompt}</span> - ${activity.shown_translation}</p>
+                <button id="true-btn" class="btn">True</button>
+                <button id="false-btn" class="btn">False</button>
+            </div>
+        `;
+        document.getElementById('true-btn').addEventListener('click', () => {
+            const correctAnswer = activity.answer ? 'True' : 'False';
+            submitResponse(activity.word_id, activity.answer === true, null, correctAnswer, true, true, 'true_false');
+        });
+        document.getElementById('false-btn').addEventListener('click', () => {
+            const correctAnswer = activity.answer ? 'True' : 'False';
+            submitResponse(activity.word_id, activity.answer === false, null, correctAnswer, true, true, 'true_false');
+        });
+    }
+
+    function renderMatchUp(activity) {
+        const container = document.getElementById('activity-container');
+        container.innerHTML = `
+            <div class="match-up-container">
+                <div class="match-column" id="match-l1"></div>
+                <div class="match-column" id="match-l2"></div>
+            </div>
+        `;
+        const left = document.getElementById('match-l1');
+        const right = document.getElementById('match-l2');
+        activity.words.forEach(w => {
+            const tile = document.createElement('div');
+            tile.className = 'match-tile';
+            tile.draggable = true;
+            tile.dataset.id = w.id;
+            tile.textContent = w.word;
+            left.appendChild(tile);
+
+            const target = document.createElement('div');
+            target.className = 'match-target';
+            target.dataset.id = w.id;
+            target.textContent = w.translation;
+            right.appendChild(target);
+        });
+
+        document.querySelectorAll('.match-tile').forEach(tile => {
+            tile.addEventListener('dragstart', e => {
+                e.dataTransfer.setData('text', e.target.dataset.id);
+                e.dataTransfer.setData('text-word', e.target.textContent);
+            });
+        });
+
+        document.querySelectorAll('.match-target').forEach(target => {
+            target.addEventListener('dragover', e => e.preventDefault());
+            target.addEventListener('drop', e => {
+                const id = e.dataTransfer.getData('text');
+                const word = e.dataTransfer.getData('text-word');
+                if (id === e.target.dataset.id) {
+                    e.target.classList.add('correct');
+                    e.target.textContent = `${word} = ${e.target.textContent}`;
+                    const tile = document.querySelector(`.match-tile[data-id='${id}']`);
+                    if (tile) tile.remove();
+                    submitResponse(parseInt(id), true, null, null, true, false, 'match_up');
+                    if (document.querySelectorAll('.match-tile').length === 0) {
+                        setTimeout(() => fetchActivity(), 500);
+                    }
+                }
+            });
+        });
+    }
+
+    function updateStreak(correct, count=true) {
+        if (count) {
+            if (correct) {
+                globalStreak += 1;
+            } else {
+                globalStreak = 0;
+            }
+
+            if (globalStreak >= 185) {
+                multiplier = 5;
+            } else if (globalStreak >= 85) {
+                multiplier = 4;
+            } else if (globalStreak >= 35) {
+                multiplier = 3;
+            } else if (globalStreak >= 10) {
+                multiplier = 2;
+            } else {
+                multiplier = 1;
+            }
+            if (assignmentPoints >= totalAssignmentPoints && multiplier < 2) {
+                multiplier = 2;
+            }
+        }
+
+        if (multiplier > prevMultiplier) {
+            playChirp('multiplier');
+        }
+        prevMultiplier = multiplier;
+
+        document.getElementById('streak-count').textContent = globalStreak;
+        document.getElementById('multiplier').textContent = multiplier;
+
+        let prev = 0;
+        let next = streakThresholds[1];
+        for (let i = 1; i < streakThresholds.length; i++) {
+            if (globalStreak < streakThresholds[i]) {
+                next = streakThresholds[i];
+                prev = streakThresholds[i-1];
+                break;
+            }
+            prev = streakThresholds[i];
+            next = streakThresholds[i+1] || streakThresholds[i];
+        }
+        const percent = Math.min(((globalStreak - prev) / (next - prev)) * 100, 100);
+        const bar = document.getElementById('streak-bar');
+        bar.style.width = percent + '%';
+        bar.style.background = multiplierColors[multiplier];
+    }
+
+    function showFeedback(correct, correctAnswer=null) {
+        playChirp(correct ? 'correct' : 'incorrect');
+        const fb = document.getElementById('feedback');
+        fb.className = correct ? 'correct' : 'incorrect';
+        fb.textContent = correct ? 'Correct!' : `Incorrect. Correct answer: ${correctAnswer}`;
+    }
+
+    async function submitResponse(wordId, correct, answer=null, correctAnswer=null, count=true, next=true, mode='') {
+        try {
+            await fetch("{% url 'update_progress' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                credentials: 'include',
+                body: JSON.stringify({ word_id: wordId, correct: correct })
+            });
+
+            if (count && correct) {
+                assignmentPoints += 5 * multiplier;
+                document.getElementById('assignment-points').textContent = assignmentPoints;
+            }
+
+            updateStreak(correct, count);
+
+            if (count && correct) {
+                sessionPoints += 5 * multiplier;
+            }
+            document.getElementById('session-points').textContent = sessionPoints;
+
+            await fetch("{% url 'update_points' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                credentials: 'include',
+                body: JSON.stringify({ points: count && correct ? 5 * multiplier : 0 })
+            });
+
+            await fetch("{% url 'update_assignment_points' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                credentials: 'include',
+                body: JSON.stringify({ assignment_id: {{ assignment.id }}, points: count && correct ? 5 * multiplier : 0 })
+            });
+
+            await fetch("{% url 'log_assignment_attempt' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                credentials: 'include',
+                body: JSON.stringify({ assignment_id: {{ assignment.id }}, word_id: wordId, is_correct: correct, mode: mode })
+            });
+
+            showFeedback(correct, correctAnswer);
+
+            const delay = correct ? 800 : 1500;
+            setTimeout(() => {
+                document.getElementById('feedback').textContent = '';
+                if (next) fetchActivity();
+            }, delay);
+        } catch (error) {
+            console.error('Failed to submit response:', error);
+        }
+    }
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+</script>
+{% include 'messages.html' %}
+</body>
+</html>
