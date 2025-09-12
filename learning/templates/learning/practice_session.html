@@ -48,23 +48,17 @@
         .back-button:hover {
             background: #065f93;
         }
-        .shimmer {
-            position: relative;
-            overflow: hidden;
+        .primary-button {
+            background: #086baf;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            padding: 8px 12px;
+            cursor: pointer;
+            margin-top: 10px;
         }
-        .shimmer::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0) 100%);
-            animation: shimmer 1.5s infinite;
-        }
-        @keyframes shimmer {
-            0% { left: -100%; }
-            100% { left: 100%; }
+        .primary-button:hover {
+            background: #065f93;
         }
     </style>
 </head>
@@ -110,9 +104,6 @@
             case 'flashcard':
                 renderFlashcard(activity);
                 break;
-            case 'shimmer':
-                renderShimmer(activity);
-                break;
             case 'typing':
                 renderTyping(activity);
                 break;
@@ -135,10 +126,10 @@
         container.innerHTML = `
             <div class="show-word">
                 <p>${activity.prompt}</p>
-                <button id="reveal-word">Show Word</button>
+                <button id="reveal-word" class="primary-button">Show Word</button>
                 <div id="revealed-word" style="display:none; margin-top:10px;">${activity.answer}</div>
                 <div style="margin-top:10px;">
-                    <button id="show-word-next" style="display:none;">Next</button>
+                    <button id="show-word-next" class="primary-button" style="display:none;">Next</button>
                 </div>
             </div>
         `;
@@ -158,10 +149,10 @@
         container.innerHTML = `
             <div class="flashcard">
                 <p>${activity.prompt}</p>
-                <button id="show-answer">Show Answer</button>
+                <button id="show-answer" class="primary-button">Show Answer</button>
                 <div id="answer" style="display:none; margin-top:10px;">${activity.answer}</div>
                 <div style="margin-top:10px;">
-                    <button id="flashcard-done" style="display:none;">I got it!</button>
+                    <button id="flashcard-done" class="primary-button" style="display:none;">I got it!</button>
                 </div>
             </div>
         `;
@@ -176,28 +167,13 @@
         });
     }
 
-    function renderShimmer(activity) {
-        const container = document.getElementById('activity-container');
-        container.innerHTML = `
-            <div class="shimmer-card">
-                <p class="shimmer">${activity.prompt}</p>
-                <p class="shimmer">${activity.answer}</p>
-                <button id="shimmer-next">Next</button>
-            </div>
-        `;
-
-        document.getElementById('shimmer-next').addEventListener('click', () => {
-            submitResponse(activity.word_id, true);
-        });
-    }
-
     function renderTyping(activity) {
         const container = document.getElementById('activity-container');
         container.innerHTML = `
             <div class="typing">
                 <p>${activity.prompt}</p>
                 <input type="text" id="typing-input" />
-                <button id="typing-submit">Submit</button>
+                <button id="typing-submit" class="primary-button">Submit</button>
             </div>
         `;
         document.getElementById('typing-submit').addEventListener('click', () => {
@@ -214,7 +190,7 @@
                 <p>${activity.translation}</p>
                 <p>${activity.prompt}</p>
                 <input type="text" id="fill-gaps-input" />
-                <button id="fill-gaps-submit">Submit</button>
+                <button id="fill-gaps-submit" class="primary-button">Submit</button>
             </div>
         `;
         document.getElementById('fill-gaps-submit').addEventListener('click', () => {
@@ -230,7 +206,7 @@
             <div class="multiple-choice">
                 <p>${activity.prompt}</p>
                 <div id="match-options">
-                    ${activity.options.map(opt => `<button class="match-option">${opt}</button>`).join('')}
+                    ${activity.options.map(opt => `<button class="match-option primary-button">${opt}</button>`).join('')}
                 </div>
             </div>
         `;
@@ -248,8 +224,8 @@
         container.innerHTML = `
             <div class="true-false">
                 <p>${activity.prompt} - ${activity.shown_translation}</p>
-                <button id="true-btn">True</button>
-                <button id="false-btn">False</button>
+                <button id="true-btn" class="primary-button">True</button>
+                <button id="false-btn" class="primary-button">False</button>
             </div>
         `;
         document.getElementById('true-btn').addEventListener('click', () => {
