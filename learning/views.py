@@ -514,6 +514,11 @@ def student_dashboard(request):
 
         class_instance.live_assignments = live_assignments
         class_instance.expired_assignments = expired_assignments
+        class_instance.leaderboards = {
+            "total_points": class_instance.students.order_by("-total_points"),
+            "monthly_points": class_instance.students.order_by("-monthly_points"),
+            "weekly_points": class_instance.students.order_by("-weekly_points"),
+        }
 
     vocab_lists = VocabularyList.objects.filter(classes__in=classes).distinct()
     leaderboard_categories = [
