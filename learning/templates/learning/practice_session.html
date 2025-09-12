@@ -46,18 +46,14 @@
             width: 100%;
             max-width: 700px;
             color: #fff;
+            position: relative;
         }
         .header {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: relative;
+            text-align: center;
         }
         .header h1 {
             margin: 0;
             font-size: 28px;
-            flex: 1;
-            text-align: center;
         }
         #activity-container {
             margin-top: 30px;
@@ -65,9 +61,9 @@
         }
         .back-button {
             position: absolute;
-            left: 0;
-            top: 50%;
-            transform: translateY(-50%);
+            left: 10px;
+            top: 10px;
+            transform: none;
         }
         .btn {
             display: inline-flex;
@@ -125,8 +121,8 @@
 </head>
 <body>
 <div class="pane">
+    <button class="back-button btn" onclick="window.history.back()">Back</button>
     <div class="header">
-        <button class="back-button btn" onclick="window.history.back()">Back</button>
         <h1>Practice Session - {{ vocab_list.name }}</h1>
     </div>
     <p><strong>Session Points:</strong> <span id="session-points">0</span></p>
@@ -143,6 +139,14 @@
     let sessionPoints = 0;
     let globalStreak = 0;
     let multiplier = 1;
+    const streakThresholds = [0, 10, 35, 85, 185];
+    const multiplierColors = {
+        1: '#4caf50',
+        2: '#2196f3',
+        3: '#ff9800',
+        4: '#e91e63',
+        5: '#9c27b0'
+    };
 
     async function fetchActivity() {
         try {
@@ -209,7 +213,7 @@
         });
 
         document.getElementById('show-word-next').addEventListener('click', () => {
-            submitResponse(activity.word_id, true);
+            submitResponse(activity.word_id, true, null, false);
         });
     }
 
@@ -232,7 +236,7 @@
         });
 
         document.getElementById('flashcard-done').addEventListener('click', () => {
-            submitResponse(activity.word_id, true);
+            submitResponse(activity.word_id, true, null, false);
         });
     }
 
@@ -305,22 +309,45 @@
         });
     }
 
-    function updateStreak(correct) {
-        if (correct) {
-            globalStreak += 1;
-            multiplier = Math.min(1 + Math.floor(globalStreak / 5), 5);
-            sessionPoints += 5 * multiplier;
-        } else {
-            globalStreak = 0;
-            multiplier = 1;
+    function updateStreak(correct, count=true) {
+        if (count) {
+            if (correct) {
+                globalStreak += 1;
+            } else {
+                globalStreak = 0;
+            }
+
+            if (globalStreak >= 185) {
+                multiplier = 5;
+            } else if (globalStreak >= 85) {
+                multiplier = 4;
+            } else if (globalStreak >= 35) {
+                multiplier = 3;
+            } else if (globalStreak >= 10) {
+                multiplier = 2;
+            } else {
+                multiplier = 1;
+            }
         }
 
-        document.getElementById('session-points').textContent = sessionPoints;
         document.getElementById('streak-count').textContent = globalStreak;
         document.getElementById('multiplier').textContent = multiplier;
 
-        const percent = (globalStreak % 5) / 5 * 100;
-        document.getElementById('streak-bar').style.width = percent + '%';
+        let prev = 0;
+        let next = streakThresholds[1];
+        for (let i = 1; i < streakThresholds.length; i++) {
+            if (globalStreak < streakThresholds[i]) {
+                next = streakThresholds[i];
+                prev = streakThresholds[i-1];
+                break;
+            }
+            prev = streakThresholds[i];
+            next = streakThresholds[i+1] || streakThresholds[i];
+        }
+        const percent = Math.min(((globalStreak - prev) / (next - prev)) * 100, 100);
+        const bar = document.getElementById('streak-bar');
+        bar.style.width = percent + '%';
+        bar.style.background = multiplierColors[multiplier];
     }
 
     function showFeedback(correct) {
@@ -329,7 +356,7 @@
         fb.textContent = correct ? 'Correct!' : 'Incorrect';
     }
 
-    async function submitResponse(wordId, correct, answer=null) {
+    async function submitResponse(wordId, correct, answer=null, count=true) {
         try {
             await fetch("{% url 'update_progress' %}", {
                 method: 'POST',
@@ -341,7 +368,12 @@
                 body: JSON.stringify({ word_id: wordId, correct: correct })
             });
 
-            updateStreak(correct);
+            updateStreak(correct, count);
+
+            if (count && correct) {
+                sessionPoints += 5 * multiplier;
+            }
+            document.getElementById('session-points').textContent = sessionPoints;
 
             await fetch("{% url 'update_points' %}", {
                 method: 'POST',
@@ -350,7 +382,7 @@
                     'X-CSRFToken': getCookie('csrftoken')
                 },
                 credentials: 'include',
-                body: JSON.stringify({ points: correct ? 5 * multiplier : 0 })
+                body: JSON.stringify({ points: count && correct ? 5 * multiplier : 0 })
             });
 
             showFeedback(correct);

@@ -19,7 +19,6 @@ from django.core.paginator import Paginator
 from django.utils import timezone
 from django.utils.timezone import now
 from functools import wraps
-from random import sample, shuffle
 import datetime
 from datetime import datetime, timedelta
 import random
@@ -612,11 +611,19 @@ def practice_session(request, vocab_list_id):
 
     queue_key = f"practice_queue_{vocab_list_id}"
     queue = request.session.get(queue_key, [])
-    activities = ["show_word", "flashcard", "typing", "fill_gaps", "multiple_choice", "true_false"]
+    if queue and "activities" not in queue[0]:
+        queue = []
+    exposure_activities = ["show_word", "flashcard"]
+    testing_activities = ["typing", "fill_gaps", "multiple_choice", "true_false"]
 
     def _init_queue():
         words = get_due_words(student, vocab_list, limit=3)
-        return [{"id": w.id, "step": 0} for w in words]
+        q = []
+        for w in words:
+            acts = exposure_activities + random.sample(testing_activities, len(testing_activities))
+            q.append({"id": w.id, "step": 0, "activities": acts})
+        random.shuffle(q)
+        return q
 
     if request.headers.get("x-requested-with") == "XMLHttpRequest" or request.GET.get("next"):
         if not queue:
@@ -626,11 +633,12 @@ def practice_session(request, vocab_list_id):
 
         item = queue.pop(0)
         word = VocabularyWord.objects.get(id=item["id"])
-        activity = activities[item["step"]]
+        activity = item["activities"][item["step"]]
 
-        if item["step"] + 1 < len(activities):
+        if item["step"] + 1 < len(item["activities"]):
             item["step"] += 1
             queue.append(item)
+            random.shuffle(queue)
         request.session[queue_key] = queue
 
         if activity == "show_word":
