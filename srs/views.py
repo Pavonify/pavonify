@@ -1,3 +1,4 @@
+from datetime import timedelta
 from django.http import JsonResponse
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
@@ -8,11 +9,47 @@ import json
 
 from learning.models import Word, Student
 from .models import StudentWordProgress, ActivityAttempt
-from .scheduler import update_progress, suggest_activity, compute_strength
+from .scheduler import (
+    compute_strength,
+    MAX_ACTIVE_LEARNING_WORDS,
+    ROTATION,
+)
 
 
 def get_student(request):
     return getattr(request.user, 'student', None) or Student.objects.first()
+
+
+@require_http_methods(["GET"])
+def lesson_seed(request):
+    """Return an initial cohort of words for a lesson.
+
+    Prefers brand new words, but if fewer than the requested limit exist,
+    fills the remainder with due learning words.
+    """
+    student = get_student(request)
+    limit = int(request.GET.get("limit", MAX_ACTIVE_LEARNING_WORDS))
+
+    progresses = list(
+        StudentWordProgress.objects.filter(student=student, status="new")[:limit]
+    )
+    if len(progresses) < limit:
+        remaining = limit - len(progresses)
+        due_learning = StudentWordProgress.objects.filter(
+            student=student, status="learning", next_due_at__lte=timezone.now()
+        )[:remaining]
+        progresses.extend(list(due_learning))
+
+    data = [
+        {
+            "word_id": p.word_id,
+            "status": p.status,
+            "suggested_next_activity": p.suggested_next_activity
+            or ROTATION[0],
+        }
+        for p in progresses
+    ]
+    return JsonResponse(data, safe=False)
 
 
 @require_http_methods(["GET"])
@@ -50,8 +87,10 @@ def attempt(request):
     hints_used = payload.get("hints_used", 0)
 
     word = get_object_or_404(Word, id=word_id)
-    progress, _ = StudentWordProgress.objects.get_or_create(student=student, word=word)
     with transaction.atomic():
+        progress, _ = StudentWordProgress.objects.select_for_update().get_or_create(
+            student=student, word=word
+        )
         ActivityAttempt.objects.create(
             student=student,
             word=word,
@@ -60,10 +99,58 @@ def attempt(request):
             time_taken_ms=time_taken_ms,
             hints_used=hints_used,
         )
-        update_progress(progress, is_correct)
+
+        graduated_this_lesson = False
+
+        if is_correct:
+            progress.times_correct += 1
+            progress.streak += 1
+            if activity_type in ROTATION:
+                expected = ROTATION[progress.lesson_path_index]
+                if activity_type == expected:
+                    progress.lesson_path_index += 1
+                else:
+                    progress.lesson_path_index = ROTATION.index(activity_type) + 1
+            next_activity = (
+                ROTATION[progress.lesson_path_index]
+                if progress.lesson_path_index < len(ROTATION)
+                else ROTATION[-1]
+            )
+        else:
+            progress.times_incorrect += 1
+            progress.streak = 0
+            progress.lesson_errors += 1
+            if activity_type == "typing":
+                next_activity = "mcq"
+            elif activity_type == "mcq":
+                next_activity = "tapping"
+            elif activity_type == "listening":
+                next_activity = (
+                    "mcq" if progress.last_activity_type == "listening" else "listening"
+                )
+            else:
+                next_activity = activity_type
+            progress.lesson_path_index = ROTATION.index(next_activity)
+
+        # Graduation check: exposure->tapping->mcq->typing completed with ≤1 error
+        if (
+            is_correct
+            and progress.lesson_path_index >= 4
+            and progress.lesson_errors <= 1
+            and progress.streak >= 2
+        ):
+            progress.status = "learning"
+            progress.box_index = max(progress.box_index, 2)
+            progress.next_due_at = timezone.now() + timedelta(hours=12)
+            progress.lesson_path_index = 0
+            progress.lesson_errors = 0
+            graduated_this_lesson = True
+            next_activity = ROTATION[0]
+
         progress.last_activity_type = activity_type
-        progress.suggested_next_activity = suggest_activity(activity_type, is_correct)
+        progress.suggested_next_activity = next_activity
         progress.save()
+
     resp = {
         "word_id": word_id,
         "box_index": progress.box_index,
@@ -71,6 +158,7 @@ def attempt(request):
         "strength": progress.strength,
         "next_due_at": progress.next_due_at,
         "suggested_next_activity": progress.suggested_next_activity,
+        "graduated_this_lesson": graduated_this_lesson,
     }
     return JsonResponse(resp)
 
