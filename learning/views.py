@@ -659,6 +659,7 @@ def practice_session(request, vocab_list_id):
         queue = []
     exposure_activities = ["show_word", "flashcard"]
     testing_activities = ["typing", "fill_gaps", "multiple_choice", "true_false"]
+    matchup_key = f"matchup_shown_{vocab_list_id}"
 
     def _init_queue():
         words = get_due_words(student, vocab_list, limit=3)
@@ -672,8 +673,31 @@ def practice_session(request, vocab_list_id):
     if request.headers.get("x-requested-with") == "XMLHttpRequest" or request.GET.get("next"):
         if not queue:
             queue = _init_queue()
+            request.session[matchup_key] = []
         if not queue:
             return JsonResponse({"completed": True})
+
+        shown_matchups = request.session.get(matchup_key, [])
+        warmed = [
+            item
+            for item in queue
+            if item["step"] >= len(exposure_activities) and item["id"] not in shown_matchups
+        ]
+        if len(warmed) >= 5 and random.random() < 0.3:
+            selected = random.sample(warmed, 5)
+            ids = [i["id"] for i in selected]
+            words = VocabularyWord.objects.filter(id__in=ids)
+            shown_matchups.extend(ids)
+            request.session[matchup_key] = shown_matchups
+            request.session[queue_key] = queue
+            payload = {
+                "type": "match_up",
+                "words": [
+                    {"id": w.id, "word": w.word, "translation": w.translation}
+                    for w in words
+                ],
+            }
+            return JsonResponse(payload)
 
         item = queue.pop(0)
         word = VocabularyWord.objects.get(id=item["id"])
