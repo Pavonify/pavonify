@@ -612,11 +612,15 @@ def practice_session(request, vocab_list_id):
 
     queue_key = f"practice_queue_{vocab_list_id}"
     queue = request.session.get(queue_key, [])
-    activities = ["show_word", "flashcard", "shimmer", "typing", "fill_gaps", "multiple_choice", "true_false"]
+    testing_activities = ["flashcard", "typing", "fill_gaps", "multiple_choice", "true_false"]
 
     def _init_queue():
-        words = get_due_words(student, vocab_list, limit=20)
-        return [{"id": w.id, "step": 0} for w in words]
+        words = get_due_words(student, vocab_list, limit=3)
+        q = []
+        for w in words:
+            acts = ["show_word"] + random.sample(testing_activities, len(testing_activities))
+            q.append({"id": w.id, "activities": acts})
+        return q
 
     if request.headers.get("x-requested-with") == "XMLHttpRequest" or request.GET.get("next"):
         if not queue:
@@ -624,22 +628,19 @@ def practice_session(request, vocab_list_id):
         if not queue:
             return JsonResponse({"completed": True})
 
-        item = queue[0]
+        idx = random.randrange(len(queue))
+        item = queue.pop(idx)
         word = VocabularyWord.objects.get(id=item["id"])
-        activity = activities[item["step"]]
+        activity = item["activities"].pop(0)
 
-        if item["step"] + 1 < len(activities):
-            queue[0]["step"] += 1
-        else:
-            queue.pop(0)
+        if item["activities"]:
+            queue.append(item)
         request.session[queue_key] = queue
 
         if activity == "show_word":
             payload = {"type": "show_word", "word_id": word.id, "prompt": word.translation, "answer": word.word}
         elif activity == "flashcard":
             payload = {"type": "flashcard", "word_id": word.id, "prompt": word.word, "answer": word.translation}
-        elif activity == "shimmer":
-            payload = {"type": "shimmer", "word_id": word.id, "prompt": word.word, "answer": word.translation}
         elif activity == "typing":
             payload = {"type": "typing", "word_id": word.id, "prompt": word.word, "answer": word.translation}
         elif activity == "fill_gaps":
