@@ -33,6 +33,7 @@
             padding: 0;
             background: #f5f5f5;
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
@@ -117,6 +118,32 @@
             border-radius: 4px;
             transition: width 0.3s ease;
         }
+        .vocab-word {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        .accent-panel {
+            margin-top: 20px;
+            background: #e0e0e0;
+            color: #000;
+            border-radius: 8px;
+            padding: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            justify-content: center;
+            max-width: 700px;
+            width: 100%;
+        }
+        .accent-panel button {
+            background: #fff;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 5px 8px;
+            font-size: 20px;
+            cursor: pointer;
+        }
         .match-up-container {
             display: flex;
             justify-content: space-around;
@@ -158,9 +185,11 @@
     <div id="feedback"></div>
     <div id="activity-container"></div>
 </div>
+<div id="accent-panel" class="accent-panel"></div>
 <script>
     document.addEventListener('DOMContentLoaded', () => {
         fetchActivity();
+        initAccentKeyboard();
     });
 
     let sessionPoints = 0;
@@ -174,6 +203,38 @@
         4: '#e91e63',
         5: '#9c27b0'
     };
+
+    function initAccentKeyboard() {
+        const accentMap = {
+            spanish: ['á','é','í','ó','ú','ñ','ü','¿','¡'],
+            french: ['à','â','ä','ç','é','è','ê','ë','î','ï','ô','ö','ù','û','ü','ÿ'],
+            german: ['ä','ö','ü','ß'],
+            italian: ['à','è','é','ì','ò','ù'],
+        };
+        const language = "{{ vocab_list.target_language|lower }}";
+        const match = Object.keys(accentMap).find(key => language.includes(key));
+        const chars = match ? accentMap[match] : [];
+        const panel = document.getElementById('accent-panel');
+        if (chars.length === 0) {
+            panel.style.display = 'none';
+            return;
+        }
+        panel.innerHTML = chars.map(ch => `<button class="accent-key">${ch}</button>`).join('');
+        panel.querySelectorAll('.accent-key').forEach(btn => {
+            btn.addEventListener('click', () => insertAccent(btn.textContent));
+        });
+    }
+
+    function insertAccent(char) {
+        const input = document.querySelector('#typing-input, #fill-gaps-input');
+        if (!input) return;
+        const start = input.selectionStart;
+        const end = input.selectionEnd;
+        const value = input.value;
+        input.value = value.slice(0, start) + char + value.slice(end);
+        input.focus();
+        input.selectionStart = input.selectionEnd = start + char.length;
+    }
 
     async function fetchActivity() {
         try {
@@ -228,7 +289,7 @@
         const container = document.getElementById('activity-container');
         container.innerHTML = `
             <div class="show-word">
-                <p>${activity.prompt}</p>
+                <p class="vocab-word">${activity.prompt}</p>
                 <button id="reveal-word" class="btn">Show Word</button>
                 <div id="revealed-word" style="display:none; margin-top:10px;">${activity.answer}</div>
                 <div style="margin-top:10px;">
@@ -251,7 +312,7 @@
         const container = document.getElementById('activity-container');
         container.innerHTML = `
             <div class="flashcard">
-                <p>${activity.prompt}</p>
+                <p class="vocab-word">${activity.prompt}</p>
                 <button id="show-answer" class="btn">Show Answer</button>
                 <div id="answer" style="display:none; margin-top:10px;">${activity.answer}</div>
                 <div style="margin-top:10px;">
@@ -274,7 +335,7 @@
         const container = document.getElementById('activity-container');
         container.innerHTML = `
             <div class="typing">
-                <p>${activity.prompt}</p>
+                <p class="vocab-word">${activity.prompt}</p>
                 <input type="text" id="typing-input" />
                 <button id="typing-submit" class="btn">Submit</button>
             </div>
@@ -290,7 +351,7 @@
         const container = document.getElementById('activity-container');
         container.innerHTML = `
             <div class="fill-gaps">
-                <p>${activity.translation}</p>
+                <p class="vocab-word">${activity.translation}</p>
                 <p>${activity.prompt}</p>
                 <input type="text" id="fill-gaps-input" />
                 <button id="fill-gaps-submit" class="btn">Submit</button>
@@ -307,7 +368,7 @@
         const container = document.getElementById('activity-container');
         container.innerHTML = `
             <div class="multiple-choice">
-                <p>${activity.prompt}</p>
+                <p class="vocab-word">${activity.prompt}</p>
                 <div id="match-options">
                     ${activity.options.map(opt => `<button class="match-option btn">${opt}</button>`).join('')}
                 </div>
@@ -326,7 +387,7 @@
         const container = document.getElementById('activity-container');
         container.innerHTML = `
             <div class="true-false">
-                <p>${activity.prompt} - ${activity.shown_translation}</p>
+                <p><span class="vocab-word">${activity.prompt}</span> - ${activity.shown_translation}</p>
                 <button id="true-btn" class="btn">True</button>
                 <button id="false-btn" class="btn">False</button>
             </div>
