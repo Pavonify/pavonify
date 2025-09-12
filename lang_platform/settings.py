@@ -131,8 +131,8 @@ LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/teacher-dashboard/'
 
 # Session Settings
-SESSION_ENGINE = "django.contrib.sessions.backends.cache"
-SESSION_CACHE_ALIAS = "default"
+# Use database-backed sessions for reliability across multiple workers
+SESSION_ENGINE = "django.contrib.sessions.backends.db"
 
 # Enforce HTTPS
 SECURE_SSL_REDIRECT = False  # ✅ Only redirect if NOT in DEBUG mode
