@@ -1,18 +1,22 @@
 from datetime import timedelta
 from django.utils import timezone
 
+
+# Lesson/session level constants
+MAX_ACTIVE_LEARNING_WORDS = 3
+ROTATION = ["exposure", "tapping", "mcq", "typing", "listening"]
+
+# Global SRS review intervals
 INTERVALS = [
     {"label": "4h", "hours": 4},
     {"label": "12h", "hours": 12},
     {"label": "24h", "hours": 24},
-    {"label": "6d", "hours": 6*24},
-    {"label": "12d", "hours": 12*24},
-    {"label": "48d", "hours": 48*24},
-    {"label": "96d", "hours": 96*24},
-    {"label": "6mo", "hours": 180*24},
+    {"label": "6d", "hours": 6 * 24},
+    {"label": "12d", "hours": 12 * 24},
+    {"label": "48d", "hours": 48 * 24},
+    {"label": "96d", "hours": 96 * 24},
+    {"label": "6mo", "hours": 180 * 24},
 ]
-
-ACTIVITIES_ORDER = ["exposure", "tapping", "mcq", "typing", "listening"]
 
 
 def compute_strength(progress):
@@ -26,7 +30,7 @@ def compute_strength(progress):
 def suggest_activity(prev_activity=None, is_correct=True, has_audio=False):
     if prev_activity is None:
         return "exposure" if not has_audio else "listening"
-    order = ACTIVITIES_ORDER.copy()
+    order = ROTATION.copy()
     if not has_audio and "listening" in order:
         order.remove("listening")
     if prev_activity not in order:

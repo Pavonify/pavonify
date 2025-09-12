@@ -36,6 +36,8 @@ class StudentWordProgress(models.Model):
     last_activity_type = models.CharField(max_length=15, choices=ACTIVITY_CHOICES, null=True, blank=True)
     suggested_next_activity = models.CharField(max_length=15, choices=ACTIVITY_CHOICES, null=True, blank=True)
     is_difficult = models.BooleanField(default=False)
+    lesson_errors = models.SmallIntegerField(default=0)
+    lesson_path_index = models.SmallIntegerField(default=0)
 
     class Meta:
         unique_together = ('student', 'word')
