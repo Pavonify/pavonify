@@ -122,42 +122,19 @@
             font-weight: bold;
             margin-bottom: 15px;
         }
-        .accent-tab {
-            position: absolute;
-            bottom: 10px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #fff;
-            color: #000;
-            border: none;
-            border-radius: 4px;
-            padding: 6px 12px;
-            cursor: pointer;
-        }
         .accent-panel {
-            position: absolute;
-            bottom: 50px;
-            left: 50%;
-            transform: translate(-50%, 100%);
-            background: #fff;
-            color: #000;
+            margin: 20px auto 0;
+            background: #e0e0e0;
             border-radius: 8px;
             padding: 10px;
             display: flex;
             flex-wrap: wrap;
+            justify-content: center;
             gap: 6px;
-            transition: transform 0.3s ease;
-            pointer-events: none;
-            opacity: 0;
-            z-index: 5;
-        }
-        .accent-panel.open {
-            transform: translate(-50%, 0);
-            pointer-events: auto;
-            opacity: 1;
+            max-width: 700px;
         }
         .accent-panel button {
-            background: #eee;
+            background: #fff;
             border: 1px solid #ccc;
             border-radius: 4px;
             padding: 5px 8px;
@@ -204,9 +181,8 @@
     <p>Streak: <span id="streak-count">0</span> | Multiplier: x<span id="multiplier">1</span></p>
     <div id="feedback"></div>
     <div id="activity-container"></div>
-    <div id="accent-panel" class="accent-panel"></div>
-    <button id="accent-toggle" class="accent-tab">Accent Keyboard</button>
 </div>
+<div id="accent-panel" class="accent-panel"></div>
 <script>
     document.addEventListener('DOMContentLoaded', () => {
         fetchActivity();
@@ -236,17 +212,13 @@
         const match = Object.keys(accentMap).find(key => language.includes(key));
         const chars = match ? accentMap[match] : [];
         const panel = document.getElementById('accent-panel');
-        const tab = document.getElementById('accent-toggle');
         if (chars.length === 0) {
-            tab.style.display = 'none';
+            panel.style.display = 'none';
             return;
         }
         panel.innerHTML = chars.map(ch => `<button class="accent-key">${ch}</button>`).join('');
         panel.querySelectorAll('.accent-key').forEach(btn => {
             btn.addEventListener('click', () => insertAccent(btn.textContent));
-        });
-        tab.addEventListener('click', () => {
-            panel.classList.toggle('open');
         });
     }
 
