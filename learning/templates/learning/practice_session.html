@@ -193,6 +193,7 @@
     let sessionPoints = 0;
     let globalStreak = 0;
     let multiplier = 1;
+    let prevMultiplier = 1;
     const streakThresholds = [0, 10, 35, 85, 185];
     const multiplierColors = {
         1: '#4caf50',
@@ -201,6 +202,27 @@
         4: '#e91e63',
         5: '#9c27b0'
     };
+
+    function playChirp(type) {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        if (type === 'correct') {
+            osc.frequency.value = 800;
+        } else if (type === 'incorrect') {
+            osc.frequency.value = 200;
+        } else if (type === 'multiplier') {
+            osc.frequency.value = 1200;
+        }
+
+        gain.gain.setValueAtTime(0.1, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.00001, ctx.currentTime + 0.5);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.5);
+    }
 
     function initAccentKeyboard() {
         const accentMap = {
@@ -471,6 +493,11 @@
             }
         }
 
+        if (multiplier > prevMultiplier) {
+            playChirp('multiplier');
+        }
+        prevMultiplier = multiplier;
+
         document.getElementById('streak-count').textContent = globalStreak;
         document.getElementById('multiplier').textContent = multiplier;
 
@@ -492,6 +519,7 @@
     }
 
     function showFeedback(correct, correctAnswer=null) {
+        playChirp(correct ? 'correct' : 'incorrect');
         const fb = document.getElementById('feedback');
         fb.className = correct ? 'correct' : 'incorrect';
         fb.textContent = correct ? 'Correct!' : `Incorrect. Correct answer: ${correctAnswer}`;
