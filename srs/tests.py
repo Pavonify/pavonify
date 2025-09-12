@@ -2,7 +2,7 @@ from django.test import TestCase
 from django.utils import timezone
 from learning.models import Student, School, Word
 from .models import StudentWordProgress
-from .scheduler import update_progress, INTERVALS, compute_strength
+from .scheduler import update_progress, INTERVALS, compute_strength, ROTATION
 
 
 class SchedulerTests(TestCase):
@@ -59,3 +59,48 @@ class SchedulerTests(TestCase):
             content_type="application/json",
         )
         self.assertEqual(response.status_code, 200)
+
+    def test_lesson_seed_endpoint(self):
+        from django.test import Client
+        client = Client()
+        resp = client.get("/api/srs/lesson-seed/?limit=3")
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertTrue(len(data) <= 3)
+
+    def test_downgrade_on_wrong_typing(self):
+        from django.test import Client
+        client = Client()
+        # Wrong typing should downgrade to mcq
+        resp = client.post(
+            "/api/srs/attempt/",
+            data={
+                "word_id": self.word.id,
+                "activity_type": "typing",
+                "is_correct": False,
+            },
+            content_type="application/json",
+        )
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertEqual(data["suggested_next_activity"], "mcq")
+
+    def test_graduation_path(self):
+        from django.test import Client
+        client = Client()
+        activities = ["exposure", "tapping", "mcq", "typing"]
+        for act in activities:
+            resp = client.post(
+                "/api/srs/attempt/",
+                data={
+                    "word_id": self.word.id,
+                    "activity_type": act,
+                    "is_correct": True,
+                },
+                content_type="application/json",
+            )
+            self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertTrue(data["graduated_this_lesson"])
+        self.progress.refresh_from_db()
+        self.assertEqual(self.progress.status, "learning")
