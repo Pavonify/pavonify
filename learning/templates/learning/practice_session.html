@@ -227,13 +227,14 @@
 
     function initAccentKeyboard() {
         const accentMap = {
-            'Spanish': ['á','é','í','ó','ú','ñ','ü','¿','¡'],
-            'French': ['à','â','ä','ç','é','è','ê','ë','î','ï','ô','ö','ù','û','ü','ÿ'],
-            'German': ['ä','ö','ü','ß'],
-            'Italian': ['à','è','é','ì','ò','ù'],
+            spanish: ['á','é','í','ó','ú','ñ','ü','¿','¡'],
+            french: ['à','â','ä','ç','é','è','ê','ë','î','ï','ô','ö','ù','û','ü','ÿ'],
+            german: ['ä','ö','ü','ß'],
+            italian: ['à','è','é','ì','ò','ù'],
         };
-        const language = "{{ vocab_list.target_language }}";
-        const chars = accentMap[language] || [];
+        const language = "{{ vocab_list.target_language|lower }}";
+        const match = Object.keys(accentMap).find(key => language.includes(key));
+        const chars = match ? accentMap[match] : [];
         const panel = document.getElementById('accent-panel');
         const tab = document.getElementById('accent-toggle');
         if (chars.length === 0) {
