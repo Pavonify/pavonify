@@ -213,7 +213,7 @@
         });
 
         document.getElementById('show-word-next').addEventListener('click', () => {
-            submitResponse(activity.word_id, true, null, false);
+            submitResponse(activity.word_id, true, null, null, false);
         });
     }
 
@@ -236,7 +236,7 @@
         });
 
         document.getElementById('flashcard-done').addEventListener('click', () => {
-            submitResponse(activity.word_id, true, null, false);
+            submitResponse(activity.word_id, true, null, null, false);
         });
     }
 
@@ -252,7 +252,7 @@
         document.getElementById('typing-submit').addEventListener('click', () => {
             const answer = document.getElementById('typing-input').value;
             const correct = answer.trim().toLowerCase() === (activity.answer || '').toLowerCase();
-            submitResponse(activity.word_id, correct, answer);
+            submitResponse(activity.word_id, correct, answer, activity.answer);
         });
     }
 
@@ -269,7 +269,7 @@
         document.getElementById('fill-gaps-submit').addEventListener('click', () => {
             const answer = document.getElementById('fill-gaps-input').value;
             const correct = answer.trim().toLowerCase() === (activity.answer || '').toLowerCase();
-            submitResponse(activity.word_id, correct, answer);
+            submitResponse(activity.word_id, correct, answer, activity.answer);
         });
     }
 
@@ -287,7 +287,7 @@
             btn.addEventListener('click', (e) => {
                 const selected = e.target.textContent;
                 const correct = selected === String(activity.answer);
-                submitResponse(activity.word_id, correct, selected);
+                submitResponse(activity.word_id, correct, selected, activity.answer);
             });
         });
     }
@@ -302,10 +302,12 @@
             </div>
         `;
         document.getElementById('true-btn').addEventListener('click', () => {
-            submitResponse(activity.word_id, activity.answer === true);
+            const correctAnswer = activity.answer ? 'True' : 'False';
+            submitResponse(activity.word_id, activity.answer === true, null, correctAnswer);
         });
         document.getElementById('false-btn').addEventListener('click', () => {
-            submitResponse(activity.word_id, activity.answer === false);
+            const correctAnswer = activity.answer ? 'True' : 'False';
+            submitResponse(activity.word_id, activity.answer === false, null, correctAnswer);
         });
     }
 
@@ -350,13 +352,13 @@
         bar.style.background = multiplierColors[multiplier];
     }
 
-    function showFeedback(correct) {
+    function showFeedback(correct, correctAnswer=null) {
         const fb = document.getElementById('feedback');
         fb.className = correct ? 'correct' : 'incorrect';
-        fb.textContent = correct ? 'Correct!' : 'Incorrect';
+        fb.textContent = correct ? 'Correct!' : `Incorrect. Correct answer: ${correctAnswer}`;
     }
 
-    async function submitResponse(wordId, correct, answer=null, count=true) {
+    async function submitResponse(wordId, correct, answer=null, correctAnswer=null, count=true) {
         try {
             await fetch("{% url 'update_progress' %}", {
                 method: 'POST',
@@ -385,12 +387,13 @@
                 body: JSON.stringify({ points: count && correct ? 5 * multiplier : 0 })
             });
 
-            showFeedback(correct);
+            showFeedback(correct, correctAnswer);
 
+            const delay = correct ? 800 : 1500;
             setTimeout(() => {
                 document.getElementById('feedback').textContent = '';
                 fetchActivity();
-            }, 800);
+            }, delay);
         } catch (error) {
             console.error('Failed to submit response:', error);
         }
