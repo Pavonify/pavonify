@@ -332,13 +332,13 @@
                   <h5 style="font-size: 16px; font-weight: bold; color: #ff8c00; margin-bottom: 5px; text-align: center;">{{ leaderboard.title }} {{ leaderboard.icon }}</h5>
                   <hr style="height: 2px; background-color: #ddd; border: none; margin-bottom: 10px;">
                   <ol class="leaderboard-list" id="leaderboard-{{ class_instance.id }}-{{ leaderboard.category }}" style="list-style: none; padding: 0;">
-                    {% for student in class_instance.students.all|dictsortreversed:leaderboard.category %}
+                    {% for student in class_instance.leaderboards|dictlookup:leaderboard.category %}
                       <li class="leaderboard-item" style="display: flex; justify-content: space-between; align-items: center; padding: 5px 0; font-size: 14px; font-weight: bold; color: #333;">
                         <span class="medal" style="font-size: 16px; margin-right: 5px;">
                           {% if forloop.counter == 1 %}🥇{% elif forloop.counter == 2 %}🥈{% elif forloop.counter == 3 %}🥉{% endif %}
                         </span>
                         <span class="student-name" style="flex-grow: 1;">{{ student.first_name }} {{ student.last_name }}</span>
-                        <span class="student-score" style="font-weight: bold; color: #28a745;">{{ student.total_points }} pts</span>
+                        <span class="student-score" style="font-weight: bold; color: #28a745;">{{ student|get_attr:leaderboard.category }} pts</span>
                       </li>
                     {% empty %}
                       <li class="no-students" style="text-align: center; font-size: 14px; color: #777;">No students available for this leaderboard.</li>
