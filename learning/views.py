@@ -494,6 +494,8 @@ def student_dashboard(request):
     classes = student.classes.all()
 
     for class_instance in classes:
+        for class_student in class_instance.students.all():
+            class_student.reset_periodic_points()
         live_assignments = Assignment.objects.filter(class_assigned=class_instance, deadline__gte=now())
         expired_assignments = Assignment.objects.filter(class_assigned=class_instance, deadline__lt=now())
 
@@ -844,7 +846,10 @@ def class_leaderboard(request, class_id):
     if category not in {"total_points", "weekly_points", "monthly_points"}:
         category = "total_points"
 
-    students = class_instance.students.all().order_by(f"-{category}")
+    students_qs = class_instance.students.all()
+    for student in students_qs:
+        student.reset_periodic_points()
+    students = students_qs.order_by(f"-{category}")
     column_labels = {
         "total_points": "Total Points",
         "weekly_points": "Weekly Points",
@@ -870,7 +875,10 @@ def refresh_leaderboard(request, class_id):
     if category not in {"total_points", "weekly_points", "monthly_points"}:
         category = "total_points"
 
-    students = class_instance.students.all().order_by(f"-{category}")
+    students_qs = class_instance.students.all()
+    for student in students_qs:
+        student.reset_periodic_points()
+    students = students_qs.order_by(f"-{category}")
     column_labels = {
         "total_points": "Total Points",
         "weekly_points": "Weekly Points",
