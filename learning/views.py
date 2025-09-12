@@ -559,40 +559,79 @@ def my_words(request):
     progress_data = []
     for prog in progress_qs:
         total_attempts = prog.correct_attempts + prog.incorrect_attempts
-        memory_percent = int(prog.correct_attempts / total_attempts * 100) if total_attempts > 0 else 0
-        progress_data.append({
-            "text": prog.word.word,
-            "translation": prog.word.translation,
-            "list": prog.word.list.name,
-            "last_seen": prog.last_seen,
-            "total_attempts": total_attempts,
-            "memory_percent": memory_percent,
-        })
+        memory_percent = (
+            int(prog.correct_attempts / total_attempts * 100) if total_attempts > 0 else 0
+        )
+        progress_data.append(
+            {
+                "text": prog.word.word,
+                "translation": prog.word.translation,
+                "list": prog.word.list,
+                "last_seen": prog.last_seen,
+                "total_attempts": total_attempts,
+                "memory_percent": memory_percent,
+            }
+        )
 
     classes = student.classes.all()
-    vocab_lists = VocabularyList.objects.filter(words__progress__student=user).distinct()
+    vocab_lists = (
+        VocabularyList.objects.filter(words__progress__student=user).distinct()
+    )
 
     sort_key = request.GET.get("sort")
     if sort_key == "last_seen":
-        progress_data.sort(key=lambda x: x["last_seen"] or datetime.min, reverse=True)
+        progress_data.sort(
+            key=lambda x: x["last_seen"] or datetime.min, reverse=True
+        )
     elif sort_key == "attempts":
-        progress_data.sort(key=lambda x: x["total_attempts"], reverse=True)
+        progress_data.sort(
+            key=lambda x: x["total_attempts"], reverse=True
+        )
     elif sort_key == "memory":
-        progress_data.sort(key=lambda x: x["memory_percent"], reverse=True)
+        progress_data.sort(
+            key=lambda x: x["memory_percent"], reverse=True
+        )
 
     if request.headers.get("X-Requested-With") == "XMLHttpRequest":
         for item in progress_data:
-            item["last_seen"] = item["last_seen"].isoformat() if item["last_seen"] else None
+            item["last_seen"] = (
+                item["last_seen"].isoformat() if item["last_seen"] else None
+            )
+            item["list"] = item["list"].name
         return JsonResponse({"words": progress_data})
 
-    return render(request, "learning/my_words.html", {
-        "student": student,
-        "words": progress_data,
-        "classes": classes,
-        "vocab_lists": vocab_lists,
-        "selected_class": class_id,
-        "selected_list": list_id,
-    })
+    grouped = defaultdict(list)
+    for item in progress_data:
+        if item["memory_percent"] >= 70:
+            color = "high"
+        elif item["memory_percent"] >= 40:
+            color = "medium"
+        else:
+            color = "low"
+        grouped[item["list"]].append(
+            {
+                "text": item["text"],
+                "last_seen": item["last_seen"],
+                "total_attempts": item["total_attempts"],
+                "memory_percent": item["memory_percent"],
+                "memory_color": color,
+            }
+        )
+
+    grouped_progress = sorted(grouped.items(), key=lambda kv: kv[0].name)
+
+    return render(
+        request,
+        "learning/my_words.html",
+        {
+            "student": student,
+            "grouped_progress": grouped_progress,
+            "classes": classes,
+            "vocab_lists": vocab_lists,
+            "selected_class": class_id,
+            "selected_list": list_id,
+        },
+    )
 
 
 def get_words(request):
