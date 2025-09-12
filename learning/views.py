@@ -685,9 +685,17 @@ def practice_session(request, vocab_list_id):
         elif activity == "flashcard":
             payload = {"type": "flashcard", "word_id": word.id, "prompt": word.word, "answer": word.translation}
         elif activity == "typing":
-            payload = {"type": "typing", "word_id": word.id, "prompt": word.word, "answer": word.translation}
+            if random.choice([True, False]):
+                prompt, answer = word.word, word.translation
+            else:
+                prompt, answer = word.translation, word.word
+            payload = {"type": "typing", "word_id": word.id, "prompt": prompt, "answer": answer}
         elif activity == "fill_gaps":
-            masked = list(word.word)
+            if random.choice([True, False]):
+                source, target = word.translation, word.word
+            else:
+                source, target = word.word, word.translation
+            masked = list(target)
             indices = list(range(len(masked)))
             random.shuffle(indices)
             for i in indices[: len(masked) // 2]:
@@ -697,36 +705,57 @@ def practice_session(request, vocab_list_id):
                 "type": "fill_gaps",
                 "word_id": word.id,
                 "prompt": "".join(masked),
-                "translation": word.translation,
-                "answer": word.word,
+                "translation": source,
+                "answer": target,
             }
         elif activity == "multiple_choice":
-            translations = list(
-                VocabularyWord.objects.filter(list=vocab_list).exclude(id=word.id).values_list("translation", flat=True)
-            )
-            random.shuffle(translations)
-            options = translations[:3] + [word.translation]
+            if random.choice([True, False]):
+                prompt = word.word
+                answer = word.translation
+                distractors = list(
+                    VocabularyWord.objects.filter(list=vocab_list)
+                    .exclude(id=word.id)
+                    .values_list("translation", flat=True)
+                )
+            else:
+                prompt = word.translation
+                answer = word.word
+                distractors = list(
+                    VocabularyWord.objects.filter(list=vocab_list)
+                    .exclude(id=word.id)
+                    .values_list("word", flat=True)
+                )
+            random.shuffle(distractors)
+            options = distractors[:3] + [answer]
             random.shuffle(options)
             payload = {
                 "type": "multiple_choice",
                 "word_id": word.id,
-                "prompt": word.word,
+                "prompt": prompt,
                 "options": options,
-                "answer": word.translation,
+                "answer": answer,
             }
         elif activity == "true_false":
-            translations = list(
-                VocabularyWord.objects.filter(list=vocab_list).exclude(id=word.id).values_list("translation", flat=True)
-            )
-            shown = word.translation
+            if random.choice([True, False]):
+                prompt, correct_answer = word.word, word.translation
+                pool = VocabularyWord.objects.filter(list=vocab_list).exclude(id=word.id).values_list(
+                    "translation", flat=True
+                )
+            else:
+                prompt, correct_answer = word.translation, word.word
+                pool = VocabularyWord.objects.filter(list=vocab_list).exclude(id=word.id).values_list(
+                    "word", flat=True
+                )
+            translations = list(pool)
+            shown = correct_answer
             if translations and random.choice([True, False]):
                 shown = random.choice(translations)
             payload = {
                 "type": "true_false",
                 "word_id": word.id,
-                "prompt": word.word,
+                "prompt": prompt,
                 "shown_translation": shown,
-                "answer": shown == word.translation,
+                "answer": shown == correct_answer,
             }
         else:
             payload = {"type": "unknown"}
