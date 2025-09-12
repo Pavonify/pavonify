@@ -79,41 +79,6 @@
       font-size: 16px;
     }
 
-    /* Section Header */
-    form h4 {
-      margin-top: 25px;
-      color: #0aa2ef;
-      font-size: 20px;
-      border-bottom: 2px solid #0aa2ef;
-      padding-bottom: 5px;
-    }
-
-    /* Checkbox Groups */
-    .checkbox-group {
-      display: flex;
-      flex-wrap: nowrap;
-      align-items: center;
-      margin-top: 10px;
-    }
-    .checkbox-group > label {
-      display: flex;
-      align-items: center;
-      margin-right: 20px;
-      font-weight: normal;
-      color: #333;
-    }
-    .checkbox-group input[type="checkbox"] {
-      margin-right: 8px;
-    }
-    /* Points input styling */
-    .points-input {
-      width: 120px;
-      margin-left: 8px;
-      padding: 8px;
-      border: 1px solid #ddd;
-      border-radius: 5px;
-      font-size: 16px;
-    }
 
     /* Submit Button */
     button[type="submit"] {
@@ -157,84 +122,30 @@
     <label for="target_points">Target Points:</label>
     <input type="number" name="target_points" id="target_points" required>
 
-    <h4>Select Modes:</h4>
-
-    <div class="checkbox-group">
-      <label>
-        <input type="checkbox" name="include_flashcards"> Flashcards
-      </label>
-      <label>
-        Points per Flashcard:
-        <input type="number" name="points_per_flashcard" value="0" class="points-input">
-      </label>
-    </div>
-
-    <div class="checkbox-group">
-      <label>
-        <input type="checkbox" name="include_matchup"> Match-Up
-      </label>
-      <label>
-        Points per Match-Up:
-        <input type="number" name="points_per_matchup" value="1" class="points-input">
-      </label>
-    </div>
-
-    <div class="checkbox-group">
-      <label>
-        <input type="checkbox" name="include_fill_gap"> Fill Gap
-      </label>
-      <label>
-        Points per Gap Fill:
-        <input type="number" name="points_per_fill_gap" value="1" class="points-input">
-      </label>
-    </div>
-
-    <div class="checkbox-group">
-      <label>
-        <input type="checkbox" name="include_destroy_wall"> Destroy the Wall
-      </label>
-      <label>
-        Points per brick destroyed:
-        <input type="number" name="points_per_destroy_wall" value="1" class="points-input">
-      </label>
-    </div>
-
-    <div class="checkbox-group">
-      <label>
-        <input type="checkbox" name="include_unscramble"> Unscramble
-      </label>
-      <label>
-        Points per Unscramble:
-        <input type="number" name="points_per_unscramble" value="1" class="points-input">
-      </label>
-    </div>
-
-<!-- Listening Dictation Mode -->
-<div class="checkbox-group">
-  <label>
-    <input type="checkbox" name="include_listening_dictation"> Listening Dictation
-  </label>
-  <label>
-    Points per Dictation:
-    <input type="number" name="points_per_listening_dictation" value="1" class="points-input">
-  </label>
-</div>
-
-<!-- Listening Translation Mode -->
-<div class="checkbox-group">
-  <label>
-    <input type="checkbox" name="include_listening_translation"> Listening Translation
-  </label>
-  <label>
-    Points per Translation:
-    <input type="number" name="points_per_listening_translation" value="1" class="points-input">
-  </label>
-</div>
-
+    <p id="approx-time" style="margin-top:5px;color:#555;"></p>
 
     <button type="submit">Create Assignment</button>       <button onclick="history.back();" class="back-btn">Back</button>
 
   </form>
-{% include 'messages.html' %}
+  <script>
+    function formatTime(seconds) {
+      const mins = Math.floor(seconds / 60);
+      const secs = seconds % 60;
+      const parts = [];
+      if (mins > 0) parts.push(mins + ' minute' + (mins === 1 ? '' : 's'));
+      if (secs > 0) parts.push(secs + ' second' + (secs === 1 ? '' : 's'));
+      return parts.length ? parts.join(' ') : '0 seconds';
+    }
+
+    function updateApproxTime() {
+      const points = parseInt(document.getElementById('target_points').value) || 0;
+      const seconds = points; // 5 pts per answer, 5s per activity
+      document.getElementById('approx-time').textContent = 'Approximate length: ' + formatTime(seconds);
+    }
+
+    document.getElementById('target_points').addEventListener('input', updateApproxTime);
+    updateApproxTime();
+  </script>
+  {% include 'messages.html' %}
 </body>
 </html>

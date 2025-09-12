@@ -110,11 +110,6 @@ class AssignmentForm(forms.ModelForm):
             "vocab_list",
             "deadline",
             "target_points",
-            "include_flashcards",
-            "include_matchup",
-            "include_fill_gap",
-            "include_destroy_wall",
-            "include_unscramble",
         ]
         widgets = {
             "deadline": forms.DateTimeInput(attrs={"type": "datetime-local"}),

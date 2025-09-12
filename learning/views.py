@@ -1010,27 +1010,6 @@ def create_assignment(request, class_id):
         deadline = request.POST.get("deadline")
         target_points = int(request.POST.get("target_points"))
 
-        include_flashcards = "include_flashcards" in request.POST
-        points_per_flashcard = int(request.POST.get("points_per_flashcard", 1)) if include_flashcards else 0
-
-        include_matchup = "include_matchup" in request.POST
-        points_per_matchup = int(request.POST.get("points_per_matchup", 1)) if include_matchup else 0
-
-        include_fill_gap = "include_fill_gap" in request.POST
-        points_per_fill_gap = int(request.POST.get("points_per_fill_gap", 1)) if include_fill_gap else 0
-
-        include_destroy_wall = "include_destroy_wall" in request.POST
-        points_per_destroy_wall = int(request.POST.get("points_per_destroy_wall", 1)) if include_destroy_wall else 0
-
-        include_unscramble = "include_unscramble" in request.POST
-        points_per_unscramble = int(request.POST.get("points_per_unscramble", 1)) if include_unscramble else 0
-
-        include_listening_dictation = "include_listening_dictation" in request.POST
-        points_per_listening_dictation = int(request.POST.get("points_per_listening_dictation", 1)) if include_listening_dictation else 0
-
-        include_listening_translation = "include_listening_translation" in request.POST
-        points_per_listening_translation = int(request.POST.get("points_per_listening_translation", 1)) if include_listening_translation else 0
-
         # FIX: ensure the M2M is checked against `classes` not `linked_classes`
         vocab_list = get_object_or_404(VocabularyList, id=vocab_list_id, classes=class_assigned)
 
@@ -1040,20 +1019,6 @@ def create_assignment(request, class_id):
             vocab_list=vocab_list,
             deadline=deadline,
             target_points=target_points,
-            include_flashcards=include_flashcards,
-            points_per_flashcard=points_per_flashcard,
-            include_matchup=include_matchup,
-            points_per_matchup=points_per_matchup,
-            include_fill_gap=include_fill_gap,
-            points_per_fill_gap=points_per_fill_gap,
-            include_destroy_wall=include_destroy_wall,
-            points_per_destroy_wall=points_per_destroy_wall,
-            include_unscramble=include_unscramble,
-            points_per_unscramble=points_per_unscramble,
-            include_listening_dictation=include_listening_dictation,
-            points_per_listening_dictation=points_per_listening_dictation,
-            include_listening_translation=include_listening_translation,
-            points_per_listening_translation=points_per_listening_translation,
             teacher=request.user,
         )
         messages.success(request, "Assignment created successfully!")
@@ -1122,30 +1087,14 @@ def assignment_page(request, assignment_id):
 
     if not assignment.class_assigned.students.filter(id=student.id).exists():
         return render(request, "learning/access_denied.html", status=403)
+    progress, _ = AssignmentProgress.objects.get_or_create(student=student, assignment=assignment)
 
-    total_points = assignment.target_points
-    current_points = AssignmentProgress.objects.filter(
-        assignment=assignment, student=student
-    ).aggregate(total=Sum('points_earned')).get('total', 0) or 0
-
-    modes = []
-    if assignment.include_flashcards:
-        modes.append(("flashcards", reverse("flashcard_mode_assignment", kwargs={"assignment_id": assignment.id})))
-    if assignment.include_matchup:
-        modes.append(("match up", reverse("match_up_mode_assignment", kwargs={"assignment_id": assignment.id})))
-    if assignment.include_fill_gap:
-        modes.append(("fill the gap", reverse("gap_fill_mode_assignment", kwargs={"assignment_id": assignment.id})))
-    if assignment.include_destroy_wall:
-        modes.append(("destroy the wall", reverse("destroy_wall_mode_assignment", kwargs={"assignment_id": assignment.id})))
-    if assignment.include_unscramble:
-        modes.append(("unscramble", reverse("unscramble_the_word_assignment", kwargs={"assignment_id": assignment.id})))
-
-    return render(request, "learning/assignment_page.html", {
+    return render(request, "learning/assignment_practice_session.html", {
         "assignment": assignment,
-        "modes": modes,
+        "vocab_list": assignment.vocab_list,
         "student": student,
-        "total_points": total_points,
-        "current_points": current_points,
+        "total_points": assignment.target_points,
+        "current_points": progress.points_earned,
     })
 
 
