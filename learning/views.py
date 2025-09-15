@@ -579,28 +579,11 @@ def student_dashboard(request):
         {"category": "weekly_points", "icon": "📆", "title": "Weekly Points"},
     ]
 
-    trophies = student.trophies.select_related("trophy").order_by("earned_at")
-    seen_ids = request.session.get("seen_trophy_ids", [])
-    new_unlocks = [st for st in trophies if str(st.trophy_id) not in seen_ids]
-    request.session["seen_trophy_ids"] = [str(st.trophy_id) for st in trophies]
-    new_trophies_json = json.dumps(
-        [
-            {
-                "name": st.trophy.name,
-                "description": st.trophy.description,
-                "icon": st.trophy.icon.url if st.trophy.icon else None,
-            }
-            for st in new_unlocks
-        ]
-    )
-
     return render(request, "learning/student_dashboard.html", {
         "student": student,
         "classes": classes,
         "vocab_lists": vocab_lists,
         "leaderboard_categories": leaderboard_categories,
-        "trophies": trophies,
-        "new_trophies_json": new_trophies_json,
     })
 
 

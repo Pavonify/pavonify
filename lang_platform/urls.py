@@ -115,7 +115,6 @@ urlpatterns = [
     path('delete-ladder/<int:ladder_id>/', delete_ladder, name='delete_ladder'),
     path("grammar-lab/<int:ladder_id>/", views.grammar_ladder_detail, name="grammar_ladder_detail"),
     path('api/srs/', include('srs.urls')),
-    path('api/achievements/', include('achievements.urls')),
 
 
 ]
