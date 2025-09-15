@@ -97,6 +97,11 @@
             font-size: 18px;
             border-radius: 4px;
             border: 1px solid #ccc;
+            background-color: #fff;
+            color: #333;
+            width: 100%;
+            max-width: 320px;
+            box-sizing: border-box;
         }
         #feedback {
             min-height: 24px;
@@ -124,6 +129,10 @@
             font-size: 32px;
             font-weight: bold;
             margin-bottom: 15px;
+        }
+        .vocab-word.inline {
+            display: inline-block;
+            margin-bottom: 0;
         }
         .accent-panel {
             margin: 20px auto 0;
@@ -171,6 +180,35 @@
             color: #fff;
             font-weight: bold;
         }
+        .input-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        .language-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            color: #fff;
+        }
+        .language-indicator img {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        .language-indicator span {
+            font-size: 16px;
+        }
+        .answer-text {
+            margin-top: 10px;
+        }
+        .masked-word {
+            letter-spacing: 2px;
+        }
     </style>
 </head>
 <body>
@@ -204,6 +242,75 @@
         4: '#e91e63',
         5: '#9c27b0'
     };
+    const languageNames = {
+        en: 'English',
+        de: 'German',
+        fr: 'French',
+        es: 'Spanish',
+        sp: 'Spanish',
+        it: 'Italian'
+    };
+    const flagBaseUrl = "{% static 'flags/' %}";
+    const sourceLanguageCode = "{{ vocab_list.source_language|default_if_none:''|lower }}";
+    const targetLanguageCode = "{{ vocab_list.target_language|default_if_none:''|lower }}";
+
+    function resolveFlagCode(code) {
+        if (!code) return null;
+        const normalized = code.toLowerCase();
+        const overrides = { es: 'sp' };
+        return overrides[normalized] || normalized;
+    }
+
+    function getLanguageInfo(languageKey) {
+        if (languageKey === 'source') {
+            return {
+                code: sourceLanguageCode,
+                name: languageNames[sourceLanguageCode] || 'Source language'
+            };
+        }
+        if (languageKey === 'target') {
+            return {
+                code: targetLanguageCode,
+                name: languageNames[targetLanguageCode] || 'Target language'
+            };
+        }
+        return null;
+    }
+
+    function updateLanguageIndicator(elementId, languageKey) {
+        const indicator = document.getElementById(elementId);
+        if (!indicator) return;
+        const key = languageKey === 'source' || languageKey === 'target' ? languageKey : 'target';
+        const info = getLanguageInfo(key);
+        if (!info || !info.code) {
+            indicator.style.display = 'none';
+            indicator.textContent = '';
+            return;
+        }
+        const flagCode = resolveFlagCode(info.code);
+        const flagSrc = `${flagBaseUrl}${flagCode}.png`;
+        const label = info.name;
+        indicator.innerHTML = `<img src="${flagSrc}" alt="${label} flag"><span>Type in ${label}</span>`;
+        indicator.style.display = 'inline-flex';
+    }
+
+    function prepareTextInput(inputId, onSubmit) {
+        const input = document.getElementById(inputId);
+        if (!input) return;
+        input.setAttribute('autocomplete', 'off');
+        input.setAttribute('autocorrect', 'off');
+        input.setAttribute('autocapitalize', 'none');
+        input.setAttribute('spellcheck', 'false');
+        input.setAttribute('inputmode', 'text');
+        input.setAttribute('name', `${inputId}-${Date.now()}`);
+        input.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                onSubmit();
+            }
+        });
+        setTimeout(() => input.focus(), 0);
+    }
 
     function playChirp(type) {
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -312,7 +419,7 @@
             <div class="show-word">
                 <p class="vocab-word">${activity.prompt}</p>
                 <button id="reveal-word" class="btn">Show Word</button>
-                <div id="revealed-word" style="display:none; margin-top:10px;">${activity.answer}</div>
+                <div id="revealed-word" class="vocab-word answer-text" style="display:none;">${activity.answer}</div>
                 <div style="margin-top:10px;">
                     <button id="show-word-next" class="btn" style="display:none;">Next</button>
                 </div>
@@ -335,7 +442,7 @@
             <div class="flashcard">
                 <p class="vocab-word">${activity.prompt}</p>
                 <button id="show-answer" class="btn">Show Answer</button>
-                <div id="answer" style="display:none; margin-top:10px;">${activity.answer}</div>
+                <div id="answer" class="vocab-word answer-text" style="display:none;">${activity.answer}</div>
                 <div style="margin-top:10px;">
                     <button id="flashcard-done" class="btn" style="display:none;">I got it!</button>
                 </div>
@@ -357,15 +464,21 @@
         container.innerHTML = `
             <div class="typing">
                 <p class="vocab-word">${activity.prompt}</p>
-                <input type="text" id="typing-input" />
+                <div class="input-section">
+                    <div class="language-indicator" id="typing-language-indicator"></div>
+                    <input type="text" id="typing-input" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" />
+                </div>
                 <button id="typing-submit" class="btn">Submit</button>
             </div>
         `;
-        document.getElementById('typing-submit').addEventListener('click', () => {
+        const handleSubmit = () => {
             const answer = document.getElementById('typing-input').value;
             const correct = answer.trim().toLowerCase() === (activity.answer || '').toLowerCase();
             submitResponse(activity.word_id, correct, answer, activity.answer);
-        });
+        };
+        document.getElementById('typing-submit').addEventListener('click', handleSubmit);
+        prepareTextInput('typing-input', handleSubmit);
+        updateLanguageIndicator('typing-language-indicator', activity.answer_language);
     }
 
     function renderFillGaps(activity) {
@@ -373,16 +486,22 @@
         container.innerHTML = `
             <div class="fill-gaps">
                 <p class="vocab-word">${activity.translation}</p>
-                <p>${activity.prompt}</p>
-                <input type="text" id="fill-gaps-input" />
+                <p class="vocab-word masked-word">${activity.prompt}</p>
+                <div class="input-section">
+                    <div class="language-indicator" id="fill-gaps-language-indicator"></div>
+                    <input type="text" id="fill-gaps-input" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" />
+                </div>
                 <button id="fill-gaps-submit" class="btn">Submit</button>
             </div>
         `;
-        document.getElementById('fill-gaps-submit').addEventListener('click', () => {
+        const handleSubmit = () => {
             const answer = document.getElementById('fill-gaps-input').value;
             const correct = answer.trim().toLowerCase() === (activity.answer || '').toLowerCase();
             submitResponse(activity.word_id, correct, answer, activity.answer);
-        });
+        };
+        document.getElementById('fill-gaps-submit').addEventListener('click', handleSubmit);
+        prepareTextInput('fill-gaps-input', handleSubmit);
+        updateLanguageIndicator('fill-gaps-language-indicator', activity.answer_language);
     }
 
     function renderMultipleChoice(activity) {
@@ -408,7 +527,7 @@
         const container = document.getElementById('activity-container');
         container.innerHTML = `
             <div class="true-false">
-                <p><span class="vocab-word">${activity.prompt}</span> - ${activity.shown_translation}</p>
+                <p><span class="vocab-word inline">${activity.prompt}</span> - <span class="vocab-word inline">${activity.shown_translation}</span></p>
                 <button id="true-btn" class="btn">True</button>
                 <button id="false-btn" class="btn">False</button>
             </div>

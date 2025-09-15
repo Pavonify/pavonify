@@ -959,14 +959,24 @@ def practice_session(request, vocab_list_id):
         elif activity == "typing":
             if random.choice([True, False]):
                 prompt, answer = word.word, word.translation
+                answer_language = "target"
             else:
                 prompt, answer = word.translation, word.word
-            payload = {"type": "typing", "word_id": word.id, "prompt": prompt, "answer": answer}
+                answer_language = "source"
+            payload = {
+                "type": "typing",
+                "word_id": word.id,
+                "prompt": prompt,
+                "answer": answer,
+                "answer_language": answer_language,
+            }
         elif activity == "fill_gaps":
             if random.choice([True, False]):
                 source, target = word.translation, word.word
+                answer_language = "source"
             else:
                 source, target = word.word, word.translation
+                answer_language = "target"
             masked = list(target)
             indices = list(range(len(masked)))
             random.shuffle(indices)
@@ -979,6 +989,7 @@ def practice_session(request, vocab_list_id):
                 "prompt": "".join(masked),
                 "translation": source,
                 "answer": target,
+                "answer_language": answer_language,
             }
         elif activity == "multiple_choice":
             if random.choice([True, False]):
