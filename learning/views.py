@@ -171,6 +171,28 @@ def teacher_dashboard(request):
             'leaderboard_page': leaderboard_page,
         })
 
+    # Quick overview data
+    inactive_threshold = now() - timedelta(days=7)
+    inactive_students = students.filter(
+        Q(last_login__lt=inactive_threshold) | Q(last_login__isnull=True)
+    ).order_by('last_name', 'first_name')
+
+    pending_assignments = []
+    active_assignments = Assignment.objects.filter(
+        class_assigned__in=classes, deadline__gte=now()
+    )
+    for assignment in active_assignments:
+        total_students = assignment.class_assigned.students.count()
+        completed = AssignmentProgress.objects.filter(
+            assignment=assignment, completed=True
+        ).count()
+        pending_count = total_students - completed
+        if pending_count > 0:
+            pending_assignments.append({
+                "assignment": assignment,
+                "pending": pending_count,
+            })
+
     return render(request, "learning/teacher_dashboard.html", {
         "user": request.user,
         "vocab_lists": vocab_lists,
@@ -182,6 +204,8 @@ def teacher_dashboard(request):
         "reading_lab_texts": reading_lab_texts,
         "overall_leaderboard_page": overall_leaderboard_page,
         "by_class_leaderboards": by_class_leaderboards,
+        "pending_assignments": pending_assignments,
+        "inactive_students": inactive_students,
     })
 
 
