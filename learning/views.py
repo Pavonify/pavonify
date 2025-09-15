@@ -180,11 +180,19 @@ def add_vocabulary_list(request):
     if request.method == 'POST':
         form = VocabularyListForm(request.POST)
         if form.is_valid():
-            vocab_list = form.save(commit=False)
-            vocab_list.teacher = request.user
-            vocab_list.save()
-            messages.success(request, "Vocabulary list created successfully!")
-            return redirect('teacher_dashboard')
+            current_count = VocabularyList.objects.filter(teacher=request.user).count()
+            if current_count >= settings.MAX_LISTS_PER_TEACHER:
+                messages.error(
+                    request,
+                    f"You can only create {settings.MAX_LISTS_PER_TEACHER} vocabulary lists."
+                )
+                return redirect('teacher_dashboard')
+            else:
+                vocab_list = form.save(commit=False)
+                vocab_list.teacher = request.user
+                vocab_list.save()
+                messages.success(request, "Vocabulary list created successfully!")
+                return redirect('teacher_dashboard')
     else:
         form = VocabularyListForm()
     return render(request, 'learning/add_vocabulary_list.html', {'form': form})
@@ -216,13 +224,36 @@ def add_words_to_list(request, list_id):
         if form.is_valid():
             words_input = form.cleaned_data['words']
             words_pairs = [line.split(',') for line in words_input.splitlines() if ',' in line]
+            existing_count = vocab_list.words.count()
+            max_words = settings.MAX_WORDS_PER_LIST
+
+            if existing_count >= max_words:
+                messages.error(
+                    request,
+                    f"This list already contains the maximum of {max_words} words."
+                )
+                return redirect('teacher_dashboard')
+
+            added = 0
             for word, translation in words_pairs:
+                if existing_count + added >= max_words:
+                    break
                 VocabularyWord.objects.create(
                     list=vocab_list,
                     word=word.strip(),
                     translation=translation.strip()
                 )
-            messages.success(request, "Words added successfully!")
+                added += 1
+
+            if added == 0:
+                messages.error(request, "No words were added.")
+            elif added < len(words_pairs):
+                messages.warning(
+                    request,
+                    f"Only {added} words were added. Lists may contain up to {max_words} words."
+                )
+            else:
+                messages.success(request, "Words added successfully!")
             return redirect('teacher_dashboard')
     else:
         form = BulkAddWordsForm()

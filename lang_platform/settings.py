@@ -20,6 +20,12 @@ GEMINI_API_KEY = 'AIzaSyAhBjjphW7nVHETfDtewuy_qiFXspa1yO4'
 
 DATA_UPLOAD_MAX_NUMBER_FIELDS = 5000  # or higher depending on your use case
 
+# Application Limits
+# Maximum number of vocabulary lists a teacher can create
+MAX_LISTS_PER_TEACHER = 20
+# Maximum number of words allowed in a single vocabulary list
+MAX_WORDS_PER_LIST = 50
+
 # Security Settings
 SECRET_KEY = os.getenv("SECRET_KEY", "django-insecure-key")
 DEBUG = True
