@@ -187,31 +187,65 @@
     }
     
     /* Trophy Section */
-    .trophy-container {
+    .trophy-strip-header {
       display: flex;
+      align-items: center;
+      justify-content: space-between;
       flex-wrap: wrap;
-      justify-content: center;
-      gap: 15px;
+      gap: 12px;
+      margin-top: 20px;
+      margin-bottom: 10px;
+    }
+    .trophy-strip-header h3 {
+      margin-bottom: 0;
+    }
+    .trophy-strip-controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .trophy-summary {
+      font-size: 0.9rem;
+      color: #4a4a4a;
+    }
+    .trophy-see-all {
+      font-weight: 600;
+      color: var(--primary);
+      text-decoration: none;
+    }
+    .trophy-see-all:hover {
+      color: var(--accent);
+    }
+    .trophy-strip {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 16px;
       margin-bottom: 20px;
     }
     .trophy-card {
       background: #fffae6;
-      padding: 10px;
-      border-radius: 10px;
+      padding: 14px;
+      border-radius: 12px;
       text-align: center;
-      width: 130px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 160px;
     }
     .trophy-icon {
-      width: 60px;
-      height: 60px;
+      width: 64px;
+      height: 64px;
       object-fit: contain;
-      margin-bottom: 5px;
+      margin-bottom: 8px;
     }
     .trophy-name {
-      font-size: 14px;
-      font-weight: bold;
-      color: #ff8c00;
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 6px;
     }
     .trophy-description {
       font-size: 12px;
@@ -224,7 +258,34 @@
       color: #777;
       margin-top: 10px;
     }
-    
+    @media (max-width: 1024px) {
+      .trophy-strip {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+    }
+    @media (max-width: 640px) {
+      .trophy-strip {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    .trophy-popup {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #fffae6;
+      border: 1px solid #ffe58f;
+      padding: 15px;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      z-index: 1000;
+      text-align: center;
+      display: none;
+    }
+    .trophy-popup.show {
+      display: block;
+    }
+
     /* Table Styles */
     table {
       width: 100%;
@@ -296,18 +357,28 @@
           <p>{{ student.weekly_points }}</p>
         </div>
       </div>
-      <h3>My Trophies</h3>
-      {% if student.trophies.all %}
-        <div class="trophy-container">
-          {% for student_trophy in student.trophies.all %}
-            <div class="trophy-card">
-              {% if student_trophy.trophy.icon and student_trophy.trophy.icon.url %}
-                <img src="{{ student_trophy.trophy.icon.url }}" class="trophy-icon" alt="{{ student_trophy.trophy.name }}">
+      <div class="trophy-strip-header">
+        <h3>My Trophies</h3>
+        <div class="trophy-strip-controls">
+          {% if achievement_total or unlocked_trophy_count %}
+            <span class="trophy-summary">
+              {% if achievement_total %}
+                Unlocked {{ unlocked_trophy_count }} / {{ achievement_total }}
               {% else %}
-                <img src="{% static 'trophies/default_trophy.png' %}" class="trophy-icon" alt="Default Trophy">
+                Unlocked {{ unlocked_trophy_count }}
               {% endif %}
-              <h4 class="trophy-name">{{ student_trophy.trophy.name }}</h4>
-              <p class="trophy-description">{{ student_trophy.trophy.description }}</p>
+            </span>
+          {% endif %}
+          <a class="trophy-see-all" href="{% url 'student_trophies' %}">See All</a>
+        </div>
+      </div>
+      {% if recent_trophies %}
+        <div class="trophy-strip">
+          {% for trophy in recent_trophies %}
+            <div class="trophy-card">
+              <img src="{{ trophy.icon_url }}" class="trophy-icon" alt="{{ trophy.name }}">
+              <h4 class="trophy-name">{{ trophy.name }}</h4>
+              <p class="trophy-description">{{ trophy.description|default:'Keep working toward this goal!' }}</p>
             </div>
           {% endfor %}
         </div>
@@ -489,10 +560,9 @@
   </div>
 
   <!-- Trophy Popup -->
-  <div id="trophy-popup" class="trophy-popup" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 8px; box-shadow: 0 5px 10px rgba(0,0,0,0.3); text-align: center;">
-    <div class="trophy-popup-content" id="trophy-popup-content"></div>
-    <button onclick="closeTrophyPopup()" class="btn" style="margin-top: 10px;">Close</button>
-  </div>
+  <div id="trophy-popup" class="trophy-popup"></div>
+
+  <script id="new-trophies-data" type="application/json">{{ new_trophies_json|safe }}</script>
 
   <!-- Scripts -->
   <script>
@@ -510,42 +580,30 @@
       }
     }
 
-    // Show Trophy Popup
-    function showTrophyPopup(trophies) {
-      let popup = document.getElementById("trophy-popup");
-      let popupContent = document.getElementById("trophy-popup-content");
-
-      popupContent.innerHTML = ""; // Clear previous content
-
-      trophies.forEach(trophy => {
-        let trophyDiv = document.createElement("div");
-        trophyDiv.classList.add("trophy-popup-item");
-
-        let img = document.createElement("img");
-        img.src = trophy.icon;
-        img.classList.add("trophy-popup-img");
-        img.style.width = "100px";
-        img.style.height = "100px";
-        img.style.objectFit = "contain";
-
-        let text = document.createElement("p");
-        text.innerText = `🏆 You earned the '${trophy.name}' trophy!`;
-
-        trophyDiv.appendChild(img);
-        trophyDiv.appendChild(text);
-        popupContent.appendChild(trophyDiv);
-      });
-
-      popup.style.display = "block";
+    const defaultTrophyIcon = "{% static 'trophies/default_trophy.png' %}";
+    function showTrophyPopup(trophy) {
+      const popup = document.getElementById("trophy-popup");
+      popup.innerHTML = `
+        <img src="${trophy.icon || defaultTrophyIcon}" class="trophy-icon" alt="${trophy.name}">
+        <h4 class="trophy-name">${trophy.name}</h4>
+        <p class="trophy-description">${trophy.description}</p>
+      `;
+      popup.classList.add("show");
+      setTimeout(() => popup.classList.remove("show"), 5000);
     }
 
-    // Close Trophy Popup
-    function closeTrophyPopup() {
-      document.getElementById("trophy-popup").style.display = "none";
-    }
-
-    // Switch Panes Using Top Nav Links
     document.addEventListener("DOMContentLoaded", function () {
+      const dataElem = document.getElementById("new-trophies-data");
+      if (dataElem) {
+        try {
+          const trophies = JSON.parse(dataElem.textContent);
+          trophies.forEach(showTrophyPopup);
+        } catch (e) {
+          console.error(e);
+        }
+      }
+
+      // Switch Panes Using Top Nav Links
       const navLinks = document.querySelectorAll(".top-nav .nav-right a");
       const panes = document.querySelectorAll(".pane");
 

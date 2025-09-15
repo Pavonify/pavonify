@@ -61,6 +61,7 @@ urlpatterns = [
     ),
     path("student-login/", views.student_login, name="student_login"),
     path("student-dashboard/", views.student_dashboard, name="student_dashboard"),
+    path("student-dashboard/trophies/", views.student_trophies, name="student_trophies"),
     path("progress-dashboard/", views.progress_dashboard, name="progress_dashboard"),
     path("my-words/", views.my_words, name="my_words"),
     path('attach-vocabulary/<uuid:class_id>/', views.attach_vocab_list, name='attach_vocabulary'),
@@ -115,6 +116,7 @@ urlpatterns = [
     path('delete-ladder/<int:ladder_id>/', delete_ladder, name='delete_ladder'),
     path("grammar-lab/<int:ladder_id>/", views.grammar_ladder_detail, name="grammar_ladder_detail"),
     path('api/srs/', include('srs.urls')),
+    path('api/achievements/', include('achievements.urls')),
 
 
 ]

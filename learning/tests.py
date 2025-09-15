@@ -1,5 +1,6 @@
 from datetime import date, timedelta
-from django.test import TestCase
+import json
+from django.test import TestCase, override_settings
 from django.utils import timezone
 from django.urls import reverse
 from django.db import connection
@@ -16,8 +17,11 @@ from .models import (
     Assignment,
     AssignmentAttempt,
     AssignmentProgress,
+    Trophy,
+    StudentTrophy,
 )
 from .srs import schedule_review, get_due_words
+from achievements.models import Trophy as AchievementTrophy, TrophyUnlock
 
 
 class SRSTests(TestCase):
@@ -157,6 +161,120 @@ class ProgressDashboardViewTests(TestCase):
         self.assertEqual(response.context["total_points"], self.student.total_points)
         self.assertEqual(response.context["trophy_count"], 0)
 
+
+@override_settings(STATICFILES_STORAGE="django.contrib.staticfiles.storage.StaticFilesStorage")
+class StudentTrophyViewTests(TestCase):
+    def setUp(self):
+        self.school = School.objects.create(name="Trophy School")
+        self.student = Student.objects.create(
+            school=self.school,
+            first_name="Tina",
+            last_name="Trophy",
+            year_group=5,
+            date_of_birth=date(2011, 5, 5),
+            username="tina",
+            password="pass",
+        )
+        self.user = User.objects.create_user(
+            username=self.student.username,
+            password="pass",
+            is_student=True,
+            first_name=self.student.first_name,
+            last_name=self.student.last_name,
+            email="tina@example.com",
+            country="US",
+        )
+
+        self.trophies = []
+        for index in range(6):
+            trophy = AchievementTrophy.objects.create(
+                id=f"trophy-{index}",
+                name=f"Trophy {index}",
+                category="Progress",
+                trigger_type="event",
+                metric="practice_sessions",
+                comparator="gte",
+                threshold=1,
+                window="none",
+                subject_scope="any",
+                repeatable=False,
+                cooldown="none",
+                points=10,
+                icon="trophy",
+                rarity="common",
+                description=f"Earn trophy {index}",
+                constraints={},
+            )
+            unlock = TrophyUnlock.objects.create(user=self.user, trophy=trophy)
+            TrophyUnlock.objects.filter(pk=unlock.pk).update(
+                earned_at=timezone.now() + timedelta(minutes=index)
+            )
+            self.trophies.append(trophy)
+
+        session = self.client.session
+        session["student_id"] = str(self.student.id)
+        session.save()
+
+    def test_dashboard_recent_trophies_shows_latest_five(self):
+        response = self.client.get(reverse("student_dashboard"))
+        self.assertEqual(response.status_code, 200)
+        recent = response.context["recent_trophies"]
+        self.assertEqual(len(recent), 5)
+        self.assertEqual(recent[0]["name"], "Trophy 5")
+        self.assertEqual(recent[-1]["name"], "Trophy 1")
+        self.assertEqual(response.context["unlocked_trophy_count"], 6)
+
+        popup_payload = json.loads(response.context["new_trophies_json"])
+        self.assertEqual(len(popup_payload), 6)
+        self.assertTrue(any(item["name"] == "Trophy 0" for item in popup_payload))
+
+    def test_student_trophies_page_lists_all_definitions(self):
+        response = self.client.get(reverse("student_trophies"))
+        self.assertEqual(response.status_code, 200)
+        trophy_rows = response.context["trophies"]
+        self.assertEqual(len(trophy_rows), 6)
+        self.assertEqual(response.context["total_count"], 6)
+        self.assertTrue(all(row["unlocked"] for row in trophy_rows))
+        self.assertTrue(all(row["progress"]["percentage"] == 100.0 for row in trophy_rows))
+
+
+@override_settings(STATICFILES_STORAGE="django.contrib.staticfiles.storage.StaticFilesStorage")
+class StudentTrophyFallbackTests(TestCase):
+    def setUp(self):
+        self.school = School.objects.create(name="Legacy School")
+        self.student = Student.objects.create(
+            school=self.school,
+            first_name="Legacy",
+            last_name="Learner",
+            year_group=4,
+            date_of_birth=date(2012, 2, 2),
+            username="legacy",
+            password="pass",
+        )
+        self.user = User.objects.create_user(
+            username=self.student.username,
+            password="pass",
+            is_student=True,
+            first_name=self.student.first_name,
+            last_name=self.student.last_name,
+            email="legacy@example.com",
+            country="US",
+        )
+        trophy = Trophy.objects.create(name="Legacy Trophy", description="Legacy reward")
+        StudentTrophy.objects.create(student=self.student, trophy=trophy)
+
+        session = self.client.session
+        session["student_id"] = str(self.student.id)
+        session.save()
+
+    def test_trophy_page_falls_back_to_legacy_data(self):
+        response = self.client.get(reverse("student_trophies"))
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.context["achievements_available"])
+        self.assertEqual(response.context["total_count"], 1)
+        row = response.context["trophies"][0]
+        self.assertEqual(row["name"], "Legacy Trophy")
+        self.assertTrue(row["unlocked"])
 
 class AssignmentAnalyticsQueryTests(TestCase):
     def setUp(self):

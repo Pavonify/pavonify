@@ -53,6 +53,8 @@ INSTALLED_APPS = [
     'django_countries',
     'game',
     'srs',
+    'rest_framework',
+    'achievements',
 ]
 
 
