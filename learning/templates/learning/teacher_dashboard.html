@@ -716,38 +716,97 @@ a.btn:hover, button.btn:hover {
   gap: 15px;
 }
 
+.account-form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.account-form .form-row {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.account-form .form-group {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.account-form label {
+  font-weight: 600;
+  margin-bottom: 5px;
+}
+
+.account-form input {
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 1rem;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.account-form input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 5px rgba(26,115,232,0.4);
+}
+
+.form-actions {
+  text-align: right;
+}
+
+.account-pane .premium-status {
+  margin-top: 30px;
+  padding: 20px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.account-pane .premium-status.premium-active {
+  border-left: 5px solid var(--secondary-accent);
+}
+
+.account-pane .premium-status.premium-inactive {
+  border-left: 5px solid var(--accent);
+}
+
+.delete-section {
+  margin-top: 20px;
+  text-align: center;
+}
+
 </style>
     <!-- Account Pane -->
     <div class="pane account-pane" id="account-pane">
       <h2>Account Settings</h2>
-      <form method="POST" action="{% url 'teacher_account' %}">
+      <form method="POST" action="{% url 'teacher_account' %}" class="account-form">
         {% csrf_token %}
-        <label>First Name:</label>
-        <input type="text" name="first_name" value="{{ request.user.first_name }}" class="input-box">
-        <label>Last Name:</label>
-        <input type="text" name="last_name" value="{{ request.user.last_name }}" class="input-box">
-        <label>Email:</label>
-        <input type="email" name="email" value="{{ request.user.email }}" class="input-box">
-        <label>Change Password:</label>
-        <input type="password" name="password" class="input-box">
-        <button type="submit" class="btn btn-save">Save Changes</button>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="first_name">First Name</label>
+            <input type="text" id="first_name" name="first_name" value="{{ request.user.first_name }}">
+          </div>
+          <div class="form-group">
+            <label for="last_name">Last Name</label>
+            <input type="text" id="last_name" name="last_name" value="{{ request.user.last_name }}">
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" value="{{ request.user.email }}">
+        </div>
+        <div class="form-group">
+          <label for="password">Change Password</label>
+          <input type="password" id="password" name="password" placeholder="New Password">
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-save">Save Changes</button>
+        </div>
       </form>
 
-<!-- Delete Account Confirmation Modal -->
-<div id="delete-account-modal" class="modal">
-  <div class="modal-content">
-    <h3>Are you sure?</h3>
-    <p>This action will permanently delete your account. This cannot be undone.</p>
-    <div class="modal-actions">
-      <button id="confirm-delete" class="btn btn-delete-account">Yes, Delete</button>
-      <button id="cancel-delete" class="btn btn-action">Cancel</button>
-    </div>
-  </div>
-</div>
-
-      <div style="margin-top: 20px; text-align: center;">
-        <button id="delete-account-btn" class="btn btn-delete-account">Delete My Account</button>
-      </div>
       <div class="premium-status {% if request.user.is_premium %}premium-active{% else %}premium-inactive{% endif %}">
         {% if request.user.is_premium %}
           <p>Premium Member until <strong>{{ request.user.premium_expiration|date:"M d, Y" }}</strong></p>
@@ -797,6 +856,21 @@ a.btn:hover, button.btn:hover {
             </tr>
           </table>
         {% endif %}
+      </div>
+      <div class="delete-section">
+        <button id="delete-account-btn" class="btn btn-delete-account">Delete My Account</button>
+      </div>
+    </div>
+
+    <!-- Delete Account Confirmation Modal -->
+    <div id="delete-account-modal" class="modal">
+      <div class="modal-content">
+        <h3>Are you sure?</h3>
+        <p>This action will permanently delete your account. This cannot be undone.</p>
+        <div class="modal-actions">
+          <button id="confirm-delete" class="btn btn-delete-account">Yes, Delete</button>
+          <button id="cancel-delete" class="btn btn-action">Cancel</button>
+        </div>
       </div>
     </div>
 
