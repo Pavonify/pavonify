@@ -1,0 +1,303 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Trophy Cabinet</title>
+  <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Fredoka+One&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #1A73E8;
+      --accent: #F2A03D;
+      --background: #F2EFE9;
+      --dark: #0D0D0D;
+      --highlight: #A6173D;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: 'Poppins', sans-serif;
+      background-color: var(--background);
+      color: var(--dark);
+      line-height: 1.6;
+    }
+    a {
+      color: var(--accent);
+      text-decoration: none;
+      transition: color 0.3s ease;
+    }
+    a:hover {
+      color: var(--highlight);
+    }
+    .top-nav {
+      background-color: var(--primary);
+      color: #fff;
+      padding: 8px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .top-nav .nav-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .top-nav .nav-left img {
+      height: 40px;
+    }
+    .top-nav .nav-left span {
+      font-size: 1.5rem;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .top-nav .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+    .top-nav .nav-right a {
+      font-weight: 600;
+      text-transform: uppercase;
+      color: #fff;
+    }
+    .top-nav .nav-right a.active {
+      color: var(--accent);
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 15px;
+      background-color: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      text-transform: uppercase;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.3s ease, transform 0.2s ease;
+    }
+    .btn:hover {
+      background-color: var(--accent);
+      transform: translateY(-2px);
+    }
+    .btn:active {
+      transform: translateY(0);
+    }
+    .main-content {
+      margin: 20px;
+      padding: 20px;
+    }
+    .pane {
+      background-color: #fff;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      max-width: 1200px;
+      width: 100%;
+      margin: 0 auto;
+    }
+    .trophy-page-header {
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+    .trophy-page-header h2 {
+      color: var(--primary);
+      margin-bottom: 0;
+    }
+    .trophy-count {
+      font-size: 1rem;
+      color: #4a4a4a;
+      margin-bottom: 12px;
+    }
+    .trophy-info-banner {
+      background: rgba(26, 115, 232, 0.08);
+      border-left: 4px solid var(--primary);
+      padding: 12px 16px;
+      border-radius: 10px;
+      color: #1f3f73;
+      margin-bottom: 18px;
+    }
+    table.trophy-table {
+      width: 100%;
+      border-collapse: collapse;
+      overflow: hidden;
+      border-radius: 12px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.08);
+    }
+    table.trophy-table th,
+    table.trophy-table td {
+      padding: 14px 16px;
+      text-align: left;
+      border-bottom: 1px solid #f0f0f0;
+      vertical-align: middle;
+    }
+    table.trophy-table th {
+      background-color: var(--primary);
+      color: #fff;
+      text-transform: uppercase;
+      font-size: 0.85rem;
+      letter-spacing: 0.05em;
+    }
+    table.trophy-table tr:last-child td {
+      border-bottom: none;
+    }
+    table.trophy-table tr.locked td {
+      color: #9a9a9a;
+    }
+    .trophy-name-cell {
+      min-width: 220px;
+    }
+    .trophy-name-cell .trophy-name {
+      font-weight: 700;
+      color: var(--primary);
+      display: block;
+    }
+    table.trophy-table tr.locked .trophy-name {
+      color: #888;
+    }
+    .table-trophy-icon {
+      width: 48px;
+      height: 48px;
+      object-fit: contain;
+    }
+    .muted {
+      color: #9a9a9a;
+    }
+    .progress-wrapper {
+      margin-bottom: 6px;
+    }
+    .progress-bar {
+      width: 160px;
+      max-width: 100%;
+      height: 6px;
+      border-radius: 999px;
+      background: #ececec;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: var(--primary);
+    }
+    .progress-label {
+      font-size: 0.75rem;
+      color: #666;
+      margin-top: 4px;
+    }
+    .earned-at {
+      font-size: 0.75rem;
+      color: #666;
+      margin-top: 4px;
+    }
+    .no-trophies {
+      text-align: center;
+      font-size: 1rem;
+      font-weight: 600;
+      color: #777;
+      margin-top: 20px;
+    }
+    @media (max-width: 768px) {
+      .top-nav {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+      }
+      .top-nav .nav-right {
+        justify-content: flex-start;
+      }
+      table.trophy-table th,
+      table.trophy-table td {
+        padding: 12px;
+      }
+      .progress-bar {
+        width: 120px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="top-nav">
+    <div class="nav-left">
+      <img src="{% static 'pavonify_bird_student.png' %}" alt="Pavonify Logo">
+      <span>{{ student.first_name }}'s Trophies</span>
+    </div>
+    <div class="nav-right">
+      <a href="{% url 'student_dashboard' %}">Dashboard</a>
+      <a href="{% url 'progress_dashboard' %}">My Progress</a>
+      <a href="{% url 'student_trophies' %}" class="active">My Trophies</a>
+      <a href="{% url 'my_words' %}">My Words</a>
+      <a href="{% url 'student_logout' %}" class="btn">Logout</a>
+    </div>
+  </div>
+  <div class="main-content">
+    <div class="pane trophy-pane">
+      <div class="trophy-page-header">
+        <h2>Trophy Cabinet</h2>
+        <a class="btn" href="{% url 'student_dashboard' %}">Back to Dashboard</a>
+      </div>
+      {% if total_count %}
+        <p class="trophy-count">Unlocked {{ unlocked_count }} of {{ total_count }}</p>
+      {% else %}
+        <p class="trophy-count">No trophies available yet.</p>
+      {% endif %}
+      {% if not achievements_available and trophies %}
+        <div class="trophy-info-banner">
+          Legacy trophies are shown while the new Pavonify trophy collection is being prepared.
+        </div>
+      {% endif %}
+      {% if trophies %}
+        <table class="trophy-table">
+          <thead>
+            <tr>
+              <th style="width: 70px;">Icon</th>
+              <th class="trophy-name-cell">Trophy</th>
+              <th style="width: 160px;">Category</th>
+              <th>Criteria</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for trophy in trophies %}
+              <tr class="{% if trophy.unlocked %}unlocked{% else %}locked{% endif %}">
+                <td>
+                  {% if trophy.unlocked %}
+                    <img src="{{ trophy.icon_url }}" alt="{{ trophy.name }}" class="table-trophy-icon">
+                  {% endif %}
+                </td>
+                <td class="trophy-name-cell">
+                  {% if not trophy.unlocked and trophy.progress %}
+                    <div class="progress-wrapper">
+                      <div class="progress-bar">
+                        <div class="progress-fill" style="width: {{ trophy.progress.percentage|floatformat:0 }}%;"></div>
+                      </div>
+                      <div class="progress-label">{{ trophy.progress.current|floatformat:0 }} / {{ trophy.progress.target|floatformat:0 }}</div>
+                    </div>
+                  {% endif %}
+                  <span class="trophy-name">{{ trophy.name }}</span>
+                  {% if trophy.unlocked and trophy.earned_at %}
+                    <div class="earned-at">Unlocked {{ trophy.earned_at|date:'M j, Y' }}</div>
+                  {% endif %}
+                </td>
+                <td class="{% if not trophy.unlocked %}muted{% endif %}">{{ trophy.category }}</td>
+                <td class="{% if not trophy.unlocked %}muted{% endif %}">{{ trophy.description|default:'Criteria coming soon.' }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p class="no-trophies">Your trophy list will appear here once trophies are available.</p>
+      {% endif %}
+    </div>
+  </div>
+</body>
+</html>

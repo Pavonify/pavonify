@@ -16,6 +16,7 @@ from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
 from django.core.serializers.json import DjangoJSONEncoder
 from django.core.paginator import Paginator
+from django.templatetags.static import static
 from django.utils import timezone
 from django.utils.timezone import now
 from functools import wraps
@@ -30,6 +31,7 @@ import stripe
 import google.generativeai as genai
 from collections import defaultdict
 from django.conf import settings
+from typing import Any, Dict, List, Optional
 
 from .decorators import student_login_required
 from .utils import generate_student_username, generate_random_password
@@ -53,12 +55,61 @@ from .models import (
     LadderItem,
     Announcement,
 )
+from achievements.models import Trophy as AchievementTrophy, TrophyUnlock
+from achievements.services.evaluator import read_metric
 
 # Configure Stripe and Gemini
 stripe.api_key = settings.STRIPE_SECRET_KEY
 genai.configure(api_key=getattr(settings, "GEMINI_API_KEY", ""))
 
 User = get_user_model()
+
+
+# ----------------------------
+# Trophy helpers
+# ----------------------------
+
+def _trophy_icon_url(icon_value: Any) -> str:
+    """Return a usable icon URL for either legacy or achievements trophies."""
+
+    if icon_value:
+        try:
+            url = icon_value.url  # type: ignore[attr-defined]
+        except (AttributeError, ValueError):  # pragma: no cover - defensive
+            url = None
+        if url:
+            return url
+    if isinstance(icon_value, str) and icon_value and icon_value != "trophy":
+        return static(f"trophies/{icon_value}.png")
+    return static("trophies/default_trophy.png")
+
+
+def _trophy_progress(user: User, trophy: AchievementTrophy, unlocked: bool) -> Optional[Dict[str, Any]]:
+    """Build a simple progress snapshot for a trophy if supported."""
+
+    threshold = trophy.threshold
+    if unlocked:
+        if isinstance(threshold, (int, float)) and threshold:
+            target = float(threshold)
+            return {"current": target, "target": target, "percentage": 100.0}
+        return None
+
+    if trophy.comparator != "gte":
+        return None
+
+    if not isinstance(threshold, (int, float)) or not threshold:
+        return None
+
+    target = float(threshold)
+    if target <= 0:
+        return None
+
+    value = read_metric(user, trophy.metric, trophy.window, {})
+    if not isinstance(value, (int, float)):
+        return None
+
+    percentage = max(0.0, min(100.0, (value / target) * 100.0))
+    return {"current": float(value), "target": target, "percentage": percentage}
 
 
 # ----------------------------
@@ -579,12 +630,157 @@ def student_dashboard(request):
         {"category": "weekly_points", "icon": "📆", "title": "Weekly Points"},
     ]
 
+    user = _get_user_from_student(student)
+    achievement_unlocks = list(
+        TrophyUnlock.objects.filter(user=user)
+        .select_related("trophy")
+        .order_by("-earned_at")
+    )
+    total_achievements = AchievementTrophy.objects.count()
+
+    recent_trophies: List[Dict[str, Any]] = [
+        {
+            "name": unlock.trophy.name,
+            "description": unlock.trophy.description,
+            "icon_url": _trophy_icon_url(unlock.trophy.icon),
+            "earned_at": unlock.earned_at,
+        }
+        for unlock in achievement_unlocks[:5]
+    ]
+
+    unlocked_count = len(achievement_unlocks)
+    popup_payload: List[Dict[str, Any]] = []
+    popup_tracker: List[str] = []
+    seen_popup_ids = set(request.session.get("seen_trophy_popup_ids", []))
+
+    for unlock in achievement_unlocks:
+        popup_key = f"ach-{unlock.pk}"
+        popup_tracker.append(popup_key)
+        if popup_key not in seen_popup_ids:
+            popup_payload.append(
+                {
+                    "name": unlock.trophy.name,
+                    "description": unlock.trophy.description,
+                    "icon": _trophy_icon_url(unlock.trophy.icon),
+                }
+            )
+
+    if not achievement_unlocks:
+        legacy_unlocks = list(
+            student.trophies.select_related("trophy").order_by("-earned_at")
+        )
+        recent_trophies = [
+            {
+                "name": legacy.trophy.name,
+                "description": legacy.trophy.description,
+                "icon_url": _trophy_icon_url(legacy.trophy.icon),
+                "earned_at": legacy.earned_at,
+            }
+            for legacy in legacy_unlocks[:5]
+        ]
+        unlocked_count = len(legacy_unlocks)
+
+        for legacy in legacy_unlocks:
+            popup_key = f"legacy-{legacy.pk}"
+            popup_tracker.append(popup_key)
+            if popup_key not in seen_popup_ids:
+                popup_payload.append(
+                    {
+                        "name": legacy.trophy.name,
+                        "description": legacy.trophy.description,
+                        "icon": _trophy_icon_url(legacy.trophy.icon),
+                    }
+                )
+
+    request.session["seen_trophy_popup_ids"] = list(dict.fromkeys(popup_tracker))
+    new_trophies_json = json.dumps(popup_payload)
+
     return render(request, "learning/student_dashboard.html", {
         "student": student,
         "classes": classes,
         "vocab_lists": vocab_lists,
         "leaderboard_categories": leaderboard_categories,
+        "recent_trophies": recent_trophies,
+        "achievement_total": total_achievements,
+        "unlocked_trophy_count": unlocked_count,
+        "new_trophies_json": new_trophies_json,
     })
+
+
+# ----------------------------
+# Student Word Views & Practice
+# ----------------------------
+
+
+def student_trophies(request):
+    student_id = request.session.get("student_id")
+    if not student_id:
+        return redirect("student_login")
+
+    student = get_object_or_404(Student, id=student_id)
+    user = _get_user_from_student(student)
+
+    achievement_definitions = list(
+        AchievementTrophy.objects.all().order_by("category", "name")
+    )
+    unlocks = list(
+        TrophyUnlock.objects.filter(user=user)
+        .select_related("trophy")
+        .order_by("-earned_at")
+    )
+    unlock_map = {unlock.trophy_id: unlock for unlock in unlocks}
+
+    trophies: List[Dict[str, Any]] = []
+    for trophy in achievement_definitions:
+        unlock = unlock_map.get(trophy.id)
+        unlocked = unlock is not None
+        trophies.append(
+            {
+                "id": trophy.id,
+                "name": trophy.name,
+                "category": trophy.category,
+                "description": trophy.description,
+                "icon_url": _trophy_icon_url(trophy.icon),
+                "unlocked": unlocked,
+                "earned_at": unlock.earned_at if unlock else None,
+                "progress": _trophy_progress(user, trophy, unlocked),
+            }
+        )
+
+    achievements_available = bool(achievement_definitions)
+
+    if not achievements_available:
+        legacy_unlocks = list(
+            student.trophies.select_related("trophy").order_by("-earned_at")
+        )
+        trophies = [
+            {
+                "id": str(legacy.trophy_id),
+                "name": legacy.trophy.name,
+                "category": getattr(legacy.trophy, "category", "Legacy"),
+                "description": legacy.trophy.description,
+                "icon_url": _trophy_icon_url(legacy.trophy.icon),
+                "unlocked": True,
+                "earned_at": legacy.earned_at,
+                "progress": None,
+            }
+            for legacy in legacy_unlocks
+        ]
+
+    unlocked_count = sum(1 for trophy in trophies if trophy["unlocked"])
+    total_count = len(trophies)
+
+    return render(
+        request,
+        "learning/student_trophies.html",
+        {
+            "student": student,
+            "trophies": trophies,
+            "unlocked_count": unlocked_count,
+            "total_count": total_count,
+            "achievements_available": achievements_available,
+        },
+    )
 
 
 # ----------------------------
