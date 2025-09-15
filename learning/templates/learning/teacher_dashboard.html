@@ -192,6 +192,32 @@
       font-size: 28px;
     }
 
+    .quick-view {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      margin: 20px 0;
+    }
+    .quick-card {
+      flex: 1;
+      min-width: 250px;
+      background-color: #fff;
+      border-radius: 10px;
+      padding: 15px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .quick-card h3 {
+      margin-top: 0;
+      color: var(--primary);
+    }
+    .quick-card ul {
+      list-style: none;
+      padding-left: 0;
+    }
+    .quick-card li {
+      margin-bottom: 5px;
+    }
+
 /* Ensure logout button looks and behaves like links */
 .top-nav .nav-right form {
   display: inline; /* Ensures the form doesn't create extra space */
@@ -380,6 +406,29 @@ a.btn:hover, button.btn:hover {
           </li>
           <li><strong>Total Students:</strong> {{ students|length }}</li>
         </ul>
+      </div>
+
+      <div class="quick-view">
+        <div class="quick-card">
+          <h3>Pending Assignments</h3>
+          <ul>
+            {% for item in pending_assignments %}
+              <li>{{ item.assignment.name }} - {{ item.pending }} pending</li>
+            {% empty %}
+              <li>All assignments reviewed</li>
+            {% endfor %}
+          </ul>
+        </div>
+        <div class="quick-card">
+          <h3>Inactive Students</h3>
+          <ul>
+            {% for student in inactive_students %}
+              <li>{{ student.first_name }} {{ student.last_name }}{% if student.last_login %} ({{ student.last_login|date:"M d" }}){% else %} (never){% endif %}</li>
+            {% empty %}
+              <li>No inactive students</li>
+            {% endfor %}
+          </ul>
+        </div>
       </div>
       <div class="leaderboard">
         <h3>Overall Leaderboard</h3>
