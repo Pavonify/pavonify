@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth import login, logout, get_user_model
 from django.db.models import Sum, Count, F, Subquery, OuterRef, Q
 from django.db.models.functions import Coalesce
@@ -87,6 +87,7 @@ def student_logout(request):
 # ----------------------------
 
 @login_required
+@user_passes_test(lambda u: u.is_teacher)
 def worksheet_lab_view(request):
     vocab_list_id = request.GET.get('vocab_list')
     vocab_list = get_object_or_404(VocabularyList, id=vocab_list_id)
@@ -173,6 +174,7 @@ def teacher_dashboard(request):
 # ----------------------------
 
 @login_required
+@user_passes_test(lambda u: u.is_teacher)
 def add_vocabulary_list(request):
     from .forms import VocabularyListForm
     if request.method == 'POST':
@@ -189,6 +191,7 @@ def add_vocabulary_list(request):
 
 
 @login_required
+@user_passes_test(lambda u: u.is_teacher)
 def edit_vocabulary_list_details(request, list_id):
     from .forms import VocabularyListForm
     vocab_list = get_object_or_404(VocabularyList, id=list_id, teacher=request.user)
@@ -204,6 +207,7 @@ def edit_vocabulary_list_details(request, list_id):
 
 
 @login_required
+@user_passes_test(lambda u: u.is_teacher)
 def add_words_to_list(request, list_id):
     from .forms import BulkAddWordsForm
     vocab_list = get_object_or_404(VocabularyList, id=list_id, teacher=request.user)
@@ -226,6 +230,7 @@ def add_words_to_list(request, list_id):
 
 
 @login_required
+@user_passes_test(lambda u: u.is_teacher)
 def edit_vocabulary_words(request, list_id):
     vocab_list = get_object_or_404(VocabularyList, id=list_id, teacher=request.user)
     words = vocab_list.words.all()
@@ -259,6 +264,7 @@ def edit_vocabulary_words(request, list_id):
 
 
 @login_required
+@user_passes_test(lambda u: u.is_teacher)
 def view_vocabulary_words(request, list_id):
     vocab_list = get_object_or_404(VocabularyList, id=list_id, teacher=request.user)
     words = vocab_list.words.all()
@@ -266,6 +272,7 @@ def view_vocabulary_words(request, list_id):
 
 
 @login_required
+@user_passes_test(lambda u: u.is_teacher)
 def delete_vocabulary_word(request, word_id):
     word = get_object_or_404(VocabularyWord, id=word_id)
     if request.method == 'POST':
@@ -276,6 +283,7 @@ def delete_vocabulary_word(request, word_id):
 
 
 @login_required
+@user_passes_test(lambda u: u.is_teacher)
 def bulk_delete_words(request, list_id):
     vocab_list = get_object_or_404(VocabularyList, id=list_id, teacher=request.user)
     if request.method == 'POST':
@@ -287,6 +295,7 @@ def bulk_delete_words(request, list_id):
 
 
 @login_required
+@user_passes_test(lambda u: u.is_teacher)
 def delete_vocabulary_list(request, pk):
     vocab_list = get_object_or_404(VocabularyList, pk=pk, teacher=request.user)
     if request.method == 'POST':
@@ -1915,6 +1924,7 @@ def delete_reading_lab_text(request, text_id):
     return JsonResponse({"success": True})
 
 @login_required
+@user_passes_test(lambda u: u.is_teacher)
 def worksheet_lab_view(request):
     vocab_list_id = request.GET.get('vocab_list')
     vocab_list = get_object_or_404(VocabularyList, id=vocab_list_id)
@@ -1964,6 +1974,7 @@ def progress_dashboard(request):
     return render(request, "learning/progress_dashboard.html", context)
 
 @login_required
+@user_passes_test(lambda u: u.is_teacher)
 def attach_vocab_list(request, class_id):
     """
     Attach a vocabulary list to a class (teacher-only).
@@ -2000,6 +2011,7 @@ def view_vocabulary(request, vocab_list_id):
     return render(request, 'learning/view_vocabulary.html', {'vocab_list': vocab_list})
 
 @login_required
+@user_passes_test(lambda u: u.is_teacher)
 def view_attached_vocab(request, class_id):
     # Get the class instance and ensure the logged-in teacher has access
     class_instance = get_object_or_404(Class, id=class_id)
