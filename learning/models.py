@@ -162,6 +162,8 @@ class VocabularyList(models.Model):
     target_language = models.CharField(max_length=50)
     teacher = models.ForeignKey(User, on_delete=models.CASCADE)
     classes = models.ManyToManyField(Class, related_name="linked_vocab_lists", blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"{self.name} ({self.source_language} → {self.target_language})"
@@ -170,9 +172,16 @@ class VocabularyWord(models.Model):
     word = models.CharField(max_length=100)
     translation = models.CharField(max_length=100)
     list = models.ForeignKey("VocabularyList", on_delete=models.CASCADE, related_name="words")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"{self.word} → {self.translation}"
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        # Touch the parent list so its timestamp stays fresh when words change
+        self.list.save(update_fields=["updated_at"])
 
 
 
