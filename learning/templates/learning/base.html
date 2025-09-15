@@ -35,7 +35,9 @@
         <nav>
             <a href="{% url 'teacher_dashboard' %}">Dashboard</a>
             <a href="{% url 'create_class' %}">Create Class</a>
+            {% if request.user.is_teacher %}
             <a href="{% url 'add_vocabulary_list' %}">Add Vocabulary List</a>
+            {% endif %}
             <a href="{% url 'teacher_logout' %}">Logout</a>
         </nav>
     </div>
