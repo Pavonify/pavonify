@@ -76,6 +76,30 @@ class BulkAddWordsForm(forms.Form):
         help_text="Add words in the format: word,translation (one pair per line)."
     )
 
+    MAX_WORDS = 100
+    MAX_LENGTH = 100
+
+    def clean_words(self):
+        """Validate and normalize bulk word input."""
+        raw = self.cleaned_data["words"]
+        lines = [line.strip() for line in raw.splitlines() if line.strip()]
+
+        if len(lines) > self.MAX_WORDS:
+            raise forms.ValidationError(
+                f"You can only add up to {self.MAX_WORDS} words at once."
+            )
+
+        pairs = []
+        for line in lines:
+            if "," not in line:
+                continue
+            word, translation = [
+                part.strip()[: self.MAX_LENGTH] for part in line.split(",", 1)
+            ]
+            pairs.append((word, translation))
+
+        return pairs
+
 class ClassForm(forms.ModelForm):
     language = forms.ChoiceField(choices=LANGUAGE_CHOICES)  # Add dropdown
 

@@ -214,19 +214,22 @@ def add_words_to_list(request, list_id):
     if request.method == 'POST':
         form = BulkAddWordsForm(request.POST)
         if form.is_valid():
-            words_input = form.cleaned_data['words']
-            words_pairs = [line.split(',') for line in words_input.splitlines() if ',' in line]
-            for word, translation in words_pairs:
-                VocabularyWord.objects.create(
-                    list=vocab_list,
-                    word=word.strip(),
-                    translation=translation.strip()
-                )
+            word_pairs = form.cleaned_data['words']
+            vocab_words = [
+                VocabularyWord(list=vocab_list, word=w, translation=t)
+                for w, t in word_pairs
+                if w and t
+            ]
+            VocabularyWord.objects.bulk_create(vocab_words)
             messages.success(request, "Words added successfully!")
             return redirect('teacher_dashboard')
     else:
         form = BulkAddWordsForm()
-    return render(request, 'learning/add_words_to_list.html', {'form': form, 'vocab_list': vocab_list})
+    return render(
+        request,
+        'learning/add_words_to_list.html',
+        {'form': form, 'vocab_list': vocab_list},
+    )
 
 
 @login_required
