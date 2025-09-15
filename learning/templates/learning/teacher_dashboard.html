@@ -534,6 +534,23 @@ a.btn:hover, button.btn:hover {
     <!-- Students Pane -->
     <div class="pane" id="students">
       <h2>Students</h2>
+      <form method="get" class="student-filter-form">
+        <input type="hidden" name="pane" value="students">
+        <label for="class_id">Class:</label>
+        <select name="class_id" id="class_id" onchange="this.form.submit()">
+          <option value="">All Classes</option>
+          {% for class_instance in classes %}
+          <option value="{{ class_instance.id }}" {% if class_instance.id|stringformat:'s' == selected_class_id %}selected{% endif %}>{{ class_instance.name }}</option>
+          {% endfor %}
+        </select>
+
+        <label for="sort">Sort by:</label>
+        <select name="sort" id="sort" onchange="this.form.submit()">
+          <option value="last_login" {% if sort_by == 'last_login' %}selected{% endif %}>Last Login</option>
+          <option value="alphabetical" {% if sort_by == 'alphabetical' %}selected{% endif %}>Alphabetical</option>
+          <option value="points" {% if sort_by == 'points' %}selected{% endif %}>Total Points</option>
+        </select>
+      </form>
       <table id="students-table">
         <thead>
           <tr>
@@ -1016,6 +1033,16 @@ a.btn:hover, button.btn:hover {
     // Navigation: Switch content panes when clicking on nav links (top-nav and dropdown)
     const navLinks = document.querySelectorAll(".top-nav .nav-right a, .dropdown-content a");
     const panes = document.querySelectorAll(".pane");
+
+    // Show pane based on URL parameter if provided
+    const params = new URLSearchParams(window.location.search);
+    const initialPane = params.get("pane");
+    if (initialPane) {
+      navLinks.forEach(l => l.classList.remove("active"));
+      panes.forEach(pane => pane.classList.remove("active"));
+      document.getElementById(initialPane)?.classList.add("active");
+      document.querySelector(`[data-pane="${initialPane}"]`)?.classList.add("active");
+    }
 
     navLinks.forEach(link => {
       link.addEventListener("click", e => {

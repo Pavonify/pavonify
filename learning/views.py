@@ -116,7 +116,21 @@ def teacher_dashboard(request):
     reading_lab_texts = ReadingLabText.objects.filter(teacher=request.user).order_by('-created_at')
     vocab_lists = VocabularyList.objects.filter(teacher=request.user)
     classes = Class.objects.filter(teachers=request.user).distinct()
+
+    # --- Student filtering and sorting ---
+    selected_class_id = request.GET.get("class_id")
+    sort_by = request.GET.get("sort", "alphabetical")
+
     students = Student.objects.filter(classes__in=classes).distinct()
+    if selected_class_id:
+        students = students.filter(classes__id=selected_class_id)
+
+    if sort_by == "last_login":
+        students = students.order_by("-last_login")
+    elif sort_by == "points":
+        students = students.order_by("-total_points")
+    else:  # alphabetical
+        students = students.order_by("last_name", "first_name")
 
     # Annotate each class with live and expired assignments
     for class_instance in classes:
@@ -162,6 +176,8 @@ def teacher_dashboard(request):
         "vocab_lists": vocab_lists,
         "classes": classes,
         "students": students,
+        "selected_class_id": selected_class_id,
+        "sort_by": sort_by,
         "announcements": announcements,
         "reading_lab_texts": reading_lab_texts,
         "overall_leaderboard_page": overall_leaderboard_page,
