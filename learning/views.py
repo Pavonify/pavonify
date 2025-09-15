@@ -35,6 +35,7 @@ from typing import Any, Dict, List, Optional
 
 from .decorators import student_login_required
 from .utils import generate_student_username, generate_random_password
+from .memory import memory_meter
 from .spaced_repetition import get_due_words, schedule_review, _get_user_from_student
 
 from .models import (
@@ -810,11 +811,10 @@ def my_words(request):
         )
 
     progress_data = []
+    now = timezone.now()
     for prog in progress_qs:
         total_attempts = prog.correct_attempts + prog.incorrect_attempts
-        memory_percent = (
-            int(prog.correct_attempts / total_attempts * 100) if total_attempts > 0 else 0
-        )
+        memory_percent, memory_color = memory_meter(prog, now=now)
         progress_data.append(
             {
                 "text": prog.word.word,
@@ -823,6 +823,7 @@ def my_words(request):
                 "last_seen": prog.last_seen,
                 "total_attempts": total_attempts,
                 "memory_percent": memory_percent,
+                "memory_color": memory_color,
             }
         )
 
@@ -855,19 +856,13 @@ def my_words(request):
 
     grouped = defaultdict(list)
     for item in progress_data:
-        if item["memory_percent"] >= 70:
-            color = "high"
-        elif item["memory_percent"] >= 40:
-            color = "medium"
-        else:
-            color = "low"
         grouped[item["list"]].append(
             {
                 "text": item["text"],
                 "last_seen": item["last_seen"],
                 "total_attempts": item["total_attempts"],
                 "memory_percent": item["memory_percent"],
-                "memory_color": color,
+                "memory_color": item["memory_color"],
             }
         )
 
