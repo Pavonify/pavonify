@@ -322,6 +322,88 @@ class StudentTrophyViewTests(TestCase):
 
 
 @override_settings(STATICFILES_STORAGE="django.contrib.staticfiles.storage.StaticFilesStorage")
+class StudentTrophyProgressTests(TestCase):
+    def setUp(self):
+        self.school = School.objects.create(name="Progress School")
+        self.student = Student.objects.create(
+            school=self.school,
+            first_name="Penny",
+            last_name="Progress",
+            year_group=5,
+            date_of_birth=date(2011, 7, 7),
+            username="penny",
+            password="pass",
+        )
+        self.user = User.objects.create_user(
+            username=self.student.username,
+            password="pass",
+            is_student=True,
+            first_name=self.student.first_name,
+            last_name=self.student.last_name,
+            email="penny@example.com",
+            country="US",
+        )
+
+        self.unlocked_trophy = AchievementTrophy.objects.create(
+            id="practice-starter",
+            name="Practice Starter",
+            category="Practice",
+            trigger_type="event",
+            metric="practice_sessions",
+            comparator="gte",
+            threshold=1,
+            window="none",
+            subject_scope="any",
+            repeatable=False,
+            cooldown="none",
+            points=10,
+            icon="trophy",
+            rarity="common",
+            description="Complete your first practice session.",
+            constraints={},
+        )
+        TrophyUnlock.objects.create(user=self.user, trophy=self.unlocked_trophy)
+
+        self.locked_trophy = AchievementTrophy.objects.create(
+            id="practice-ace",
+            name="Practice Ace",
+            category="Practice",
+            trigger_type="event",
+            metric="practice_sessions",
+            comparator="gte",
+            threshold=5,
+            window="none",
+            subject_scope="any",
+            repeatable=False,
+            cooldown="none",
+            points=20,
+            icon="trophy",
+            rarity="rare",
+            description="Complete five practice sessions.",
+            constraints={},
+        )
+
+        session = self.client.session
+        session["student_id"] = str(self.student.id)
+        session.save()
+
+    def test_locked_trophies_shown_in_context(self):
+        response = self.client.get(reverse("student_trophies"))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["total_count"], 2)
+        self.assertEqual(len(response.context["unlocked_trophies"]), 1)
+        self.assertEqual(len(response.context["locked_trophies"]), 1)
+
+        locked = response.context["locked_trophies"][0]
+        self.assertEqual(locked["id"], self.locked_trophy.id)
+        self.assertFalse(locked["unlocked"])
+        self.assertIsNotNone(locked["progress"])
+        self.assertAlmostEqual(
+            locked["progress"]["target"], float(self.locked_trophy.threshold)
+        )
+
+
+@override_settings(STATICFILES_STORAGE="django.contrib.staticfiles.storage.StaticFilesStorage")
 class StudentTrophyFallbackTests(TestCase):
     def setUp(self):
         self.school = School.objects.create(name="Legacy School")

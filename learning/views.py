@@ -770,6 +770,8 @@ def student_trophies(request):
 
     unlocked_count = sum(1 for trophy in trophies if trophy["unlocked"])
     total_count = len(trophies)
+    unlocked_trophies = [trophy for trophy in trophies if trophy["unlocked"]]
+    locked_trophies = [trophy for trophy in trophies if not trophy["unlocked"]]
 
     return render(
         request,
@@ -780,6 +782,8 @@ def student_trophies(request):
             "unlocked_count": unlocked_count,
             "total_count": total_count,
             "achievements_available": achievements_available,
+            "unlocked_trophies": unlocked_trophies,
+            "locked_trophies": locked_trophies,
         },
     )
 
