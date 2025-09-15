@@ -27,6 +27,7 @@ from django.contrib.auth.decorators import login_required
 from learning.views import update_assignment_points, log_assignment_attempt, refresh_leaderboard, delete_teacher_account, class_leaderboard, buy_pavicoins, pavicoins_success, teacher_upgrade, create_checkout_session, worksheet_lab_view, custom_404_view, teacher_account_settings, grammar_lab, delete_ladder
 from django.conf.urls import handler404
 from learning.webhooks import stripe_webhook
+from learning.api.enrichment import EnrichmentPreviewAPI, EnrichmentConfirmAPI
 handler404 = custom_404_view
 
 urlpatterns = [
@@ -117,6 +118,8 @@ urlpatterns = [
     path("grammar-lab/<int:ladder_id>/", views.grammar_ladder_detail, name="grammar_ladder_detail"),
     path('api/srs/', include('srs.urls')),
     path('api/achievements/', include('achievements.urls')),
+    path("api/vocab/enrichment/preview", EnrichmentPreviewAPI.as_view(), name="vocab-enrichment-preview"),
+    path("api/vocab/enrichment/confirm", EnrichmentConfirmAPI.as_view(), name="vocab-enrichment-confirm"),
 
 
 ]
