@@ -195,6 +195,95 @@
       color: #666;
       margin-top: 4px;
     }
+    .trophy-section {
+      margin-bottom: 28px;
+    }
+    .trophy-section-heading {
+      color: var(--primary);
+      font-size: 1.25rem;
+      margin-bottom: 12px;
+    }
+    details.trophy-collapse {
+      background: #f7f9ff;
+      border: 1px solid #d9e6fb;
+      border-radius: 12px;
+      margin-top: 24px;
+      box-shadow: 0 2px 6px rgba(10, 34, 66, 0.08);
+    }
+    details.trophy-collapse summary {
+      cursor: pointer;
+      list-style: none;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      font-weight: 600;
+      border-bottom: 1px solid transparent;
+    }
+    details.trophy-collapse summary::-webkit-details-marker {
+      display: none;
+    }
+    details[open] summary {
+      border-bottom: 1px solid #d9e6fb;
+    }
+    .summary-main {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      color: var(--primary);
+      font-size: 1.05rem;
+    }
+    .summary-title {
+      font-weight: 700;
+    }
+    .summary-count {
+      color: #4a4a4a;
+      font-size: 0.95rem;
+    }
+    .summary-hint {
+      flex: 1;
+      font-size: 0.85rem;
+      color: #4a4a4a;
+    }
+    .summary-chevron {
+      font-size: 1.35rem;
+      color: var(--primary);
+      transition: transform 0.2s ease;
+    }
+    details[open] .summary-chevron {
+      transform: rotate(90deg);
+    }
+    .collapse-body {
+      padding: 0 20px 20px;
+    }
+    .trophy-table--compact {
+      box-shadow: none;
+      border: 1px solid #edf1fa;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .trophy-table--compact th {
+      background-color: #eef3ff;
+      color: #1f3f73;
+    }
+    .locked-placeholder {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: #eef3ff;
+      color: #7b8bb9;
+      font-size: 1.35rem;
+      font-weight: 600;
+    }
+    .locked-progress-note {
+      font-size: 0.78rem;
+      color: #666;
+      margin-top: 6px;
+    }
     .earned-at {
       font-size: 0.75rem;
       color: #666;
@@ -222,6 +311,13 @@
       }
       .progress-bar {
         width: 120px;
+      }
+      details.trophy-collapse summary {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .summary-chevron {
+        align-self: flex-end;
       }
     }
   </style>
@@ -257,43 +353,90 @@
         </div>
       {% endif %}
       {% if trophies %}
-        <table class="trophy-table">
-          <thead>
-            <tr>
-              <th style="width: 70px;">Icon</th>
-              <th class="trophy-name-cell">Trophy</th>
-              <th style="width: 160px;">Category</th>
-              <th>Criteria</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for trophy in trophies %}
-              <tr class="{% if trophy.unlocked %}unlocked{% else %}locked{% endif %}">
-                <td>
-                  {% if trophy.unlocked %}
-                    <img src="{{ trophy.icon_url }}" alt="{{ trophy.name }}" class="table-trophy-icon">
-                  {% endif %}
-                </td>
-                <td class="trophy-name-cell">
-                  {% if not trophy.unlocked and trophy.progress %}
-                    <div class="progress-wrapper">
-                      <div class="progress-bar">
-                        <div class="progress-fill" style="width: {{ trophy.progress.percentage|floatformat:0 }}%;"></div>
-                      </div>
-                      <div class="progress-label">{{ trophy.progress.current|floatformat:0 }} / {{ trophy.progress.target|floatformat:0 }}</div>
-                    </div>
-                  {% endif %}
-                  <span class="trophy-name">{{ trophy.name }}</span>
-                  {% if trophy.unlocked and trophy.earned_at %}
-                    <div class="earned-at">Unlocked {{ trophy.earned_at|date:'M j, Y' }}</div>
-                  {% endif %}
-                </td>
-                <td class="{% if not trophy.unlocked %}muted{% endif %}">{{ trophy.category }}</td>
-                <td class="{% if not trophy.unlocked %}muted{% endif %}">{{ trophy.description|default:'Criteria coming soon.' }}</td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+        <div class="trophy-section">
+          <h3 class="trophy-section-heading">Unlocked Trophies</h3>
+          {% if unlocked_trophies %}
+            <table class="trophy-table">
+              <thead>
+                <tr>
+                  <th style="width: 70px;">Icon</th>
+                  <th class="trophy-name-cell">Trophy</th>
+                  <th style="width: 160px;">Category</th>
+                  <th>Criteria</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for trophy in unlocked_trophies %}
+                  <tr class="unlocked">
+                    <td>
+                      <img src="{{ trophy.icon_url }}" alt="{{ trophy.name }}" class="table-trophy-icon">
+                    </td>
+                    <td class="trophy-name-cell">
+                      <span class="trophy-name">{{ trophy.name }}</span>
+                      {% if trophy.earned_at %}
+                        <div class="earned-at">Unlocked {{ trophy.earned_at|date:'M j, Y' }}</div>
+                      {% endif %}
+                    </td>
+                    <td>{{ trophy.category }}</td>
+                    <td>{{ trophy.description|default:'Criteria coming soon.' }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          {% else %}
+            <p class="no-trophies">You haven't unlocked a trophy yet—keep exploring lessons to earn your first award!</p>
+          {% endif %}
+        </div>
+
+        {% if locked_trophies %}
+          <details class="trophy-collapse">
+            <summary>
+              <span class="summary-main">
+                <span class="summary-title">Trophies in Progress</span>
+                <span class="summary-count">({{ locked_trophies|length }})</span>
+              </span>
+              <span class="summary-hint">See the goals you're working toward.</span>
+              <span class="summary-chevron" aria-hidden="true">›</span>
+            </summary>
+            <div class="collapse-body">
+              <table class="trophy-table trophy-table--compact">
+                <thead>
+                  <tr>
+                    <th style="width: 70px;">Icon</th>
+                    <th class="trophy-name-cell">Trophy</th>
+                    <th style="width: 160px;">Category</th>
+                    <th>Criteria</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for trophy in locked_trophies %}
+                    <tr class="locked">
+                      <td>
+                        <span class="locked-placeholder" role="img" aria-label="Locked trophy">🔒</span>
+                      </td>
+                      <td class="trophy-name-cell">
+                        <span class="trophy-name">{{ trophy.name }}</span>
+                        {% if trophy.progress %}
+                          <div class="progress-wrapper">
+                            <div class="progress-bar">
+                              <div class="progress-fill" style="width: {{ trophy.progress.percentage|floatformat:0 }}%;"></div>
+                            </div>
+                            <div class="progress-label">{{ trophy.progress.current|floatformat:0 }} / {{ trophy.progress.target|floatformat:0 }}</div>
+                          </div>
+                          <div class="locked-progress-note">You're {{ trophy.progress.percentage|floatformat:0 }}% of the way there!</div>
+                        {% else %}
+                          <div class="locked-progress-note">Keep playing to start tracking this trophy.</div>
+                        {% endif %}
+                      </td>
+                      <td class="muted">{{ trophy.category }}</td>
+                      <td class="muted">{{ trophy.description|default:'Criteria coming soon.' }}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </details>
+        {% endif %}
       {% else %}
         <p class="no-trophies">Your trophy list will appear here once trophies are available.</p>
       {% endif %}
