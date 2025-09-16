@@ -5,13 +5,23 @@ from typing import Any, Dict, List
 from rest_framework import permissions, serializers, status, views
 from rest_framework.response import Response
 
-from learning.models import VocabularyWord
+from django.shortcuts import get_object_or_404
+
+from learning.models import VocabularyList, VocabularyWord
 from learning.services.enrichment import get_enrichments
 
+class PreviewEntrySerializer(serializers.Serializer):
+    word = serializers.CharField(allow_blank=False, trim_whitespace=True, max_length=100)
+    translation = serializers.CharField(required=False, allow_blank=True, trim_whitespace=True, max_length=100)
+    fact_type = serializers.ChoiceField(choices=("etymology", "idiom", "trivia"), required=False)
+
+
 class PreviewRequestSerializer(serializers.Serializer):
-    words = serializers.ListField(
-        child=serializers.CharField(allow_blank=False, trim_whitespace=True),
-        min_length=1, max_length=200
+    list_id = serializers.IntegerField()
+    entries = serializers.ListField(
+        child=PreviewEntrySerializer(),
+        min_length=1,
+        max_length=200,
     )
 
 class ImagePayloadSerializer(serializers.Serializer):
@@ -28,6 +38,7 @@ class FactPayloadSerializer(serializers.Serializer):
 
 class ConfirmItemSerializer(serializers.Serializer):
     word = serializers.CharField()
+    translation = serializers.CharField(required=False, allow_blank=True)
     image = ImagePayloadSerializer(required=False)
     fact = FactPayloadSerializer(required=False)
     approveImage = serializers.BooleanField(default=False)
@@ -43,8 +54,16 @@ class EnrichmentPreviewAPI(views.APIView):
     def post(self, request, *args, **kwargs):
         ser = PreviewRequestSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
-        words: List[str] = ser.validated_data["words"]
-        data = get_enrichments(words)
+        list_id: int = ser.validated_data["list_id"]
+        entries: List[Dict[str, Any]] = ser.validated_data["entries"]
+
+        vocab_list = get_object_or_404(VocabularyList, id=list_id, teacher=request.user)
+
+        data = get_enrichments(
+            entries,
+            source_language=vocab_list.source_language,
+            target_language=vocab_list.target_language,
+        )
         return Response(data, status=status.HTTP_200_OK)
 
 class EnrichmentConfirmAPI(views.APIView):
@@ -59,16 +78,25 @@ class EnrichmentConfirmAPI(views.APIView):
         created = 0
         updated = 0
         for item in items:
-            word = item["word"]
+            word = (item.get("word") or "").strip()
+            if not word:
+                continue
+            translation = (item.get("translation") or "").strip()
             vw, was_created = VocabularyWord.objects.get_or_create(
                 list_id=list_id,
-                defaults={"word": word},
                 word=word,
+                defaults={"translation": translation},
             )
             if was_created:
+                if translation:
+                    vw.translation = translation
                 created += 1
             else:
                 updated += 1
+                if translation and translation != (vw.translation or ""):
+                    vw.translation = translation
+            if word != (vw.word or ""):
+                vw.word = word
 
             if item.get("approveImage") and item.get("image"):
                 img = item["image"]
