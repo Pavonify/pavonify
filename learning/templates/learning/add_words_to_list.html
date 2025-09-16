@@ -1,5 +1,3 @@
-{% load static %}
-
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Fredoka+One&display=swap');
     h1 { font-family: 'Fredoka One', cursive; }
@@ -95,32 +93,6 @@
     background-color: #d4204c;
   }
 
-  .form-actions {
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
-    margin-top: 25px;
-  }
-
-  .form-actions button[type="submit"] {
-    margin-top: 0;
-  }
-
-  .preview-btn {
-    background-color: #0aa2ef;
-    color: #fff;
-    border: none;
-    padding: 12px 20px;
-    border-radius: 5px;
-    font-size: 16px;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-  }
-
-  .preview-btn:hover {
-    background-color: #087bb8;
-  }
-
   /* Back Link */
   .back-link {
     display: inline-block;
@@ -135,63 +107,6 @@
   .back-link:hover {
     background-color: #d4204c;
   }
-
-  .hidden {
-    display: none !important;
-  }
-
-  .modal-backdrop {
-    position: fixed;
-    inset: 0;
-    background: rgba(15, 23, 42, 0.45);
-    display: flex;
-    align-items: flex-start;
-    justify-content: center;
-    padding: 40px 20px;
-    z-index: 1050;
-    overflow-y: auto;
-  }
-
-  .modal-content {
-    background: #fff;
-    border-radius: 12px;
-    width: 100%;
-    max-width: 900px;
-    box-shadow: 0 15px 40px rgba(15, 23, 42, 0.2);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-  }
-
-  .modal-header {
-    display: flex;
-    justify-content: flex-end;
-    padding: 10px 16px;
-    border-bottom: 1px solid #e5e7eb;
-  }
-
-  .modal-close {
-    background: none;
-    border: none;
-    font-size: 1.5rem;
-    cursor: pointer;
-    color: #334155;
-    line-height: 1;
-  }
-
-  .modal-close:hover {
-    color: #0f172a;
-  }
-
-  .modal-body {
-    padding: 0;
-    max-height: calc(90vh - 56px);
-    overflow-y: auto;
-  }
-
-  body.modal-open {
-    overflow: hidden;
-  }
 </style>
 
 <div class="page-header">
@@ -202,134 +117,7 @@
   <form method="post">
     {% csrf_token %}
     {{ form.as_p }}
-    <div class="form-actions">
-      <button type="button" id="preview-enrichment-button" class="preview-btn">Preview enrichments</button>
-      <button type="submit">Add Words</button>
-    </div>
+    <button type="submit">Add Words</button>
   </form>
   <a href="{% url 'teacher_dashboard' %}" class="back-link">Back to Dashboard</a>
 </div>
-
-<div id="bulk-enrichment-modal" class="modal-backdrop hidden" data-list-id="{{ vocab_list.id }}">
-  <div class="modal-content" role="dialog" aria-modal="true">
-    <div class="modal-header">
-      <button type="button" class="modal-close" id="bulk-enrichment-close" aria-label="Close">&times;</button>
-    </div>
-    <div class="modal-body">
-      <div id="bulk-enrichment-root"></div>
-    </div>
-  </div>
-</div>
-
-<script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
-<script src="https://unpkg.com/@babel/standalone@7.23.9/babel.min.js"></script>
-<script type="text/babel" data-type="module" data-presets="env,react" src="{% static 'js/bulk_enrichment_preview.jsx' %}"></script>
-<script>
-  document.addEventListener('DOMContentLoaded', function () {
-    const previewButton = document.getElementById('preview-enrichment-button');
-    const modal = document.getElementById('bulk-enrichment-modal');
-    const closeButton = document.getElementById('bulk-enrichment-close');
-    const rootContainer = document.getElementById('bulk-enrichment-root');
-
-    if (!previewButton || !modal || !rootContainer) {
-      return;
-    }
-
-    const listIdValue = Number(modal.dataset.listId || '0');
-    const listId = Number.isNaN(listIdValue) ? 0 : listIdValue;
-    let root = null;
-    let confirmed = false;
-
-    function cleanupRoot() {
-      if (root) {
-        root.unmount();
-        root = null;
-      }
-      rootContainer.innerHTML = '';
-    }
-
-    function hideModal() {
-      cleanupRoot();
-      modal.classList.add('hidden');
-      document.body.classList.remove('modal-open');
-      if (confirmed) {
-        window.location.reload();
-      }
-    }
-
-    function ensureComponent(callback) {
-      if (window.Pavonify && window.Pavonify.BulkAddEnrichmentPreview && window.React && window.ReactDOM && ReactDOM.createRoot) {
-        callback(window.Pavonify.BulkAddEnrichmentPreview);
-      } else {
-        setTimeout(function () {
-          ensureComponent(callback);
-        }, 40);
-      }
-    }
-
-    function parseWords(value) {
-      return value
-        .split(/\r?\n/)
-        .map(function (line) { return line.trim(); })
-        .filter(Boolean)
-        .map(function (line) {
-          const parts = line.split(',');
-          return (parts[0] || '').trim();
-        })
-        .filter(Boolean);
-    }
-
-    previewButton.addEventListener('click', function () {
-      const textarea = document.querySelector('textarea[name="words"]');
-      if (!textarea) {
-        return;
-      }
-      const parsed = parseWords(textarea.value);
-      const uniqueWords = Array.from(new Set(parsed));
-      if (uniqueWords.length === 0) {
-        alert('Please add at least one word before previewing.');
-        return;
-      }
-      confirmed = false;
-      ensureComponent(function (Component) {
-        cleanupRoot();
-        const fetchWrapper = async function (input, init) {
-          const response = await fetch(input, init);
-          if (typeof input === 'string' && input.indexOf('/api/vocab/enrichment/confirm') !== -1 && response.ok) {
-            confirmed = true;
-          }
-          return response;
-        };
-        root = ReactDOM.createRoot(rootContainer);
-        root.render(
-          React.createElement(Component, {
-            words: uniqueWords,
-            listId: listId,
-            onClose: hideModal,
-            fetchImpl: fetchWrapper,
-          })
-        );
-        document.body.classList.add('modal-open');
-        modal.classList.remove('hidden');
-      });
-    });
-
-    closeButton.addEventListener('click', function (event) {
-      event.preventDefault();
-      hideModal();
-    });
-
-    modal.addEventListener('click', function (event) {
-      if (event.target === modal) {
-        hideModal();
-      }
-    });
-
-    document.addEventListener('keydown', function (event) {
-      if (event.key === 'Escape' && !modal.classList.contains('hidden')) {
-        hideModal();
-      }
-    });
-  });
-</script>
