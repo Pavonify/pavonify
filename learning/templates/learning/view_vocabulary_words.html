@@ -96,6 +96,95 @@
       transition: background-color 0.3s ease;
       white-space: nowrap;
     }
+
+    .toggle-bar {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin: 20px 0;
+    }
+
+    .toggle-bar label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      color: #334155;
+    }
+
+    table .col-images,
+    table .col-facts,
+    table th.col-images,
+    table th.col-facts {
+      display: none;
+    }
+
+    table.show-images .col-images,
+    table.show-images th.col-images {
+      display: table-cell;
+    }
+
+    table.show-facts .col-facts,
+    table.show-facts th.col-facts {
+      display: table-cell;
+    }
+
+    .image-thumb {
+      width: 70px;
+      height: 70px;
+      object-fit: cover;
+      border-radius: 10px;
+      border: 1px solid #dbeafe;
+    }
+
+    .image-meta {
+      font-size: 12px;
+      color: #475569;
+      margin-top: 6px;
+    }
+
+    .empty-cell {
+      color: #94a3b8;
+      font-size: 13px;
+    }
+
+    .fact-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: capitalize;
+      background: #e0f2fe;
+      color: #0369a1;
+      margin-bottom: 6px;
+    }
+
+    .fact-badge[data-type="idiom"] {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .fact-badge[data-type="trivia"] {
+      background: #ede9fe;
+      color: #5b21b6;
+    }
+
+    .fact-text {
+      text-align: left;
+      color: #1f2937;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .fact-meta {
+      font-size: 12px;
+      color: #64748b;
+      margin-top: 4px;
+    }
     .buttons button:hover,
     .buttons a:hover {
       background-color: #d4204c;
@@ -125,7 +214,16 @@
       </p>
     </div>
     
-    <table>
+    <div class="toggle-bar no-print">
+      <label>
+        <input type="checkbox" id="toggle-images"> Show images
+      </label>
+      <label>
+        <input type="checkbox" id="toggle-facts"> Show facts
+      </label>
+    </div>
+
+    <table id="words-table">
       <thead>
         <tr>
           <th>
@@ -134,6 +232,8 @@
           <th>
             <img class="flag" src="{% static 'flags/'|add:vocab_list.target_language|add:'.png' %}" alt="{{ vocab_list.target_language }}">
           </th>
+          <th class="col-images">Image</th>
+          <th class="col-facts">Word fact</th>
         </tr>
       </thead>
       <tbody>
@@ -141,6 +241,27 @@
         <tr>
           <td>{{ word.word }}</td>
           <td>{{ word.translation }}</td>
+          <td class="col-images">
+            {% if word.image_thumb_url or word.image_url %}
+              <img class="image-thumb" src="{{ word.image_thumb_url|default:word.image_url }}" alt="{{ word.word }}">
+              <div class="image-meta">
+                {{ word.image_source|default:"Wikimedia" }}{% if word.image_license %} • {{ word.image_license }}{% endif %}
+              </div>
+            {% else %}
+              <span class="empty-cell">No image</span>
+            {% endif %}
+          </td>
+          <td class="col-facts">
+            {% if word.word_fact_text %}
+              <span class="fact-badge" data-type="{{ word.word_fact_type|default_if_none:'trivia' }}">{{ word.word_fact_type|default:'trivia' }}</span>
+              <div class="fact-text">{{ word.word_fact_text }}</div>
+              {% if word.word_fact_confidence is not None %}
+              <div class="fact-meta">Confidence: {{ word.word_fact_confidence|floatformat:2 }}</div>
+              {% endif %}
+            {% else %}
+              <span class="empty-cell">No fact</span>
+            {% endif %}
+          </td>
         </tr>
         {% endfor %}
       </tbody>
@@ -151,6 +272,38 @@
       <a href="{% url 'teacher_dashboard' %}" class="back-link">Back to Dashboard</a>
     </div>
   </div>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const table = document.getElementById('words-table');
+      const toggleImages = document.getElementById('toggle-images');
+      const toggleFacts = document.getElementById('toggle-facts');
+      if (!table) {
+        return;
+      }
+
+      function applyToggles() {
+        if (toggleImages && toggleImages.checked) {
+          table.classList.add('show-images');
+        } else {
+          table.classList.remove('show-images');
+        }
+        if (toggleFacts && toggleFacts.checked) {
+          table.classList.add('show-facts');
+        } else {
+          table.classList.remove('show-facts');
+        }
+      }
+
+      if (toggleImages) {
+        toggleImages.addEventListener('change', applyToggles);
+      }
+      if (toggleFacts) {
+        toggleFacts.addEventListener('change', applyToggles);
+      }
+
+      applyToggles();
+    });
+  </script>
 {% include 'messages.html' %}
 </body>
 </html>

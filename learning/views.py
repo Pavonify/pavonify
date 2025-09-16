@@ -339,10 +339,61 @@ def edit_vocabulary_words(request, list_id):
                 translation_id = f"translation_{word.id}"
                 new_word = request.POST.get(word_id)
                 new_translation = request.POST.get(translation_id)
-                if new_word and new_translation:
+
+                if new_word is not None:
                     word.word = new_word.strip()
+                if new_translation is not None:
                     word.translation = new_translation.strip()
-                    word.save()
+
+                remove_image = request.POST.get(f"remove_image_{word.id}") == "on"
+                image_approved = request.POST.get(f"image_approved_{word.id}") == "on"
+                if remove_image:
+                    word.image_url = None
+                    word.image_thumb_url = None
+                    word.image_source = ""
+                    word.image_attribution = ""
+                    word.image_license = ""
+                    word.image_approved = False
+                elif word.image_url:
+                    word.image_approved = image_approved
+                else:
+                    word.image_approved = False
+
+                clear_fact = request.POST.get(f"clear_fact_{word.id}") == "on"
+                fact_text = (request.POST.get(f"fact_text_{word.id}") or "").strip()
+                fact_type_value = (request.POST.get(f"fact_type_{word.id}") or "").strip().lower()
+                fact_approved = request.POST.get(f"fact_approved_{word.id}") == "on"
+                confidence_raw = request.POST.get(f"fact_confidence_{word.id}")
+
+                if clear_fact:
+                    word.word_fact_text = ""
+                    word.word_fact_type = ""
+                    word.word_fact_confidence = None
+                    word.word_fact_approved = False
+                else:
+                    word.word_fact_text = fact_text
+                    valid_types = {"etymology", "idiom", "trivia"}
+                    if fact_type_value in valid_types:
+                        word.word_fact_type = fact_type_value
+                    elif not fact_text:
+                        word.word_fact_type = ""
+                    else:
+                        previous = (word.word_fact_type or "").lower()
+                        word.word_fact_type = previous if previous in valid_types else "trivia"
+
+                    if confidence_raw is not None:
+                        confidence_raw = confidence_raw.strip()
+                        if confidence_raw:
+                            try:
+                                word.word_fact_confidence = float(confidence_raw)
+                            except ValueError:
+                                pass
+                        elif not fact_text:
+                            word.word_fact_confidence = None
+
+                    word.word_fact_approved = bool(fact_text) and fact_approved
+
+                word.save()
             messages.success(request, "Words updated successfully!")
             return redirect('edit_vocabulary_words', list_id=list_id)
 
