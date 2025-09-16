@@ -1,11 +1,21 @@
-<h2>Class: {{ class_instance.name }}</h2>
-<p>Language: {{ class_instance.language }}</p>
-<h3>Vocabulary Lists</h3>
-<ul>
-    {% for vocab in vocab_lists %}
-        <li>
-            <a href="{% url 'view_vocab_list' vocab.id %}">{{ vocab.name }}</a>
-        </li>
-    {% endfor %}
-</ul>
-<a href="{% url 'student_dashboard' %}">Back to Dashboard</a>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ class_instance.name }} – Class Overview | Pavonify</title>
+</head>
+<body>
+  <h2>Class: {{ class_instance.name }}</h2>
+  <p>Language: {{ class_instance.language }}</p>
+  <h3>Vocabulary Lists</h3>
+  <ul>
+      {% for vocab in vocab_lists %}
+          <li>
+              <a href="{% url 'view_vocab_list' vocab.id %}">{{ vocab.name }}</a>
+          </li>
+      {% endfor %}
+  </ul>
+  <a href="{% url 'student_dashboard' %}">Back to Dashboard</a>
+</body>
+</html>
