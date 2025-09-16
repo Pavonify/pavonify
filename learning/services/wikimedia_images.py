@@ -176,4 +176,45 @@ def search_images(
     try:
         # Primary: generator=search with categories + imageinfo
         params = {
-            "ac
+            "action": "query",
+            "format": "json",
+            "prop": "imageinfo|categories",
+            "generator": "search",
+            "gsrsearch": base_query,
+            "gsrnamespace": 6,
+            "gsrlimit": max(limit * 8, limit),
+            "iiprop": "url|mime|extmetadata",
+            "iiurlwidth": 512,
+            "redirects": 1,
+            "clshow": "!hidden",
+            "cllimit": 50,
+        }
+        data = _query(params)
+        pages = (data.get("query") or {}).get("pages") or {}
+        results = _extract_from_pages(pages if isinstance(pages, dict) else {}, limit,
+                                      allow_people=allow_people, prefer_animals=prefer_animals)
+        if results:
+            return results
+
+        # Fallback A: gloss only (retain context)
+        if gloss:
+            params["gsrsearch"] = f'filetype:bitmap {gloss} {negatives_common}{negatives_people}{incat}'
+            data = _query(params)
+            pages = (data.get("query") or {}).get("pages") or {}
+            results = _extract_from_pages(pages if isinstance(pages, dict) else {}, limit,
+                                          allow_people=allow_people, prefer_animals=prefer_animals)
+            if results:
+                return results
+
+        # Fallback B: drop category constraints but keep filters
+        del params["clshow"]; del params["cllimit"]
+        params["prop"] = "imageinfo"
+        params["gsrsearch"] = f'filetype:bitmap {positive_terms} {negatives_common}{negatives_people}'
+        data = _query(params)
+        pages = (data.get("query") or {}).get("pages") or {}
+        results = _extract_from_pages(pages if isinstance(pages, dict) else {}, limit,
+                                      allow_people=allow_people, prefer_animals=False)
+        return results
+    except Exception as e:
+        logger.warning("Wikimedia search failed for %r: %s", word, e)
+        return []
