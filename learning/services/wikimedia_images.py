@@ -12,47 +12,116 @@ TIMEOUT = 12
 SESSION = requests.Session()
 SESSION.headers.update({"User-Agent": UA})
 
+# ---------------- heuristics ----------------
+
 _TAGS = re.compile(r"<[^>]+>")
-BAD_WORDS = (
+
+# things we almost never want (unless the context explicitly allows)
+BAD_MIME = ("image/svg+xml",)  # icons/logos
+ALWAYS_BAD_WORDS = (
+    "logo", "icon", "emblem", "symbol",
+    "heraldry", "coat_of_arms", "coat-of-arms", "coat of arms",
+    "map", "diagram", "clipart", "clip-art", "pictogram",
+    "statue", "sculpture", "bust", "figurine", "toy",
+)
+ALWAYS_BAD_CATS = (
+    "Logos", "Icons", "Heraldry", "Coats of arms", "Maps", "Diagrams", "Clip art",
+    "Pictograms", "Infographics", "Statues", "Sculptures",
+)
+
+# people/portraits filters (skipped when allow_people=True)
+PEOPLE_WORDS = (
     "portrait", "headshot", "self-portrait", "selfportrait",
     "person", "people", "man", "woman", "boy", "girl", "human",
+    "celebrity", "actor", "actress",
 )
-BAD_CATS = (
-    "Portrait", "People", "Men", "Women", "Self-portraits", "Celebrities",
+PEOPLE_CATS = ("Portrait", "People", "Men", "Women", "Self-portraits", "Celebrities")
+
+ANIMALISH_CATS = (
+    "Animals", "Mammals", "Birds", "Fish", "Reptiles",
+    "Amphibians", "Insects", "Arachnids", "Wildlife",
 )
+
+PEOPLE_CONTEXT_HINTS = ("family", "members", "people", "persons", "jobs", "professions", "occupations", "friends", "relatives")
+ANIMAL_CONTEXT_HINTS = ("animal", "animals", "wildlife", "zoo", "fauna")
 
 def _strip_tags(html: str) -> str:
     return _TAGS.sub("", html or "").strip()
 
-def _looks_like_person(title: str, categories: str) -> bool:
+def _classify_context(context_hint: Optional[str]) -> dict:
+    ctx = (context_hint or "").strip().lower()
+    prefer_animals = any(k in ctx for k in ANIMAL_CONTEXT_HINTS)
+    prefer_people  = any(k in ctx for k in PEOPLE_CONTEXT_HINTS)
+    return {"prefer_animals": prefer_animals, "prefer_people": prefer_people}
+
+def _looks_like_people(title: str, categories: str) -> bool:
     t = (title or "").lower()
     c = (categories or "").lower()
-    if any(b in t for b in BAD_WORDS): return True
-    if any(b.lower() in c for b in BAD_CATS): return True
+    if any(b in t for b in PEOPLE_WORDS): return True
+    if any(b.lower() in c for b in PEOPLE_CATS): return True
     # crude: filenames like "Firstname_Lastname" often indicate people
     if re.search(r"[A-Z][a-z]+_[A-Z][a-z]+", title or ""): return True
     return False
 
-def _extract_from_pages(pages: Dict[str, Dict[str, object]], limit: int) -> List[Dict[str, str]]:
+def _looks_like_always_bad(title: str, categories: str, mime: str) -> bool:
+    t = (title or "").lower()
+    c = (categories or "").lower()
+    if mime and (mime in BAD_MIME or not mime.startswith("image/")):
+        return True
+    if any(b in t for b in ALWAYS_BAD_WORDS): return True
+    if any(b.lower() in c for b in ALWAYS_BAD_CATS): return True
+    return False
+
+# --------------- core helpers ---------------
+
+def _query(params: Dict[str, str]) -> Dict:
+    r = SESSION.get(API, params=params, timeout=TIMEOUT)
+    r.raise_for_status()
+    return r.json()
+
+def _extract_from_pages(pages: Dict[str, Dict[str, object]], limit: int, *, allow_people: bool, prefer_animals: bool) -> List[Dict[str, str]]:
     out: List[Dict[str, str]] = []
     seen: set[str] = set()
     for page in pages.values():
-        if not isinstance(page, dict): continue
+        if not isinstance(page, dict):
+            continue
         title = page.get("title") or ""
         infos = page.get("imageinfo") or []
-        if not infos or not isinstance(infos, list): continue
+        if not infos or not isinstance(infos, list):
+            continue
         info = infos[0] if isinstance(infos[0], dict) else {}
-        url = info.get("url")
-        if not url or url in seen: continue
+        url  = info.get("url")
+        mime = info.get("mime", "")
+        if not url or url in seen:
+            continue
+
+        # categories from prop=categories plus any extmetadata we get
+        categories_text = ""
+        if "categories" in page and isinstance(page["categories"], list):
+            categories_text = " ".join([c.get("title","") for c in page["categories"] if isinstance(c, dict)])
         meta = info.get("extmetadata") or {}
-        license_short = (meta.get("LicenseShortName") or {}).get("value", "")
-        artist        = (meta.get("Artist") or {}).get("value", "")
-        credit        = (meta.get("Credit") or {}).get("value", "")
-        categories    = (meta.get("Categories") or {}).get("value", "")
-        if _looks_like_person(title, categories):
-            continue  # drop portraits/people
+        categories_text += " " + (meta.get("Categories") or {}).get("value", "")
+
+        # global bad filters (icons, heraldry, statues, etc.)
+        if _looks_like_always_bad(title, categories_text, mime):
+            continue
+
+        # optional people filter
+        if not allow_people and _looks_like_people(title, categories_text):
+            continue
+
+        # optional animal preference (if context suggests animals)
+        if prefer_animals:
+            cats_l = categories_text.lower()
+            if not any(cat.lower() in cats_l for cat in ANIMALISH_CATS):
+                # try to keep animal-ish; skip otherwise
+                continue
+
         seen.add(url)
         thumb = info.get("thumburl") or url
+        artist  = (meta.get("Artist") or {}).get("value", "")
+        credit  = (meta.get("Credit") or {}).get("value", "")
+        license_short = (meta.get("LicenseShortName") or {}).get("value", "")
         attribution_html = artist or credit or "Wikimedia Commons"
         out.append({
             "url": url,
@@ -62,84 +131,49 @@ def _extract_from_pages(pages: Dict[str, Dict[str, object]], limit: int) -> List
             "attribution_text": _strip_tags(attribution_html),
             "license": license_short,
         })
-        if len(out) >= limit: break
+        if len(out) >= limit:
+            break
     return out
 
-def _query_pages(params: Dict[str, str]) -> Dict[str, Dict[str, object]]:
-    r = SESSION.get(API, params=params, timeout=TIMEOUT)
-    r.raise_for_status()
-    data = r.json()
-    return (data.get("query") or {}).get("pages") or {}
+# --------------- main API -------------------
 
-def search_images(word: str, limit: int = 3, *, source_word: Optional[str] = None) -> List[Dict[str, str]]:
+def search_images(
+    word: str,
+    limit: int = 3,
+    *,
+    source_word: Optional[str] = None,     # gloss like "fish"
+    context_hint: Optional[str] = None,    # list title: "Animals", "School subjects", "Family members", ...
+    allow_people: Optional[bool] = None,   # override people filter per-call
+) -> List[Dict[str, str]]:
     """
-    Return up to `limit` candidate images for a concept, steering away from people/portraits.
-    `source_word` is an English (or class source-language) gloss like "bird".
+    Return up to `limit` candidate images using:
+    - positive bias from `source_word` (gloss) and `context_hint`,
+    - negative filters for icons/heraldry/statues/etc,
+    - optional people filtering (skipped if allow_people or context suggests people),
+    - optional animal preference when context suggests animals.
     """
-    if not word: return []
+    if not word:
+        return []
     limit = max(int(limit), 1)
 
-    # Build a richer search string: target word + gloss + negative terms
-    negatives = "-portrait -person -headshot -self-portrait -human"
+    # context classification
+    ctx = _classify_context(context_hint)
+    prefer_animals = ctx["prefer_animals"]
+    prefer_people  = ctx["prefer_people"]
+
+    # allow_people final decision
+    allow_people = bool(allow_people) or prefer_people
+
     gloss = (source_word or "").strip()
-    base_query = f'{word} {gloss} {negatives}'.strip()
+
+    # Build CirrusSearch query: prefer bitmaps/photos; include gloss; push away junk.
+    negatives_common = "-icon -svg -heraldry -coat -arms -map -diagram -clipart -pictogram -statue -sculpture -toy -logo"
+    negatives_people = "" if allow_people else " -portrait -person -headshot -self-portrait -human"
+    incat = ' incategory:"Animals"' if prefer_animals else ""
+    positive_terms = f"{word} {gloss}".strip()
+    base_query = f'filetype:bitmap {positive_terms} {negatives_common}{negatives_people}{incat}'.strip()
 
     try:
-        # Primary: generator=search on File namespace with combined terms
+        # Primary: generator=search with categories + imageinfo
         params = {
-            "action": "query",
-            "format": "json",
-            "prop": "imageinfo",
-            "generator": "search",
-            "gsrsearch": base_query,
-            "gsrnamespace": 6,
-            "gsrlimit": max(limit * 4, limit),
-            "iiprop": "url|extmetadata",
-            "iiurlwidth": 512,
-            "redirects": 1,
-        }
-        pages = _query_pages(params)
-        results = _extract_from_pages(pages if isinstance(pages, dict) else {}, limit)
-        if results:
-            return results
-
-        # Fallback A: search by gloss only (e.g., "bird -portrait ...")
-        if gloss:
-            params["gsrsearch"] = f"{gloss} {negatives}"
-            pages = _query_pages(params)
-            results = _extract_from_pages(pages if isinstance(pages, dict) else {}, limit)
-            if results:
-                return results
-
-        # Fallback B: title search -> resolve
-        s_params = {
-            "action": "query",
-            "format": "json",
-            "list": "search",
-            "srsearch": base_query,
-            "srnamespace": 6,
-            "srlimit": max(limit * 6, limit),
-            "srinfo": "totalhits",
-        }
-        s = SESSION.get(API, params=s_params, timeout=TIMEOUT)
-        s.raise_for_status()
-        hits = (s.json().get("query") or {}).get("search") or []
-        titles = [h.get("title") for h in hits if isinstance(h, dict) and h.get("title")]
-        if not titles:
-            return []
-
-        q_params = {
-            "action": "query",
-            "format": "json",
-            "prop": "imageinfo",
-            "titles": "|".join(titles[:50]),
-            "iiprop": "url|extmetadata",
-            "iiurlwidth": 512,
-            "redirects": 1,
-        }
-        pages = _query_pages(q_params)
-        return _extract_from_pages(pages if isinstance(pages, dict) else {}, limit)
-
-    except Exception as e:
-        logger.warning("Wikimedia search failed for %r: %s", word, e)
-        return []
+            "ac
