@@ -4,7 +4,7 @@ from __future__ import annotations
 import logging
 import os
 import re
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, Iterable, List, Optional, Set, Tuple
 
 import requests
 
@@ -200,10 +200,12 @@ def _extract_ranked(
     profile: str,
     allow_people: bool,
     keywords: Tuple[str, ...],
+    exclude: Optional[Set[str]] = None,
     dbg: Dict[str, int] | None = None,
 ) -> List[Dict[str, str]]:
     candidates = []
     seen_urls: set[str] = set()
+    excluded = {url.strip() for url in (exclude or set()) if url}
 
     for page in (pages or {}).values():
         if not isinstance(page, dict):
@@ -217,7 +219,7 @@ def _extract_ranked(
         info = infos[0] if isinstance(infos[0], dict) else {}
         url  = info.get("url")
         mime = info.get("mime", "")
-        if not url or url in seen_urls:
+        if not url or url in seen_urls or (excluded and url in excluded):
             if dbg is not None: dbg["missing_or_dup_url"] = dbg.get("missing_or_dup_url", 0) + 1
             continue
 
@@ -270,7 +272,13 @@ def _extract_ranked(
 
 # ---------- Pixabay fallback ----------
 
-def _pixabay_search(query: str, limit: int, *, profile: str) -> List[Dict[str, str]]:
+def _pixabay_search(
+    query: str,
+    limit: int,
+    *,
+    profile: str,
+    exclude: Optional[Set[str]] = None,
+) -> List[Dict[str, str]]:
     if not PIXABAY_KEY:
         return []
 
@@ -282,7 +290,7 @@ def _pixabay_search(query: str, limit: int, *, profile: str) -> List[Dict[str, s
         "image_type": "photo",
         "safesearch": "true",
         "orientation": "horizontal",
-        "per_page": max(10, limit * 3),
+        "per_page": max(10, limit * 3 + len(exclude or set())),
         "order": "popular",
     }
     if category:
@@ -298,9 +306,11 @@ def _pixabay_search(query: str, limit: int, *, profile: str) -> List[Dict[str, s
 
     hits = data.get("hits") or []
     out: List[Dict[str, str]] = []
+    excluded = {url.strip() for url in (exclude or set()) if url}
+
     for h in hits:
         url = h.get("largeImageURL") or h.get("webformatURL")
-        if not url:
+        if not url or (excluded and url in excluded):
             continue
         out.append({
             "url": url,
@@ -323,6 +333,7 @@ def search_images(
     source_word: Optional[str] = None,     # gloss like "fish"
     context_hint: Optional[str] = None,    # e.g. "Animals", "Transport", "Food", "People", ...
     allow_people: Optional[bool] = None,   # override people filter per-call
+    exclude_urls: Optional[Iterable[str]] = None,  # URLs to omit from results
     return_debug: bool = False,            # when True, return {"images":[...], "debug":{...}}
 ) -> List[Dict[str, str]] | Dict[str, object]:
     """
@@ -354,6 +365,24 @@ def search_images(
 
     dbg: Dict[str, int] = {} if return_debug else None
 
+    seen_urls: Set[str] = {
+        str(url).strip()
+        for url in (exclude_urls or [])
+        if isinstance(url, str) and url and str(url).strip()
+    }
+    initial_excluded = len(seen_urls)
+    images: List[Dict[str, str]] = []
+
+    def _collect(candidates: Iterable[Dict[str, str]]) -> None:
+        for img in candidates:
+            url = (img.get("url") or "").strip()
+            if not url or url in seen_urls:
+                continue
+            seen_urls.add(url)
+            images.append(img)
+            if len(images) >= limit:
+                break
+
     try:
         params = {
             "action": "query",
@@ -362,7 +391,7 @@ def search_images(
             "generator": "search",
             "gsrsearch": base_query,
             "gsrnamespace": 6,
-            "gsrlimit": max(limit * 20, 50),
+            "gsrlimit": max(limit * 20, 50) + len(seen_urls) * 5,
             "iiprop": "url|mime|extmetadata",
             "iiurlwidth": 512,
             "redirects": 1,
@@ -371,37 +400,74 @@ def search_images(
         }
         data = _query(params)
         pages = (data.get("query") or {}).get("pages") or {}
-        results = _extract_ranked(
+
+        if not pages:
+            search_fallback = {
+                "action": "query",
+                "format": "json",
+                "list": "search",
+                "srsearch": base_query,
+                "srnamespace": 6,
+                "srlimit": max(limit * 10, 40),
+            }
+            search_data = _query(search_fallback)
+            search_hits = (search_data.get("query") or {}).get("search") or []
+            titles = [
+                hit.get("title")
+                for hit in search_hits
+                if isinstance(hit, dict) and isinstance(hit.get("title"), str)
+            ]
+            if titles:
+                detail_params = {
+                    "action": "query",
+                    "format": "json",
+                    "prop": "imageinfo|categories",
+                    "titles": "|".join(titles[: max(limit * 10, 50)]),
+                    "iiprop": "url|mime|extmetadata",
+                    "iiurlwidth": 512,
+                    "redirects": 1,
+                    "clshow": "!hidden",
+                    "cllimit": 50,
+                }
+                data = _query(detail_params)
+                pages = (data.get("query") or {}).get("pages") or {}
+        primary = _extract_ranked(
             pages if isinstance(pages, dict) else {},
-            limit,
+            limit + len(seen_urls),
             profile=profile,
             allow_people=allow_people_final,
             keywords=keywords,
+            exclude=seen_urls,
             dbg=dbg,
         )
+        _collect(primary)
 
         # Try again with just gloss if weak.
-        if len(results) < limit and gloss:
+        if len(images) < limit and gloss:
             params["gsrsearch"] = f'filetype:bitmap intitle:{gloss} {negatives_common}{negatives_people}{incat}'.strip()
             data = _query(params)
             pages = (data.get("query") or {}).get("pages") or {}
             extra = _extract_ranked(
                 pages if isinstance(pages, dict) else {},
-                limit - len(results),
+                limit + len(seen_urls) - len(images),
                 profile=profile,
                 allow_people=allow_people_final,
                 keywords=keywords,
+                exclude=seen_urls,
                 dbg=dbg,
             )
-            results.extend(extra)
+            _collect(extra)
 
-        # Pixabay fallback if still short
-        if len(results) < limit:
+        pixabay_added = 0
+        if len(images) < limit:
             pixabay_q = gloss or word
-            pix = _pixabay_search(pixabay_q, limit - len(results), profile=profile)
-            results.extend(pix)
+            need = limit - len(images)
+            before = len(images)
+            pix = _pixabay_search(pixabay_q, need, profile=profile, exclude=seen_urls)
+            _collect(pix)
+            pixabay_added = max(0, len(images) - before)
 
-        images = results[:limit]
+        images = images[:limit]
         if return_debug:
             dbg_out = {
                 "profile": profile,
@@ -409,13 +475,22 @@ def search_images(
                 "commons_query": base_query,
                 "commons_returned": len((data or {}).get("query", {}).get("pages", {}) if isinstance(data, dict) else {}),
                 "drop_reasons": dbg,
-                "pixabay_used": max(0, limit - len(results)),
+                "pixabay_used": pixabay_added,
+                "initial_excluded": initial_excluded,
             }
             return {"images": images, "debug": dbg_out}
         return images
     except Exception as e:
         logger.warning("Image search failed for %r: %s", word, e)
-        fb = _pixabay_search(gloss or word, limit, profile=profile)
+        fb = _pixabay_search(gloss or word, limit, profile=profile, exclude=seen_urls)
         if return_debug:
-            return {"images": fb[:limit], "debug": {"exception": str(e), "fallback": "pixabay", "profile": profile}}
+            return {
+                "images": fb[:limit],
+                "debug": {
+                    "exception": str(e),
+                    "fallback": "pixabay",
+                    "profile": profile,
+                    "initial_excluded": initial_excluded,
+                },
+            }
         return fb[:limit]

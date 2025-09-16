@@ -7,6 +7,8 @@ import logging
 import os
 import time
 
+from django.utils.translation import get_language_info
+
 from .gemini_facts import get_fact
 from .wikimedia_images import search_images
 
@@ -19,11 +21,35 @@ IMG_LIMIT = int(os.getenv("ENRICH_IMG_LIMIT", "3"))
 
 _FACT_TYPES = {"etymology", "idiom", "trivia"}
 
-def _safe_images(word: str) -> List[Dict[str, str]]:
+
+def _language_label(code: Optional[str]) -> str:
+    if not code:
+        return ""
     try:
-        return search_images(word, limit=IMG_LIMIT)
+        info = get_language_info(code)
+    except Exception:
+        info = None
+    if not info:
+        return code or ""
+    return info.get("name_local") or info.get("name") or (code or "")
+
+def _safe_images(payload: Any) -> List[Dict[str, str]]:
+    try:
+        if isinstance(payload, dict):
+            query = payload.get("query") or ""
+            exclude = payload.get("exclude") or []
+        else:
+            query = str(payload or "")
+            exclude = []
+        cleaned_exclude = [
+            str(url).strip()
+            for url in (exclude or [])
+            if isinstance(url, str) and url and str(url).strip()
+        ]
+        return search_images(query, limit=IMG_LIMIT, exclude_urls=cleaned_exclude)
     except Exception as e:
-        logger.warning("image search failed for %r: %s", word, e)
+        query = payload.get("query") if isinstance(payload, dict) else payload
+        logger.warning("image search failed for %r: %s", query, e)
         return []
 
 def _safe_fact(payload: Dict[str, Any]) -> Dict[str, Any]:
@@ -35,13 +61,49 @@ def _safe_fact(payload: Dict[str, Any]) -> Dict[str, Any]:
             and not (result.get("text") or "").strip()
         ):
             return {"text": "No idiom available.", "type": "idiom", "confidence": 0.0}
+        text = (result.get("text") or "").strip()
+        if not text:
+            return _fallback_fact(payload)
+        result["text"] = text
+        rtype = (result.get("type") or "").strip().lower()
+        if rtype not in _FACT_TYPES:
+            result["type"] = preferred if preferred in _FACT_TYPES and preferred != "idiom" else "trivia"
+        if "confidence" not in result or not isinstance(result.get("confidence"), (int, float)):
+            result["confidence"] = 0.0
         return result
     except Exception as e:
         logger.warning("fact generation failed for %r: %s", payload.get("word"), e)
         preferred = payload.get("preferred_type")
         fallback = preferred if preferred in _FACT_TYPES else "trivia"
-        text = "No idiom available." if fallback == "idiom" else ""
-        return {"text": text, "type": fallback, "confidence": 0.0}
+        if fallback == "idiom":
+            return {"text": "No idiom available.", "type": "idiom", "confidence": 0.0}
+        adjusted = dict(payload)
+        adjusted["preferred_type"] = fallback
+        return _fallback_fact(adjusted)
+
+
+def _fallback_fact(payload: Dict[str, Any]) -> Dict[str, Any]:
+    word = (payload.get("word") or "").strip()
+    translation = (payload.get("translation") or "").strip()
+    source_label = _language_label(payload.get("source_language")) or (
+        payload.get("source_language") or "the source language"
+    )
+    target_label = _language_label(payload.get("target_language")) or (
+        payload.get("target_language") or "the target language"
+    )
+    fact_type = payload.get("preferred_type")
+    if fact_type not in _FACT_TYPES or fact_type == "idiom":
+        fact_type = "trivia"
+    if translation:
+        text = f'In {target_label}, "{word}" means "{translation}" in {source_label}.'
+    elif word and target_label:
+        text = f'"{word}" is a useful {target_label} word to teach.'
+    else:
+        text = f'Add your own fun fact about "{word}".'
+    if len(text) > 220:
+        text = text[:220].rstrip()
+    return {"text": text, "type": fact_type, "confidence": 0.1}
+
 
 def _with_timeout(fn, arg, timeout: float):
     """Run fn(arg) with a hard timeout; return None on timeout/error."""
@@ -75,14 +137,25 @@ def enrich_one(
         return {}
     translation = (entry.get("translation") or "").strip()
     requested_type = _normalize_fact_type(entry.get("fact_type"))
-    fact_word = translation or w
-    source_term = w if translation else translation
+    fact_word = w
+    source_term = translation or None
 
     image_query = translation or w
+    exclude_images_raw = entry.get("exclude_images") or []
+    exclude_images = [
+        str(url).strip()
+        for url in exclude_images_raw
+        if isinstance(url, str) and url and str(url).strip()
+    ]
 
     # run images + fact in parallel, each time-boxed
     with ThreadPoolExecutor(max_workers=2) as ex:
-        fi = ex.submit(_with_timeout, _safe_images, image_query, PER_WORD_TIMEOUT)
+        fi = ex.submit(
+            _with_timeout,
+            _safe_images,
+            {"query": image_query, "exclude": exclude_images},
+            PER_WORD_TIMEOUT,
+        )
         ff = ex.submit(
             _with_timeout,
             _safe_fact,
@@ -117,11 +190,24 @@ def get_enrichments(
                 continue
             translation = (item.get("translation") or "").strip()
             fact_type = _normalize_fact_type(item.get("fact_type"))
-            clean.append({"word": word, "translation": translation, "fact_type": fact_type})
+            exclude_raw = item.get("exclude_images") or []
+            exclude_images = [
+                str(url).strip()
+                for url in exclude_raw
+                if isinstance(url, str) and url and str(url).strip()
+            ]
+            clean.append(
+                {
+                    "word": word,
+                    "translation": translation,
+                    "fact_type": fact_type,
+                    "exclude_images": exclude_images,
+                }
+            )
         elif isinstance(item, str):
             word = item.strip()
             if word:
-                clean.append({"word": word, "translation": "", "fact_type": None})
+                clean.append({"word": word, "translation": "", "fact_type": None, "exclude_images": []})
 
     if not clean:
         return []
