@@ -5,23 +5,13 @@ from typing import Any, Dict, List
 from rest_framework import permissions, serializers, status, views
 from rest_framework.response import Response
 
-from django.shortcuts import get_object_or_404
-
-from learning.models import VocabularyList, VocabularyWord
+from learning.models import VocabularyWord
 from learning.services.enrichment import get_enrichments
 
-class PreviewEntrySerializer(serializers.Serializer):
-    word = serializers.CharField(allow_blank=False, trim_whitespace=True, max_length=100)
-    translation = serializers.CharField(required=False, allow_blank=True, trim_whitespace=True, max_length=100)
-    fact_type = serializers.ChoiceField(choices=("etymology", "idiom", "trivia"), required=False)
-
-
 class PreviewRequestSerializer(serializers.Serializer):
-    list_id = serializers.IntegerField()
-    entries = serializers.ListField(
-        child=PreviewEntrySerializer(),
-        min_length=1,
-        max_length=200,
+    words = serializers.ListField(
+        child=serializers.CharField(allow_blank=False, trim_whitespace=True),
+        min_length=1, max_length=200
     )
 
 class ImagePayloadSerializer(serializers.Serializer):
@@ -53,16 +43,8 @@ class EnrichmentPreviewAPI(views.APIView):
     def post(self, request, *args, **kwargs):
         ser = PreviewRequestSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
-        list_id: int = ser.validated_data["list_id"]
-        entries: List[Dict[str, Any]] = ser.validated_data["entries"]
-
-        vocab_list = get_object_or_404(VocabularyList, id=list_id, teacher=request.user)
-
-        data = get_enrichments(
-            entries,
-            source_language=vocab_list.source_language,
-            target_language=vocab_list.target_language,
-        )
+        words: List[str] = ser.validated_data["words"]
+        data = get_enrichments(words)
         return Response(data, status=status.HTTP_200_OK)
 
 class EnrichmentConfirmAPI(views.APIView):
