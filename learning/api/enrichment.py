@@ -14,6 +14,12 @@ class PreviewEntrySerializer(serializers.Serializer):
     word = serializers.CharField(allow_blank=False, trim_whitespace=True, max_length=100)
     translation = serializers.CharField(required=False, allow_blank=True, trim_whitespace=True, max_length=100)
     fact_type = serializers.ChoiceField(choices=("etymology", "idiom", "trivia"), required=False)
+    exclude_images = serializers.ListField(
+        child=serializers.URLField(),
+        required=False,
+        allow_empty=True,
+        max_length=50,
+    )
 
 
 class PreviewRequestSerializer(serializers.Serializer):

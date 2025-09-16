@@ -12,6 +12,15 @@ function toPlainText(value?: string | null): string {
   return value.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 }
 
+function extractImageUrls(list?: ImageCandidate[] | null): string[] {
+  if (!Array.isArray(list)) {
+    return [];
+  }
+  return list
+    .map(img => (img?.url || "").toString().trim())
+    .filter((url): url is string => Boolean(url));
+}
+
 type ImageCandidate = {
   url: string;
   thumb?: string;
@@ -37,9 +46,16 @@ type WordEntry = {
   word: string;
   translation?: string;
   factType?: Fact["type"];
+  excludeImages?: string[];
 };
 
 type FactCache = Record<string, Partial<Record<Fact["type"], Fact>>>;
+
+type RefreshOptions = {
+  refreshImages?: boolean;
+  refreshFact?: boolean;
+  factType?: Fact["type"];
+};
 
 type Props = {
   entries: WordEntry[];
@@ -63,7 +79,9 @@ export default function BulkAddEnrichmentPreview({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [refreshingWord, setRefreshingWord] = useState<string | null>(null);
+  const [refreshingKind, setRefreshingKind] = useState<"images" | "fact" | "both" | null>(null);
   const [factCache, setFactCache] = useState<FactCache>({});
+  const [imageHistory, setImageHistory] = useState<Record<string, string[]>>({});
 
   const approveAllSelectedImages = useCallback(() => {
     setApproveImage(prev => {
@@ -101,13 +119,26 @@ export default function BulkAddEnrichmentPreview({
           }
           const translation = (item.translation || "").trim();
           const factType = item.factType;
+          const excludeImages = (item.excludeImages || [])
+            .map(url => (url || "").toString().trim())
+            .filter(url => Boolean(url));
           return {
             word,
             translation,
             fact_type: factType && ["etymology", "idiom", "trivia"].includes(factType) ? factType : undefined,
+            exclude_images: excludeImages.length ? excludeImages : undefined,
           };
         })
-        .filter((entry): entry is { word: string; translation: string; fact_type?: Fact["type"] } => Boolean(entry));
+        .filter(
+          (
+            entry,
+          ): entry is {
+            word: string;
+            translation: string;
+            fact_type?: Fact["type"];
+            exclude_images?: string[];
+          } => Boolean(entry)
+        );
 
       if (!payloadEntries.length) {
         return [];
@@ -158,9 +189,11 @@ export default function BulkAddEnrichmentPreview({
     const initSel: Record<string, ImageCandidate | null> = {};
     const initFact: Record<string, Fact> = {};
     const initCache: FactCache = {};
+    const initHistory: Record<string, string[]> = {};
 
     rowsData.forEach(item => {
-      initSel[item.word] = item.images[0] || null;
+      const images = Array.isArray(item.images) ? item.images : [];
+      initSel[item.word] = images[0] || null;
       initFact[item.word] = { ...item.fact };
       if (item.fact?.type) {
         initCache[item.word] = {
@@ -169,6 +202,7 @@ export default function BulkAddEnrichmentPreview({
       } else {
         initCache[item.word] = {};
       }
+      initHistory[item.word] = Array.from(new Set(extractImageUrls(images)));
     });
 
     setRows(rowsData);
@@ -177,45 +211,7 @@ export default function BulkAddEnrichmentPreview({
     setApproveImage({});
     setApproveFact({});
     setFactCache(initCache);
-  }, []);
-
-  const replaceRow = useCallback((word: string, updatedRow: Row) => {
-    const cleanedWord = word.trim();
-    const nextRow: Row = {
-      ...updatedRow,
-      word: cleanedWord,
-      images: Array.isArray(updatedRow.images) ? updatedRow.images : [],
-    };
-    const candidates = nextRow.images;
-
-    setRows(prev => {
-      const exists = prev.some(r => r.word === cleanedWord);
-      if (!exists) {
-        return [...prev, nextRow];
-      }
-      return prev.map(r => (r.word === cleanedWord ? nextRow : r));
-    });
-
-    setSelectedImage(prev => {
-      const next = { ...prev };
-      const previousChoice = prev[cleanedWord];
-      const match = candidates.find(img => previousChoice && previousChoice.url === img.url) || candidates[0] || null;
-      next[cleanedWord] = match;
-      return next;
-    });
-
-    setFactEdits(prev => ({ ...prev, [cleanedWord]: { ...nextRow.fact } }));
-    setApproveImage(prev => ({ ...prev, [cleanedWord]: false }));
-    setApproveFact(prev => ({ ...prev, [cleanedWord]: false }));
-    setFactCache(prev => {
-      const next = { ...prev };
-      const existing = { ...(next[cleanedWord] || {}) };
-      if (nextRow.fact?.type) {
-        existing[nextRow.fact.type] = { ...nextRow.fact };
-      }
-      next[cleanedWord] = existing;
-      return next;
-    });
+    setImageHistory(initHistory);
   }, []);
 
   useEffect(() => {
@@ -240,6 +236,7 @@ export default function BulkAddEnrichmentPreview({
         setApproveImage({});
         setApproveFact({});
         setFactCache({});
+        setImageHistory({});
         setError(err?.message || "Failed to load preview");
       } finally {
         if (active) {
@@ -254,7 +251,8 @@ export default function BulkAddEnrichmentPreview({
   }, [entries, fetchPreviewFor, applyInitialRows]);
 
   const refreshWord = useCallback(
-    async (word: string, factType?: Fact["type"]) => {
+    async (word: string, options: RefreshOptions = {}) => {
+      const { refreshImages = true, refreshFact = true, factType } = options;
       if (!word) {
         return;
       }
@@ -262,13 +260,24 @@ export default function BulkAddEnrichmentPreview({
       const existingRow = rows.find(item => item.word === word);
       const fallbackEntry = entries.find(item => item.word === word);
       const translation = existingRow?.translation || fallbackEntry?.translation || "";
+      const cleanedWord = word.trim();
+      const effectiveFactType = (factType || factEdits[word]?.type || existingRow?.fact.type || "trivia") as Fact["type"];
+      const knownExclusions = imageHistory[word] || [];
+      const excludeImages = refreshImages
+        ? Array.from(new Set([...knownExclusions, ...extractImageUrls(existingRow?.images)]))
+        : [];
 
       try {
         setError(null);
         setRefreshingWord(word);
-        const rowsData = await fetchPreviewFor([
-          { word, translation, factType },
-        ]);
+        setRefreshingKind(refreshImages && refreshFact ? "both" : refreshImages ? "images" : "fact");
+        const requestEntry: WordEntry = {
+          word,
+          translation,
+          factType: refreshFact ? effectiveFactType : undefined,
+          excludeImages: refreshImages ? excludeImages : undefined,
+        };
+        const rowsData = await fetchPreviewFor([requestEntry]);
         const normalized = word.trim().toLowerCase();
         const updatedRow =
           rowsData.find(item => item.word.trim().toLowerCase() === normalized) || rowsData[0] || null;
@@ -279,14 +288,79 @@ export default function BulkAddEnrichmentPreview({
           ...updatedRow,
           translation: updatedRow.translation || translation,
         };
-        replaceRow(word, patchedRow);
+
+        const patchedImages = Array.isArray(patchedRow.images) ? patchedRow.images : [];
+        const existingImages = Array.isArray(existingRow?.images) ? existingRow?.images ?? [] : [];
+        const nextImages = refreshImages ? patchedImages : existingImages.length ? existingImages : patchedImages;
+        const nextFact = refreshFact ? patchedRow.fact : existingRow?.fact || patchedRow.fact;
+        const resolvedFact: Fact = {
+          text: (nextFact?.text || "").trim(),
+          type: (nextFact?.type || effectiveFactType) as Fact["type"],
+          confidence:
+            typeof nextFact?.confidence === "number"
+              ? nextFact.confidence
+              : typeof existingRow?.fact?.confidence === "number"
+              ? existingRow.fact.confidence
+              : typeof patchedRow.fact?.confidence === "number"
+              ? patchedRow.fact.confidence
+              : 0,
+        };
+        const nextRow: Row = {
+          word: cleanedWord,
+          translation: patchedRow.translation || "",
+          images: nextImages,
+          fact: resolvedFact,
+        };
+
+        setRows(prev => {
+          const exists = prev.some(r => r.word === cleanedWord);
+          if (!exists) {
+            return [...prev, nextRow];
+          }
+          return prev.map(r => (r.word === cleanedWord ? nextRow : r));
+        });
+
+        if (refreshImages) {
+          const candidates = Array.isArray(nextImages) ? nextImages : [];
+          setSelectedImage(prev => ({
+            ...prev,
+            [cleanedWord]: candidates[0] || null,
+          }));
+          setApproveImage(prev => ({ ...prev, [cleanedWord]: false }));
+          setImageHistory(prev => {
+            const next = { ...prev };
+            const existing = Array.isArray(prev[cleanedWord]) ? prev[cleanedWord] : [];
+            const merged = Array.from(new Set([...existing, ...excludeImages, ...extractImageUrls(candidates)]));
+            next[cleanedWord] = merged;
+            return next;
+          });
+        }
+
+        if (refreshFact) {
+          const baseFact: Fact = { ...resolvedFact };
+          setFactEdits(prev => ({
+            ...prev,
+            [cleanedWord]: { ...baseFact },
+          }));
+          setApproveFact(prev => ({ ...prev, [cleanedWord]: false }));
+          setFactCache(prev => {
+            const next = { ...prev };
+            const existingCache = { ...(next[cleanedWord] || {}) };
+            if (baseFact?.type) {
+              existingCache[baseFact.type] = { ...baseFact };
+            }
+            next[cleanedWord] = existingCache;
+            return next;
+          });
+        }
       } catch (err: any) {
         setError(err?.message || "Failed to refresh suggestions");
       } finally {
         setRefreshingWord(null);
+        setRefreshingKind(null);
       }
     },
-    [entries, fetchPreviewFor, replaceRow, rows]
+    [entries, factEdits, fetchPreviewFor, imageHistory, rows]
   );
 
   const reloadAll = useCallback(async () => {
@@ -335,7 +409,7 @@ export default function BulkAddEnrichmentPreview({
         confidence: prev[word]?.confidence ?? row.fact.confidence,
       },
     }));
-    void refreshWord(word, currentType);
+    void refreshWord(word, { refreshImages: false, refreshFact: true, factType: currentType });
   };
 
   const clearImageSelection = (word: string) => {
@@ -364,7 +438,7 @@ export default function BulkAddEnrichmentPreview({
         setFactEdits(prev => ({ ...prev, [word]: { ...cached } }));
         return;
       }
-      void refreshWord(word, nextType);
+      void refreshWord(word, { refreshImages: false, refreshFact: true, factType: nextType });
     },
     [factCache, refreshWord, rows]
   );
@@ -472,6 +546,7 @@ export default function BulkAddEnrichmentPreview({
               : null;
           const canApproveFact = factValue.trim().length > 0;
           const isRefreshing = refreshingWord === row.word;
+          const refreshingMode = isRefreshing ? refreshingKind : null;
           const primaryWord = row.translation || row.word;
           const secondaryWord = row.translation ? row.word : "";
 
@@ -486,18 +561,26 @@ export default function BulkAddEnrichmentPreview({
                   <button
                     type="button"
                     className="enrichment-button enrichment-button--ghost"
-                    onClick={() => refreshWord(row.word, factType)}
+                    onClick={() => refreshWord(row.word, { refreshImages: true, refreshFact: false })}
                     disabled={isRefreshing || disableGlobalActions}
                   >
-                    {isRefreshing ? "Refreshing…" : "New suggestions"}
+                    {isRefreshing
+                      ? refreshingMode === "images"
+                        ? "Refreshing images…"
+                        : "Refreshing…"
+                      : "New image suggestions"}
                   </button>
                   <button
                     type="button"
-                    className="enrichment-button enrichment-button--text"
-                    onClick={() => resetFactToSuggestion(row.word)}
-                    disabled={isRefreshing}
+                    className="enrichment-button enrichment-button--ghost"
+                    onClick={() => refreshWord(row.word, { refreshImages: false, refreshFact: true, factType })}
+                    disabled={isRefreshing || disableGlobalActions}
                   >
-                    Reset fact text
+                    {isRefreshing
+                      ? refreshingMode === "fact"
+                        ? "Refreshing fact…"
+                        : "Refreshing…"
+                      : "New fact suggestion"}
                   </button>
                 </div>
               </div>
@@ -585,13 +668,21 @@ export default function BulkAddEnrichmentPreview({
                     }
                     disabled={isRefreshing}
                   />
-                  <div className="enrichment-fact-footer">
-                    <span>{factValue.length}/220 characters</span>
-                    <select
-                      value={factType}
-                      onChange={e => handleFactTypeChange(row.word, e.target.value as Fact["type"])}
-                      disabled={isRefreshing || disableGlobalActions}
-                    >
+                <div className="enrichment-fact-footer">
+                  <span>{factValue.length}/220 characters</span>
+                  <button
+                    type="button"
+                    className="enrichment-button enrichment-button--ghost"
+                    onClick={() => resetFactToSuggestion(row.word)}
+                    disabled={isRefreshing}
+                  >
+                    Reset fact text
+                  </button>
+                  <select
+                    value={factType}
+                    onChange={e => handleFactTypeChange(row.word, e.target.value as Fact["type"])}
+                    disabled={isRefreshing || disableGlobalActions}
+                  >
                       <option value="etymology">etymology</option>
                       <option value="idiom">idiom</option>
                       <option value="trivia">trivia</option>
