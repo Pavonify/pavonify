@@ -21,6 +21,7 @@ class FactResult(TypedDict):
 
 _VALID_TYPES = {"etymology", "idiom", "trivia"}
 
+# NOTE: double the JSON braces so .format() only substitutes {word}
 _PROMPT_TEMPLATE = """You are a concise linguistics assistant.
 
 TASK: Generate EXACTLY ONE short, interesting “word fact” for the target word.
@@ -30,30 +31,56 @@ CONSTRAINTS:
 - Choose ONE category: etymology | idiom | trivia (lowercase).
 - Prefer idioms or etymology when reliable; use trivia only if no idiom or origin insight exists.
 - Output MUST be valid JSON (no preamble, no code fences):
-  {"text":"...", "type":"etymology"}
+  {{"text":"...", "type":"etymology"}}
 
 TARGET WORD: "{word}"
 
 If you cannot find a reliable fact, reply with:
-{"text":"", "type":"trivia"}
+{{"text":"", "type":"trivia"}}
 """
 
 def _extract_json(payload: str) -> Dict[str, Any]:
     """
-    Best-effort JSON extractor:
-    - If the model returns extra prose or code fences, pull out the JSON object.
+    Best-effort JSON extractor that tolerates prose and code fences.
+    1) Try direct loads.
+    2) Strip markdown fences.
+    3) Scan for the first balanced {...} block.
     """
-    payload = payload.strip()
-    # Fast path
+    s = (payload or "").strip()
+
+    # 1) Fast path
     try:
-        return json.loads(payload)
+        return json.loads(s)
     except Exception:
         pass
 
-    match = re.search(r"\{(?:[^{}]|(?R))*\}", payload, re.DOTALL)
-    if not match:
-        raise ValueError("No JSON object found in model output.")
-    return json.loads(match.group(0))
+    # 2) Strip common code fences if present
+    if s.startswith("```"):
+        s = re.sub(r"^```[a-zA-Z0-9_-]*\s*|\s*```$", "", s, flags=re.DOTALL).strip()
+        try:
+            return json.loads(s)
+        except Exception:
+            pass
+
+    # 3) Find first balanced JSON object
+    start = s.find("{")
+    while start != -1:
+        depth = 0
+        for i in range(start, len(s)):
+            ch = s[i]
+            if ch == "{":
+                depth += 1
+            elif ch == "}":
+                depth -= 1
+                if depth == 0:
+                    candidate = s[start:i+1]
+                    try:
+                        return json.loads(candidate)
+                    except Exception:
+                        break
+        start = s.find("{", start + 1)
+
+    raise ValueError("No valid JSON object found in model output.")
 
 def _coerce_result(obj: Dict[str, Any]) -> FactResult:
     text = (obj.get("text") or "").strip()
@@ -63,11 +90,12 @@ def _coerce_result(obj: Dict[str, Any]) -> FactResult:
         return {"text": "", "type": "trivia", "confidence": 0.0}
     if len(text) > 220:
         text = text[:220].rstrip()
+
     if ftype not in _VALID_TYPES:
         lowered = text.lower()
-        if any(keyword in lowered for keyword in ("idiom", "phrase", "expression")):
+        if any(k in lowered for k in ("idiom", "phrase", "expression")):
             ftype = "idiom"
-        elif any(keyword in lowered for keyword in ("origin", "from ", "latin", "greek", "old", "proto-")):
+        elif any(k in lowered for k in ("origin", "from ", "latin", "greek", "old ", "proto-")):
             ftype = "etymology"
         else:
             ftype = "trivia"
@@ -95,26 +123,34 @@ def get_fact(word: str, *, model_id: Optional[str] = None) -> FactResult:
     try:
         genai.configure(api_key=api_key)
         model_name = model_id or getattr(settings, "GEMINI_MODEL_ID", "gemini-1.5-flash")
-        model = genai.GenerativeModel(model_name)
-        prompt = _PROMPT_TEMPLATE.format(word=word)
+        model = genai.GenerativeModel(
+            model_name,
+            generation_config={"temperature": 0.6, "max_output_tokens": 120},
+            safety_settings={
+                "HARASSMENT": "BLOCK_NONE",
+                "HATE_SPEECH": "BLOCK_NONE",
+                "SEXUAL": "BLOCK_NONE",
+                "DANGEROUS": "BLOCK_NONE",
+            },
+        )
 
+        prompt = _PROMPT_TEMPLATE.format(word=word)
         resp = model.generate_content(prompt)
-        # Handle different SDK shapes (text or parts)
-        if hasattr(resp, "text") and resp.text:
-            raw = resp.text
-        else:
-            # Fallback: concatenate parts if needed
-            raw = ""
-            try:
-                for cand in getattr(resp, "candidates", []) or []:
-                    for part in getattr(cand, "content", {}).get("parts", []) or []:
-                        raw += str(getattr(part, "text", part))
-            except Exception:
-                pass
+
+        raw = getattr(resp, "text", "") or ""
+        if not raw and getattr(resp, "candidates", None):
+            for cand in resp.candidates or []:
+                parts = getattr(getattr(cand, "content", None), "parts", None) or []
+                for p in parts:
+                    raw += str(getattr(p, "text", "") or "")
+
+        if not raw:
+            logger.warning("Gemini returned empty text for '%s'", word)
+            return {"text": "", "type": "trivia", "confidence": 0.0}
 
         data = _extract_json(raw)
-        result = _coerce_result(data)
-        return result
+        return _coerce_result(data)
+
     except Exception as e:
         logger.exception("Gemini fact generation failed for '%s': %s", word, e)
         return {"text": "", "type": "trivia", "confidence": 0.0}
