@@ -1,3 +1,5 @@
+{% load static %}
+
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Fredoka+One&display=swap');
     h1 { font-family: 'Fredoka One', cursive; }
@@ -93,6 +95,32 @@
     background-color: #d4204c;
   }
 
+  .form-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 25px;
+  }
+
+  .form-actions button[type="submit"] {
+    margin-top: 0;
+  }
+
+  .preview-btn {
+    background-color: #0aa2ef;
+    color: #fff;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+
+  .preview-btn:hover {
+    background-color: #087bb8;
+  }
+
   /* Back Link */
   .back-link {
     display: inline-block;
@@ -107,6 +135,384 @@
   .back-link:hover {
     background-color: #d4204c;
   }
+
+  .hidden {
+    display: none !important;
+  }
+
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.45);
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 40px 20px;
+    z-index: 1050;
+    overflow-y: auto;
+  }
+
+  .modal-content {
+    background: #fff;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 900px;
+    box-shadow: 0 15px 40px rgba(15, 23, 42, 0.2);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .modal-header {
+    display: flex;
+    justify-content: flex-end;
+    padding: 10px 16px;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #334155;
+    line-height: 1;
+  }
+
+  .modal-close:hover {
+    color: #0f172a;
+  }
+
+  .modal-body {
+    padding: 0;
+    max-height: calc(90vh - 56px);
+    overflow-y: auto;
+  }
+
+  body.modal-open {
+    overflow: hidden;
+  }
+
+  .enrichment-preview {
+    padding: 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    background: linear-gradient(145deg, #f8fbff 0%, #eef4ff 100%);
+  }
+
+  .enrichment-preview h2 {
+    margin: 0;
+    font-size: 26px;
+    color: #0f172a;
+  }
+
+  .enrichment-preview p {
+    margin: 4px 0 0;
+    font-size: 14px;
+    color: #475569;
+  }
+
+  .enrichment-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .enrichment-alert {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #b91c1c;
+    padding: 14px 16px;
+    border-radius: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .enrichment-loading,
+  .enrichment-empty-state {
+    padding: 48px 24px;
+    text-align: center;
+    font-size: 16px;
+    color: #475569;
+  }
+
+  .enrichment-card {
+    background: #ffffff;
+    border: 1px solid #d7e4ff;
+    border-radius: 16px;
+    padding: 22px;
+    box-shadow: 0 18px 42px rgba(15, 23, 42, 0.12);
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .enrichment-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .enrichment-card-title {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 600;
+    color: #0f172a;
+  }
+
+  .enrichment-card-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .enrichment-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .enrichment-images,
+  .enrichment-fact {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  @media (min-width: 768px) {
+    .enrichment-grid {
+      flex-direction: row;
+      align-items: flex-start;
+    }
+    .enrichment-images {
+      flex: 0 0 300px;
+    }
+    .enrichment-fact {
+      flex: 1;
+    }
+  }
+
+  .enrichment-label {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #64748b;
+    margin-bottom: 6px;
+  }
+
+  .enrichment-selected-image {
+    border-radius: 14px;
+    overflow: hidden;
+    position: relative;
+    min-height: 200px;
+    background: linear-gradient(120deg, #e2e8f0, #f8fafc);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .enrichment-selected-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .enrichment-image-meta {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 12px 16px;
+    background: rgba(15, 23, 42, 0.75);
+    color: #f8fafc;
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
+  .enrichment-thumb-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 12px;
+  }
+
+  .enrichment-thumb {
+    border: 1px solid #cbd5f5;
+    border-radius: 12px;
+    padding: 4px;
+    background: #f8fafc;
+    cursor: pointer;
+    transition: transform 0.16s ease, box-shadow 0.16s ease;
+  }
+
+  .enrichment-thumb img {
+    display: block;
+    width: 70px;
+    height: 70px;
+    object-fit: cover;
+    border-radius: 10px;
+  }
+
+  .enrichment-thumb:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 18px rgba(15, 23, 42, 0.18);
+  }
+
+  .enrichment-thumb.is-selected {
+    border-color: #0aa2ef;
+    box-shadow: 0 0 0 3px rgba(10, 162, 239, 0.28);
+  }
+
+  .enrichment-empty {
+    font-size: 13px;
+    color: #64748b;
+    background: #f1f5f9;
+    border-radius: 12px;
+    padding: 14px;
+  }
+
+  .enrichment-fact-text {
+    width: 100%;
+    min-height: 140px;
+    padding: 14px;
+    border-radius: 14px;
+    border: 1px solid #cbd5f5;
+    font-size: 15px;
+    line-height: 1.5;
+    resize: vertical;
+  }
+
+  .enrichment-fact-meta {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    font-size: 12px;
+    color: #475569;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+  }
+
+  .enrichment-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 5px 12px;
+    border-radius: 999px;
+    font-weight: 600;
+    background: #e0f2fe;
+    color: #0369a1;
+    text-transform: capitalize;
+  }
+
+  .enrichment-badge[data-type="idiom"] {
+    background: #fef3c7;
+    color: #92400e;
+  }
+
+  .enrichment-badge[data-type="trivia"] {
+    background: #ede9fe;
+    color: #5b21b6;
+  }
+
+  .enrichment-fact-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 8px 0 0;
+    font-size: 12px;
+    color: #64748b;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .enrichment-fact-footer select {
+    padding: 6px 10px;
+    border-radius: 999px;
+    border: 1px solid #cbd5f5;
+    background: #f8fafc;
+    font-size: 12px;
+    color: #0f172a;
+  }
+
+  .enrichment-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 12px;
+    font-size: 14px;
+    color: #334155;
+  }
+
+  .enrichment-checkbox input {
+    width: 18px;
+    height: 18px;
+  }
+
+  .enrichment-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+  }
+
+  .enrichment-button {
+    border: none;
+    border-radius: 999px;
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .enrichment-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+
+  .enrichment-button--primary {
+    background: linear-gradient(120deg, #ff2c61, #f97316);
+    color: #ffffff;
+    box-shadow: 0 12px 24px rgba(249, 115, 22, 0.28);
+  }
+
+  .enrichment-button--primary:not(:disabled):hover {
+    transform: translateY(-2px);
+  }
+
+  .enrichment-button--ghost {
+    background: #ffffff;
+    color: #0aa2ef;
+    border: 1px solid #0aa2ef;
+  }
+
+  .enrichment-button--ghost:not(:disabled):hover {
+    background: #e0f2fe;
+  }
+
+  .enrichment-button--text {
+    background: none;
+    color: #0aa2ef;
+    padding: 0;
+  }
+
+  .enrichment-button--text:not(:disabled):hover {
+    text-decoration: underline;
+  }
 </style>
 
 <div class="page-header">
@@ -117,7 +523,134 @@
   <form method="post">
     {% csrf_token %}
     {{ form.as_p }}
-    <button type="submit">Add Words</button>
+    <div class="form-actions">
+      <button type="button" id="preview-enrichment-button" class="preview-btn">Preview enrichments</button>
+      <button type="submit">Add Words</button>
+    </div>
   </form>
   <a href="{% url 'teacher_dashboard' %}" class="back-link">Back to Dashboard</a>
 </div>
+
+<div id="bulk-enrichment-modal" class="modal-backdrop hidden" data-list-id="{{ vocab_list.id }}">
+  <div class="modal-content" role="dialog" aria-modal="true">
+    <div class="modal-header">
+      <button type="button" class="modal-close" id="bulk-enrichment-close" aria-label="Close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div id="bulk-enrichment-root"></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone@7.23.9/babel.min.js"></script>
+<script type="text/babel" data-type="module" data-presets="env,react" src="{% static 'js/bulk_enrichment_preview.jsx' %}"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const previewButton = document.getElementById('preview-enrichment-button');
+    const modal = document.getElementById('bulk-enrichment-modal');
+    const closeButton = document.getElementById('bulk-enrichment-close');
+    const rootContainer = document.getElementById('bulk-enrichment-root');
+
+    if (!previewButton || !modal || !rootContainer) {
+      return;
+    }
+
+    const listIdValue = Number(modal.dataset.listId || '0');
+    const listId = Number.isNaN(listIdValue) ? 0 : listIdValue;
+    let root = null;
+    let confirmed = false;
+
+    function cleanupRoot() {
+      if (root) {
+        root.unmount();
+        root = null;
+      }
+      rootContainer.innerHTML = '';
+    }
+
+    function hideModal() {
+      cleanupRoot();
+      modal.classList.add('hidden');
+      document.body.classList.remove('modal-open');
+      if (confirmed) {
+        window.location.reload();
+      }
+    }
+
+    function ensureComponent(callback) {
+      if (window.Pavonify && window.Pavonify.BulkAddEnrichmentPreview && window.React && window.ReactDOM && ReactDOM.createRoot) {
+        callback(window.Pavonify.BulkAddEnrichmentPreview);
+      } else {
+        setTimeout(function () {
+          ensureComponent(callback);
+        }, 40);
+      }
+    }
+
+    function parseWords(value) {
+      return value
+        .split(/\r?\n/)
+        .map(function (line) { return line.trim(); })
+        .filter(Boolean)
+        .map(function (line) {
+          const parts = line.split(',');
+          return (parts[0] || '').trim();
+        })
+        .filter(Boolean);
+    }
+
+    previewButton.addEventListener('click', function () {
+      const textarea = document.querySelector('textarea[name="words"]');
+      if (!textarea) {
+        return;
+      }
+      const parsed = parseWords(textarea.value);
+      const uniqueWords = Array.from(new Set(parsed));
+      if (uniqueWords.length === 0) {
+        alert('Please add at least one word before previewing.');
+        return;
+      }
+      confirmed = false;
+      ensureComponent(function (Component) {
+        cleanupRoot();
+        const fetchWrapper = async function (input, init) {
+          const response = await fetch(input, init);
+          if (typeof input === 'string' && input.indexOf('/api/vocab/enrichment/confirm') !== -1 && response.ok) {
+            confirmed = true;
+          }
+          return response;
+        };
+        root = ReactDOM.createRoot(rootContainer);
+        root.render(
+          React.createElement(Component, {
+            words: uniqueWords,
+            listId: listId,
+            onClose: hideModal,
+            fetchImpl: fetchWrapper,
+          })
+        );
+        document.body.classList.add('modal-open');
+        modal.classList.remove('hidden');
+      });
+    });
+
+    closeButton.addEventListener('click', function (event) {
+      event.preventDefault();
+      hideModal();
+    });
+
+    modal.addEventListener('click', function (event) {
+      if (event.target === modal) {
+        hideModal();
+      }
+    });
+
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape' && !modal.classList.contains('hidden')) {
+        hideModal();
+      }
+    });
+  });
+</script>
