@@ -1,4 +1,5 @@
-
+{% extends "base.html" %}
+{% block title %}Game Overview – {{ game.vocabulary_list.name }} | Pavonify{% endblock %}
 {% block content %}
 <h1>Game Overview</h1>
 <p>Time Left: <span id="countdown">{{ game.end_time|timeuntil }}</span></p>

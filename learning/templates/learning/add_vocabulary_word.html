@@ -1,4 +1,10 @@
-<style>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Add Vocabulary Word – Pavonify</title>
+  <style>
     @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Fredoka+One&display=swap');
     h1 { font-family: 'Fredoka One', cursive; }
   /* Global Box-Sizing */
@@ -107,12 +113,15 @@
   .back-link:hover {
     background-color: #d4204c;
   }
-</style>
-
+  </style>
+</head>
+<body>
 <div class="page-header">
   <a href="{% url 'vocabulary_list' %}" class="back-btn">Back to List</a>
   <h1>Add Vocabulary Word</h1>
 </div>
+</body>
+</html>
 
 <div class="form-container">
   <form method="post">

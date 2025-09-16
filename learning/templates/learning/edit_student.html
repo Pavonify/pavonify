@@ -1,24 +1,35 @@
-<h1>Edit Student: {{ student.first_name }} {{ student.last_name }}</h1>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Edit Student – {{ student.first_name }} {{ student.last_name }}</title>
+</head>
+<body>
+  <h1>Edit Student: {{ student.first_name }} {{ student.last_name }}</h1>
 
-<form method="POST">
-    {% csrf_token %}
-    <label for="first_name">First Name:</label>
-    <input type="text" id="first_name" name="first_name" value="{{ student.first_name }}" required><br>
+  <form method="POST">
+      {% csrf_token %}
+      <label for="first_name">First Name:</label>
+      <input type="text" id="first_name" name="first_name" value="{{ student.first_name }}" required><br>
 
-    <label for="last_name">Last Name:</label>
-    <input type="text" id="last_name" name="last_name" value="{{ student.last_name }}" required><br>
+      <label for="last_name">Last Name:</label>
+      <input type="text" id="last_name" name="last_name" value="{{ student.last_name }}" required><br>
 
-    <label for="year_group">Year Group:</label>
-    <input type="text" id="year_group" name="year_group" value="{{ student.year_group }}" required><br>
+      <label for="year_group">Year Group:</label>
+      <input type="text" id="year_group" name="year_group" value="{{ student.year_group }}" required><br>
 
-    <label for="date_of_birth">Date of Birth:</label>
-    <input type="date" id="date_of_birth" name="date_of_birth" value="{{ student.date_of_birth|date:'Y-m-d' }}" required><br>
+      <label for="date_of_birth">Date of Birth:</label>
+      <input type="date" id="date_of_birth" name="date_of_birth" value="{{ student.date_of_birth|date:'Y-m-d' }}" required><br>
 
-    <button type="submit">Save Changes</button>
-</form>
+      <button type="submit">Save Changes</button>
+  </form>
 
-{% if student.classes.first %}
-    <a href="{% url 'edit_class' student.classes.first.id %}">Back to Class</a>
-{% else %}
-    <p>This student is not assigned to any class.</p>
-{% endif %}
+  {% if student.classes.first %}
+      <a href="{% url 'edit_class' student.classes.first.id %}">Back to Class</a>
+  {% else %}
+      <p>This student is not assigned to any class.</p>
+  {% endif %}
+  {% include 'messages.html' %}
+</body>
+</html>

@@ -1,28 +1,35 @@
-{% block content %}
-<h1>Share Class: {{ class_instance.name }}</h1>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Share Class – {{ class_instance.name }} | Pavonify</title>
+</head>
+<body>
+  <h1>Share Class: {{ class_instance.name }}</h1>
 
-<form method="POST" id="shareForm">
-    {% csrf_token %}
-    <label for="username">Enter Teacher's Username:</label>
-    <input type="text" name="username" id="username" required>
-    <button type="submit">Share</button>
-</form>
+  <form method="POST" id="shareForm">
+      {% csrf_token %}
+      <label for="username">Enter Teacher's Username:</label>
+      <input type="text" name="username" id="username" required>
+      <button type="submit">Share</button>
+  </form>
 
-<h2>Currently Shared With:</h2>
-<ul id="sharedWithList">
-    {% for teacher in class_instance.teachers.all %}
-        <li data-username="{{ teacher.username }}">
-            {{ teacher.username }}
-            <a href="{% url 'remove_teacher_from_class' class_instance.id teacher.id %}" class="remove-teacher">Remove</a>
-        </li>
-    {% empty %}
-        <li>No teachers currently associated with this class.</li>
-    {% endfor %}
-</ul>
+  <h2>Currently Shared With:</h2>
+  <ul id="sharedWithList">
+      {% for teacher in class_instance.teachers.all %}
+          <li data-username="{{ teacher.username }}">
+              {{ teacher.username }}
+              <a href="{% url 'remove_teacher_from_class' class_instance.id teacher.id %}" class="remove-teacher">Remove</a>
+          </li>
+      {% empty %}
+          <li>No teachers currently associated with this class.</li>
+      {% endfor %}
+  </ul>
 
-<a href="{% url 'teacher_dashboard' %}">Back to Dashboard</a>
+  <a href="{% url 'teacher_dashboard' %}">Back to Dashboard</a>
 
-<script>
+  <script>
     document.getElementById('shareForm').addEventListener('submit', function(event) {
         event.preventDefault(); // Prevent the form from being submitted immediately
 
@@ -46,5 +53,7 @@
             this.submit(); // Submit the form if confirmed
         }
     });
-</script>
-{% endblock %}
+  </script>
+  {% include 'messages.html' %}
+</body>
+</html>

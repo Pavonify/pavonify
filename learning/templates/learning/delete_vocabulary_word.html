@@ -1,7 +1,18 @@
-<h1>Delete Word</h1>
-<p>Are you sure you want to delete the word "{{ word.word }}"?</p>
-<form method="post">
-    {% csrf_token %}
-    <button type="submit">Yes, Delete</button>
-</form>
-<a href="{% url 'view_vocabulary_list' word.list.id %}">Cancel</a>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Delete "{{ word.word }}" – Pavonify</title>
+</head>
+<body>
+  <h1>Delete Word</h1>
+  <p>Are you sure you want to delete the word "{{ word.word }}"?</p>
+  <form method="post">
+      {% csrf_token %}
+      <button type="submit">Yes, Delete</button>
+  </form>
+  <a href="{% url 'view_vocabulary_list' word.list.id %}">Cancel</a>
+  {% include 'messages.html' %}
+</body>
+</html>
