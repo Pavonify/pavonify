@@ -22,16 +22,9 @@ class EnrichmentAPITests(TestCase):
         self.client.force_authenticate(user=self.teacher)
 
     def test_preview_returns_enrichment_payload(self) -> None:
-        vocab_list = VocabularyList.objects.create(
-            name="Test List",
-            source_language="en",
-            target_language="de",
-            teacher=self.teacher,
-        )
         payload = [
             {
                 "word": "apple",
-                "translation": "Apfel",
                 "images": [
                     {
                         "url": "https://example.com/apple.jpg",
@@ -47,24 +40,13 @@ class EnrichmentAPITests(TestCase):
         with mock.patch("learning.api.enrichment.get_enrichments", return_value=payload) as mocked:
             resp = self.client.post(
                 "/api/vocab/enrichment/preview",
-                {
-                    "list_id": vocab_list.id,
-                    "entries": [
-                        {"word": "apple", "translation": "Apfel"},
-                    ],
-                },
+                {"words": ["apple"]},
                 format="json",
             )
         self.assertEqual(resp.status_code, 200)
         data = resp.json()
         self.assertEqual(data, payload)
-        mocked.assert_called_once()
-        args, kwargs = mocked.call_args
-        self.assertEqual(args[0], [{"word": "apple", "translation": "Apfel"}])
-        self.assertEqual(
-            kwargs,
-            {"source_language": "en", "target_language": "de"},
-        )
+        mocked.assert_called_once_with(["apple"])
 
     def test_confirm_updates_vocabulary_word(self) -> None:
         vocab_list = VocabularyList.objects.create(
