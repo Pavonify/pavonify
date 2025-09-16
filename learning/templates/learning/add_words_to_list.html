@@ -590,15 +590,25 @@
     }
 
     function parseWords(value) {
-      return value
+      const seen = new Map();
+      value
         .split(/\r?\n/)
         .map(function (line) { return line.trim(); })
         .filter(Boolean)
-        .map(function (line) {
-          const parts = line.split(',');
-          return (parts[0] || '').trim();
-        })
-        .filter(Boolean);
+        .forEach(function (line) {
+          const parts = line.split(',', 2);
+          const word = (parts[0] || '').trim();
+          const translation = (parts[1] || '').trim();
+          if (!word) {
+            return;
+          }
+          if (!seen.has(word)) {
+            seen.set(word, { word: word, translation: translation });
+          } else if (translation && !seen.get(word).translation) {
+            seen.get(word).translation = translation;
+          }
+        });
+      return Array.from(seen.values());
     }
 
     previewButton.addEventListener('click', function () {
@@ -606,9 +616,8 @@
       if (!textarea) {
         return;
       }
-      const parsed = parseWords(textarea.value);
-      const uniqueWords = Array.from(new Set(parsed));
-      if (uniqueWords.length === 0) {
+      const entries = parseWords(textarea.value);
+      if (entries.length === 0) {
         alert('Please add at least one word before previewing.');
         return;
       }
@@ -625,7 +634,7 @@
         root = ReactDOM.createRoot(rootContainer);
         root.render(
           React.createElement(Component, {
-            words: uniqueWords,
+            entries: entries,
             listId: listId,
             onClose: hideModal,
             fetchImpl: fetchWrapper,
