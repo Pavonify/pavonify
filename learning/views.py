@@ -2609,6 +2609,34 @@ def update_points(request):
         return JsonResponse({"success": False, "error": str(e)})
 
 @student_login_required
+def mini_game_1(request, vocab_list_id):
+    vocab_list = get_object_or_404(VocabularyList, id=vocab_list_id)
+    student = get_object_or_404(Student, id=request.session.get("student_id"))
+
+    if not student.classes.filter(vocabulary_lists=vocab_list).exists():
+        return HttpResponseForbidden("You do not have access to this vocabulary list.")
+
+    words_objs = get_due_words(student, vocab_list, limit=30)
+    words = [
+        {"id": w.id, "word": w.word, "translation": w.translation}
+        for w in words_objs
+    ]
+
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return JsonResponse({"words": words})
+
+    return render(
+        request,
+        "learning/mini_game_1.html",
+        {
+            "vocab_list": vocab_list,
+            "words_json": json.dumps(words, cls=DjangoJSONEncoder),
+            "student": student,
+        },
+    )
+
+
+@student_login_required
 def destroy_the_wall(request, vocab_list_id):
     vocab_list = get_object_or_404(VocabularyList, id=vocab_list_id)
 

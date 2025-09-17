@@ -157,6 +157,22 @@
     .btn:active {
       transform: translateY(0);
     }
+
+    .practice-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    .mini-game-btn {
+      background: linear-gradient(135deg, #7b2cbf, #5a189a);
+      box-shadow: 0 4px 10px rgba(122, 44, 191, 0.25);
+    }
+
+    .mini-game-btn:hover {
+      background: linear-gradient(135deg, #5a189a, #3c096c);
+    }
     
     /* Points Overview */
     .points-container {
@@ -447,7 +463,10 @@
                 <span class="arrow" style="font-size: 20px; font-weight: bold;">➡️</span>
                 <img src="{% static 'flags/'|add:vocab_list.target_language|add:'.png' %}" alt="{{ vocab_list.target_language }}" class="flag-icon" style="width: 30px; height: 30px; border-radius: 50%; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);">
               </div>
-              <a href="{% url 'practice_session' vocab_list.id %}" class="btn mode-btn">Practice!</a>
+              <div class="practice-actions">
+                <a href="{% url 'practice_session' vocab_list.id %}" class="btn mode-btn">Practice!</a>
+                <a href="{% url 'mini_game_1' vocab_list.id %}" class="btn mini-game-btn">Mini-Game 1</a>
+              </div>
             </div>
           {% endfor %}
         </div>

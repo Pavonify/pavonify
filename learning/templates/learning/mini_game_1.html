@@ -1,0 +1,623 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Peacock Conveyor Sorter - Pavonify</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+
+    :root {
+      --peacock-primary: #5a189a;
+      --peacock-secondary: #7b2cbf;
+      --peacock-accent: #c77dff;
+      --peacock-highlight: #28a745;
+      --peacock-warning: #ff2c61;
+      --peacock-surface: #f3f5ff;
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      margin: 0;
+      background: var(--peacock-surface);
+      color: #2f2a4a;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+      padding: 40px 15px;
+    }
+
+    .pane {
+      background: #ffffff;
+      border-radius: 16px;
+      box-shadow: 0 15px 35px rgba(90, 24, 154, 0.15);
+      padding: 30px 24px 40px;
+      width: 100%;
+      max-width: 900px;
+      position: relative;
+      text-align: center;
+    }
+
+    .pane h1 {
+      margin: 0;
+      font-size: 32px;
+      color: var(--peacock-primary);
+    }
+
+    .list-name {
+      margin: 8px 0 20px;
+      color: #7d7a92;
+      font-weight: 600;
+      letter-spacing: 0.4px;
+    }
+
+    .instruction {
+      font-size: 17px;
+      margin-bottom: 25px;
+      color: #4f4a6b;
+    }
+
+    .back-button {
+      position: absolute;
+      left: 24px;
+      top: 24px;
+      background: #d0c4ff;
+      color: var(--peacock-primary);
+      padding: 8px 14px;
+      border-radius: 30px;
+      text-decoration: none;
+      font-weight: 600;
+      box-shadow: 0 4px 10px rgba(122, 44, 191, 0.18);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .back-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 18px rgba(122, 44, 191, 0.22);
+    }
+
+    .stats {
+      position: fixed;
+      top: 30px;
+      right: 30px;
+      background: #ffffff;
+      border-radius: 16px;
+      box-shadow: 0 12px 30px rgba(17, 12, 46, 0.15);
+      padding: 20px;
+      width: 240px;
+      z-index: 10;
+    }
+
+    .stats h3 {
+      margin-top: 0;
+      margin-bottom: 12px;
+      font-size: 18px;
+      color: var(--peacock-primary);
+    }
+
+    .stats p {
+      margin: 6px 0;
+      font-size: 14px;
+    }
+
+    .conveyor {
+      margin: 35px auto 25px;
+      padding: 18px;
+      background: linear-gradient(135deg, rgba(122, 44, 191, 0.08), rgba(90, 24, 154, 0.12));
+      border-radius: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .belt {
+      background: linear-gradient(90deg, rgba(255, 255, 255, 0.35) 0%, rgba(255, 255, 255, 0) 60%),
+                  linear-gradient(135deg, rgba(90, 24, 154, 0.15), rgba(122, 44, 191, 0.3));
+      border-radius: 14px;
+      height: 140px;
+      max-width: 640px;
+      margin: 0 auto;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .belt::before {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 0;
+      width: 100%;
+      height: 10px;
+      background: rgba(255, 255, 255, 0.55);
+      transform: translateY(-50%);
+      opacity: 0.65;
+    }
+
+    .card {
+      position: absolute;
+      top: 50%;
+      left: 0;
+      transform: translate(-200px, -50%);
+      background: linear-gradient(135deg, #7b2cbf, #5a189a);
+      color: #ffffff;
+      font-size: 24px;
+      font-weight: 700;
+      border-radius: 16px;
+      padding: 18px 26px;
+      box-shadow: 0 14px 28px rgba(90, 24, 154, 0.25);
+      min-width: 170px;
+      pointer-events: none;
+      transition: background 0.3s ease;
+    }
+
+    .card.success {
+      background: var(--peacock-highlight);
+      box-shadow: 0 14px 28px rgba(40, 167, 69, 0.35);
+    }
+
+    .card.fail {
+      background: var(--peacock-warning);
+      box-shadow: 0 14px 28px rgba(255, 44, 97, 0.35);
+    }
+
+    .bin-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 15px;
+      margin-top: 30px;
+    }
+
+    .bin {
+      border: none;
+      border-radius: 14px;
+      padding: 18px 14px;
+      font-size: 17px;
+      font-weight: 600;
+      color: #2f2a4a;
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(122, 44, 191, 0.12);
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.2s ease, background 0.2s ease;
+    }
+
+    .bin:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 16px 30px rgba(122, 44, 191, 0.18);
+    }
+
+    .bin.correct {
+      background: rgba(40, 167, 69, 0.18);
+      color: var(--peacock-highlight);
+      box-shadow: 0 14px 28px rgba(40, 167, 69, 0.25);
+    }
+
+    .bin.incorrect {
+      background: rgba(255, 44, 97, 0.15);
+      color: var(--peacock-warning);
+      box-shadow: 0 14px 28px rgba(255, 44, 97, 0.22);
+    }
+
+    .bin:disabled {
+      cursor: not-allowed;
+      opacity: 0.7;
+      transform: none;
+      box-shadow: 0 10px 22px rgba(122, 44, 191, 0.1);
+    }
+
+    .status-bar {
+      margin-top: 28px;
+      text-align: center;
+    }
+
+    .feedback {
+      min-height: 28px;
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--peacock-primary);
+      margin-bottom: 12px;
+    }
+
+    .summary {
+      display: inline-flex;
+      gap: 20px;
+      font-weight: 600;
+      color: #4f4a6b;
+    }
+
+    .summary span strong {
+      color: var(--peacock-primary);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 18px;
+      border-radius: 28px;
+      border: none;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: #ffffff;
+      background: linear-gradient(135deg, #7b2cbf, #5a189a);
+      cursor: pointer;
+      box-shadow: 0 10px 20px rgba(122, 44, 191, 0.2);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      text-decoration: none;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 24px rgba(122, 44, 191, 0.28);
+    }
+
+    .play-again {
+      margin-top: 18px;
+    }
+
+    @media (max-width: 992px) {
+      body {
+        flex-direction: column;
+        align-items: center;
+        padding-top: 110px;
+      }
+
+      .stats {
+        position: static;
+        width: calc(100% - 30px);
+        max-width: 320px;
+        margin-bottom: 25px;
+      }
+
+      .back-button {
+        position: static;
+        display: inline-flex;
+        margin-bottom: 16px;
+      }
+
+      .pane {
+        padding-top: 20px;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .pane h1 {
+        font-size: 26px;
+      }
+
+      .card {
+        font-size: 20px;
+        padding: 14px 20px;
+        min-width: 140px;
+      }
+
+      .instruction {
+        font-size: 15px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="stats" id="stats">
+    <h3>Stats</h3>
+    <p><strong>Name:</strong> {{ student.first_name }}</p>
+    <p><strong>Time in Mode:</strong> <span id="time-in-mode">0</span> seconds</p>
+    <p><strong>Session Points:</strong> <span id="session-points">0</span></p>
+    <p><strong>Weekly Points:</strong> <span id="weekly-points">{{ student.weekly_points }}</span></p>
+    <p><strong>Total Points:</strong> <span id="total-points">{{ student.total_points }}</span></p>
+  </div>
+
+  <div class="pane">
+    <a href="{% url 'student_dashboard' %}" class="back-button">Back to Dashboard</a>
+    <h1>Peacock Conveyor Sorter</h1>
+    <p class="list-name">{{ vocab_list.name }} • {{ vocab_list.source_language|upper }} ➡ {{ vocab_list.target_language|upper }}</p>
+    <p class="instruction">Sort each word into the correct bin before it glides off the conveyor belt. Keep the Peacock happy!</p>
+
+    <div class="conveyor">
+      <div class="belt" id="belt">
+        <div class="card" id="moving-card">Ready?</div>
+      </div>
+    </div>
+
+    <div class="bin-grid">
+      <button class="bin" type="button" data-index="0"></button>
+      <button class="bin" type="button" data-index="1"></button>
+      <button class="bin" type="button" data-index="2"></button>
+      <button class="bin" type="button" data-index="3"></button>
+    </div>
+
+    <div class="status-bar">
+      <p id="feedback-message" class="feedback" role="status" aria-live="polite"></p>
+      <div class="summary">
+        <span>Sorted: <strong id="sorted-count">0</strong></span>
+        <span>Remaining: <strong id="remaining-count">0</strong></span>
+      </div>
+      <button id="play-again-btn" class="btn play-again" type="button" hidden>Play Again</button>
+    </div>
+  </div>
+
+  <script>
+    const words = JSON.parse(`{{ words_json|default:'[]'|safe }}`);
+    const progressUrl = "{% url 'update_progress' %}";
+    const pointsUrl = "{% url 'update_points' %}";
+    const POINTS_PER_CORRECT = 1;
+    const ROUND_DURATION = 8000;
+    const TICK_RATE = 40;
+
+    const belt = document.getElementById("belt");
+    const card = document.getElementById("moving-card");
+    const bins = Array.from(document.querySelectorAll(".bin"));
+    const feedbackMessage = document.getElementById("feedback-message");
+    const sortedCountEl = document.getElementById("sorted-count");
+    const remainingCountEl = document.getElementById("remaining-count");
+    const playAgainBtn = document.getElementById("play-again-btn");
+
+    const sessionPointsEl = document.getElementById("session-points");
+    const weeklyPointsEl = document.getElementById("weekly-points");
+    const totalPointsEl = document.getElementById("total-points");
+    const timeInModeEl = document.getElementById("time-in-mode");
+
+    let sessionPoints = 0;
+    let weeklyPoints = parseInt(weeklyPointsEl.textContent, 10) || 0;
+    let totalPoints = parseInt(totalPointsEl.textContent, 10) || 0;
+    let timeInMode = 0;
+    let sortedCount = 0;
+    let remaining = words.length;
+    let queue = shuffle([...words]);
+    let currentWord = null;
+    let moveInterval = null;
+    let isLocked = false;
+
+    remainingCountEl.textContent = remaining;
+
+    const timer = setInterval(() => {
+      timeInMode += 1;
+      timeInModeEl.textContent = timeInMode;
+    }, 1000);
+
+    bins.forEach((bin) => bin.addEventListener("click", handleBinClick));
+    playAgainBtn.addEventListener("click", resetGame);
+
+    if (!words.length) {
+      showNoWordsState();
+    } else {
+      startRound();
+    }
+
+    function showNoWordsState() {
+      feedbackMessage.textContent = "No words available for this mini-game yet.";
+      feedbackMessage.style.color = "var(--peacock-warning)";
+      card.textContent = "Add more words to play!";
+      card.style.transform = "translate(-200px, -50%)";
+      bins.forEach((bin) => {
+        bin.textContent = "—";
+        bin.disabled = true;
+      });
+      playAgainBtn.hidden = true;
+    }
+
+    function resetGame() {
+      queue = shuffle([...words]);
+      sortedCount = 0;
+      remaining = words.length;
+      sortedCountEl.textContent = sortedCount;
+      remainingCountEl.textContent = remaining;
+      playAgainBtn.hidden = true;
+      feedbackMessage.textContent = "";
+      feedbackMessage.style.color = "var(--peacock-primary)";
+      startRound();
+    }
+
+    function startRound() {
+      clearInterval(moveInterval);
+      card.classList.remove("success", "fail");
+
+      if (!queue.length) {
+        showCompletion();
+        return;
+      }
+
+      currentWord = queue.shift();
+      setBinOptions(currentWord);
+
+      bins.forEach((bin) => {
+        bin.disabled = false;
+        bin.classList.remove("correct", "incorrect");
+      });
+
+      feedbackMessage.textContent = "";
+      feedbackMessage.style.color = "var(--peacock-primary)";
+      card.textContent = currentWord.word;
+      isLocked = false;
+      kickOffMovement();
+    }
+
+    function showCompletion() {
+      card.textContent = "All Sorted!";
+      card.style.transform = "translate(0, -50%)";
+      card.classList.add("success");
+      bins.forEach((bin) => {
+        bin.disabled = true;
+        bin.textContent = "🎉";
+      });
+      feedbackMessage.textContent = "Amazing work! The conveyor is clear.";
+      feedbackMessage.style.color = "var(--peacock-highlight)";
+      playAgainBtn.hidden = false;
+    }
+
+    function setBinOptions(word) {
+      const options = [word];
+      const pool = shuffle(words.filter((item) => item.id !== word.id));
+
+      while (options.length < Math.min(4, words.length) && pool.length) {
+        options.push(pool.shift());
+      }
+
+      while (options.length < bins.length && options.length) {
+        options.push(options[Math.floor(Math.random() * options.length)]);
+      }
+
+      const shuffled = shuffle(options).slice(0, bins.length);
+      bins.forEach((bin, index) => {
+        const option = shuffled[index] || word;
+        bin.textContent = option.translation;
+        bin.dataset.correct = option.id === word.id ? "1" : "0";
+      });
+    }
+
+    function handleBinClick(event) {
+      if (isLocked || !currentWord) {
+        return;
+      }
+
+      isLocked = true;
+      clearInterval(moveInterval);
+      const bin = event.currentTarget;
+      const isCorrect = bin.dataset.correct === "1";
+
+      bins.forEach((button) => (button.disabled = true));
+      bin.classList.add(isCorrect ? "correct" : "incorrect");
+      card.classList.add(isCorrect ? "success" : "fail");
+
+      feedbackMessage.textContent = isCorrect
+        ? `Sorted! ${currentWord.word} ➡ ${currentWord.translation}`
+        : `Oops! ${currentWord.word} = ${currentWord.translation}`;
+      feedbackMessage.style.color = isCorrect ? "var(--peacock-highlight)" : "var(--peacock-warning)";
+
+      submitResult(isCorrect).finally(() => {
+        if (isCorrect) {
+          sortedCount += 1;
+          remaining = Math.max(remaining - 1, 0);
+          sortedCountEl.textContent = sortedCount;
+          remainingCountEl.textContent = remaining;
+        } else {
+          queue.push(currentWord);
+        }
+
+        setTimeout(() => {
+          startRound();
+        }, 900);
+      });
+    }
+
+    function handleMiss() {
+      if (isLocked || !currentWord) {
+        return;
+      }
+
+      isLocked = true;
+      bins.forEach((button) => (button.disabled = true));
+      card.classList.add("fail");
+      feedbackMessage.textContent = `Missed! ${currentWord.word} = ${currentWord.translation}`;
+      feedbackMessage.style.color = "var(--peacock-warning)";
+
+      submitResult(false).finally(() => {
+        queue.push(currentWord);
+        setTimeout(() => {
+          startRound();
+        }, 1200);
+      });
+    }
+
+    function kickOffMovement() {
+      const beltWidth = belt.clientWidth;
+      const cardWidth = card.offsetWidth;
+      const start = -cardWidth - 24;
+      const end = beltWidth + 24;
+      let progress = 0;
+
+      card.style.transform = `translate(${start}px, -50%)`;
+
+      moveInterval = setInterval(() => {
+        if (isLocked) {
+          clearInterval(moveInterval);
+          return;
+        }
+
+        progress += TICK_RATE / ROUND_DURATION;
+        const clamped = Math.min(progress, 1);
+        const position = start + (end - start) * clamped;
+        card.style.transform = `translate(${position}px, -50%)`;
+
+        if (clamped >= 1) {
+          clearInterval(moveInterval);
+          handleMiss();
+        }
+      }, TICK_RATE);
+    }
+
+    async function submitResult(isCorrect) {
+      if (!currentWord) {
+        return;
+      }
+
+      try {
+        await fetch(progressUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": getCSRFToken(),
+          },
+          body: JSON.stringify({
+            word_id: currentWord.id,
+            correct: isCorrect,
+          }),
+        });
+      } catch (error) {
+        console.error("Error updating progress:", error);
+      }
+
+      try {
+        const response = await fetch(pointsUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": getCSRFToken(),
+          },
+          body: JSON.stringify({ points: isCorrect ? POINTS_PER_CORRECT : 0 }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+        if (data.success) {
+          if (isCorrect) {
+            sessionPoints += POINTS_PER_CORRECT;
+            sessionPointsEl.textContent = sessionPoints;
+          }
+          weeklyPoints = data.weekly_points;
+          totalPoints = data.total_points;
+          weeklyPointsEl.textContent = weeklyPoints;
+          totalPointsEl.textContent = totalPoints;
+
+          if (Array.isArray(data.new_trophies) && data.new_trophies.length) {
+            alert("New trophies: " + data.new_trophies.join(", "));
+          }
+        }
+      } catch (error) {
+        console.error("Error updating points:", error);
+      }
+    }
+
+    function shuffle(items) {
+      const arr = [...items];
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    function getCSRFToken() {
+      const cookieValue = document.cookie
+        .split('; ')
+        .find((row) => row.startsWith('csrftoken='))
+        ?.split('=')[1];
+      return cookieValue;
+    }
+  </script>
+  {% include 'messages.html' %}
+</body>
+</html>
