@@ -31,8 +31,10 @@ def generate_student_username(first_name, surname, day=None, month=None, dob=Non
     if day is None or month is None:
         raise ValueError("Day and month or a valid date of birth must be provided.")
 
-    username = f"{first_name.capitalize()}{surname[:2].capitalize()}{int(day):02}{int(month):02}"
-    return username
+    first = first_name.strip()
+    last = surname.strip()
+    username = f"{first.capitalize()}{last[:2].capitalize()}{int(day):02}{int(month):02}"
+    return username.lower()
 
 def generate_random_password(length=4):
     """
