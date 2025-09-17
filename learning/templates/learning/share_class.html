@@ -12,7 +12,7 @@
       {% csrf_token %}
       <label for="username">Enter Teacher's Username:</label>
       <input type="text" name="username" id="username" required>
-      <button type="submit">Share</button>
+      <button type="submit" class="btn btn-primary">Share</button>
   </form>
 
   <h2>Currently Shared With:</h2>
@@ -20,14 +20,14 @@
       {% for teacher in class_instance.teachers.all %}
           <li data-username="{{ teacher.username }}">
               {{ teacher.username }}
-              <a href="{% url 'remove_teacher_from_class' class_instance.id teacher.id %}" class="remove-teacher">Remove</a>
+              <a href="{% url 'remove_teacher_from_class' class_instance.id teacher.id %}" class="btn-action btn-compact">Remove</a>
           </li>
       {% empty %}
           <li>No teachers currently associated with this class.</li>
       {% endfor %}
   </ul>
 
-  <a href="{% url 'teacher_dashboard' %}">Back to Dashboard</a>
+  <a href="{% url 'teacher_dashboard' %}" class="btn btn-secondary">Back to Dashboard</a>
 
   <script>
     document.getElementById('shareForm').addEventListener('submit', function(event) {

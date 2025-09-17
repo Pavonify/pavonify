@@ -17,9 +17,9 @@
               </li>
           {% endfor %}
       </ul>
-      <button type="submit">Attach</button>
+      <button type="submit" class="btn btn-primary">Attach</button>
   </form>
-  <a href="{% url 'teacher_dashboard' %}">Back to Dashboard</a>
+  <a href="{% url 'teacher_dashboard' %}" class="btn btn-secondary">Back to Dashboard</a>
   {% include 'messages.html' %}
 </body>
 </html>

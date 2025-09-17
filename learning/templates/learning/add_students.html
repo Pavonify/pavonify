@@ -124,7 +124,7 @@
     <form method="POST">
       {% csrf_token %}
       <textarea name="bulk_data" rows="10" placeholder="First Name,Surname,Year Group,dd/mm/yyyy"></textarea>
-      <button type="submit">Add Students</button>
+      <button type="submit" class="btn btn-primary">Add Students</button>
     </form>
     <a href="{% url 'edit_class' class_instance.id %}" class="back-link">Back to Class</a>
   </div>

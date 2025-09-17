@@ -1,4 +1,16 @@
+{% load static %}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+<script>
+  (function() {
+    if (!document.querySelector('link[data-pavonify-theme]')) {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = "{% static 'css/global.css' %}";
+      link.dataset.pavonifyTheme = 'true';
+      document.head.appendChild(link);
+    }
+  })();
+</script>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
 <script>

@@ -65,20 +65,6 @@
       background-color: #d4204c;
     }
     
-    a.cancel-link {
-      display: inline-block;
-      background-color: #ff2c61;
-      color: #fff;
-      padding: 10px 15px;
-      border-radius: 5px;
-      text-decoration: none;
-      transition: background-color 0.3s ease;
-      font-size: 16px;
-    }
-    
-    a.cancel-link:hover {
-      background-color: #d4204c;
-    }
   </style>
 </head>
 <body>
@@ -87,9 +73,9 @@
     <p>Are you sure you want to delete the vocabulary list "{{ vocab_list.name }}"?</p>
     <form method="POST">
       {% csrf_token %}
-      <button type="submit">Confirm Delete</button>
+      <button type="submit" class="btn btn-danger">Confirm Delete</button>
     </form>
-    <a href="{% url 'vocabulary_list' %}" class="cancel-link">Cancel</a>
+    <a href="{% url 'vocabulary_list' %}" class="btn btn-secondary">Cancel</a>
   </div>
 {% include 'messages.html' %}
 </body>

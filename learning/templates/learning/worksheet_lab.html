@@ -230,8 +230,8 @@
         <div class="toolbar">
 <!-- Print Button (Disabled for Basic Users) -->
 {% if request.user.is_premium %}
-    <button id="printBtn" onclick="printWorksheet()">Print Worksheet 🖨️</button>
-    <button id="downloadBtn" onclick="downloadWorksheetPDF()">Download as PDF 📄</button>
+    <button id="printBtn" onclick="printWorksheet()" class="btn btn-secondary">Print Worksheet 🖨️</button>
+    <button id="downloadBtn" onclick="downloadWorksheetPDF()" class="btn btn-secondary">Download as PDF 📄</button>
 {% else %}
 <div class="premium-restriction">
     <p class="upgrade-message">
@@ -241,7 +241,7 @@
 
 </div>
 {% endif %}
-            <button onclick="goBack()">Back to Dashboard</button>
+            <button onclick="goBack()" class="btn btn-secondary">Back to Dashboard</button>
         </div>
 
         <!-- Worksheet Lab Pane -->
@@ -251,7 +251,7 @@
                     <!-- Worksheet Title Input -->
                     <h3>Set Worksheet Title:</h3>
                     <input type="text" id="worksheet-title-input" placeholder="Enter worksheet title">
-                    <button onclick="updateWorksheetTitle()">Update Title</button>
+                    <button onclick="updateWorksheetTitle()" class="btn btn-primary btn-small">Update Title</button>
 
                     <h2>Add a Box</h2>
                     <label for="task-type">Select Task Type:</label>
@@ -274,9 +274,9 @@
 
                     <!-- Compact Button Row Above Preview Box -->
                     <div class="button-row">
-                        <button onclick="generateBox()" title="Generate Preview">🪄</button>
-                        <button onclick="addToWorksheet()" title="Add to Worksheet">➕</button>
-                        <button onclick="refreshWords()" title="Refresh Words">🔄</button>
+                        <button onclick="generateBox()" title="Generate Preview" class="btn-action btn-compact" type="button">🪄</button>
+                        <button onclick="addToWorksheet()" title="Add to Worksheet" class="btn-action btn-compact" type="button">➕</button>
+                        <button onclick="refreshWords()" title="Refresh Words" class="btn-action btn-compact" type="button">🔄</button>
                     </div>
 
                     <h3>Preview:</h3>
