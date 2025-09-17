@@ -22,78 +22,117 @@
 <style>
 body {
   font-family: 'Poppins', sans-serif;
-  background-color: #F2EFE9;
+  background: var(--pavonify-background);
   margin: 0;
-  padding: 40px 0;
-  display: block;
+  padding: 48px 0;
   min-height: 100vh;
 }
 
 .grammar-lab-container {
   width: 90%;
-  max-width: 1000px;
-  margin: 40px auto;
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  max-width: 1100px;
+  margin: 0 auto;
+  background: var(--pavonify-surface);
+  border-radius: 26px;
+  box-shadow: var(--pavonify-shadow);
   display: flex;
-  overflow: visible;         /* ✅ allow growth */
-  height: auto;              /* ✅ allow container to grow */
-  align-items: flex-start;   /* optional: keep sidebar aligned */
+  overflow: hidden;
+  border: 1px solid rgba(15, 23, 42, 0.06);
 }
 
-
 .grammar-sidebar {
-  background: #f2f2f2;
-  padding: 20px;
-  min-width: 180px;
+  background: linear-gradient(180deg, rgba(10, 162, 239, 0.08), rgba(255, 255, 255, 0.6));
+  padding: 28px 24px;
+  min-width: 220px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  border-right: 1px solid #ddd;
+  gap: 14px;
+  border-right: 1px solid var(--pavonify-border);
 }
 
 .tab {
-  padding: 10px 14px;
-  border-radius: 8px;
+  padding: 12px 18px;
+  border-radius: 999px;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.2s ease;
+  color: var(--pavonify-text);
+  background: rgba(10, 162, 239, 0.08);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
+  text-align: center;
+}
+
+.tab:hover:not(.disabled) {
+  transform: translateY(-2px);
+  background: rgba(10, 162, 239, 0.16);
+  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.12);
 }
 
 .tab.active {
-  background-color: #1A73E8;
-  color: white;
+  background: linear-gradient(120deg, var(--pavonify-primary), var(--pavonify-primary-dark));
+  color: #ffffff;
+  box-shadow: 0 18px 36px rgba(15, 23, 42, 0.18);
 }
 
 .tab.disabled {
-  color: #aaa;
+  color: #94a3b8;
+  background: rgba(148, 163, 184, 0.16);
   cursor: not-allowed;
+  box-shadow: none;
 }
 
 .grammar-content {
   flex: 1;
-  padding: 30px;
+  padding: 40px 36px;
   display: flex;
   flex-direction: column;
-  overflow: visible; /* allow expansion */
+  gap: 24px;
+  background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
 }
-
 
 .pane {
   display: none;
   flex-direction: column;
-  width: 100%;
-  height: auto;        /* <-- allow height to grow */
-  overflow: visible;   /* <-- don't force scrollbars */
+  gap: 20px;
 }
 
 .pane.active {
   display: flex;
 }
 
+.grammar-sidebar .btn {
+  width: 100%;
+  justify-content: center;
+}
 
+.grammar-sidebar .btn.btn-secondary {
+  margin-top: auto;
+}
 
+.ladder-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.ladder-actions__form {
+  margin: 0;
+}
+
+.coin-display {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  gap: 16px;
+}
+
+.ladder-form {
+  margin-top: 30px;
+  border-top: 1px solid var(--pavonify-border);
+  padding-top: 20px;
+  border-radius: 18px;
+}
 
 </style>
 
@@ -104,8 +143,8 @@ body {
     <div class="tab active">Grammar Lab</div>
     <div class="tab">Grammar Ladder 🪜</div>
     <div class="tab disabled">More coming soon...</div>
-  <a class="tab" href="{% url 'teacher_dashboard' %}" style="margin-top:auto; background-color:#34A853; color:white; text-decoration:none;">
-    ⬅️Back to Dashboard
+  <a class="btn btn-secondary" href="{% url 'teacher_dashboard' %}">
+    ⬅️ Back to Dashboard
   </a>
   </div>
   <div class="grammar-content">
@@ -119,74 +158,74 @@ body {
     <div class="pane" id="grammar-ladder-pane">
       <h2>🪜 Grammar Ladder</h2>
 <!-- Coin Display -->
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+<div class="coin-display">
   <h3>🪙 Pavonicoins: <span id="pavonicoins">5</span></h3>
-  <button id="buildLadderBtn" style="padding: 10px 20px; background-color: #1A73E8; color: white; border: none; border-radius: 6px; cursor: pointer;">
+  <button id="buildLadderBtn" class="btn btn-primary btn-small">
     ➕ Build a Ladder
   </button>
 </div>
 
 <!-- Ladder Table -->
-<table style="width: 100%; border-collapse: collapse;">
-<thead>
-  <tr style="background-color: #f2f2f2;">
-    <th style="padding: 10px; border: 1px solid #ccc;">Name</th>
-    <th style="padding: 10px; border: 1px solid #ccc;">Language</th>
-<th style="padding: 10px; border: 1px solid #ccc;">Rungs</th>
-    <th style="padding: 10px; border: 1px solid #ccc;">Actions</th>
-  </tr>
-</thead>
-<tbody id="ladderTableBody">
-  {% for ladder in ladders %}
-  <tr>
-    <td style="padding: 10px; border: 1px solid #ccc;">{{ ladder.name }}</td>
-    <td style="padding: 10px; border: 1px solid #ccc;">
-      {% if ladder.language == "de" %}German{% elif ladder.language == "fr" %}French{% elif ladder.language == "sp" %}Spanish{% elif ladder.language == "it" %}Italian{% endif %}
-    </td>
-<td style="padding: 10px; border: 1px solid #ccc;">
-  {{ ladder.rung_count }}
-  {% if ladder.rung_count < 250 %}
-    <span title="AI could only produce {{ ladder.rung_count }} phrases, which makes for a short ladder to climb! Ideally it would be 250 rungs or more.">⚠️</span>
-  {% endif %}
-</td>
-
-    <td style="padding: 10px; border: 1px solid #ccc; display: flex; gap: 10px;">
-      <a href="{% url 'grammar_ladder_detail' ladder.id %}" style="color: #1A73E8; text-decoration: none;">👁 View</a>
-      <form method="post" action="{% url 'delete_ladder' ladder.id %}" style="display: inline;">
-        {% csrf_token %}
-        <button type="submit" style="color: red; background: none; border: none; cursor: pointer;">🗑 Delete</button>
-      </form>
-    </td>
-  </tr>
-  {% empty %}
-  <tr>
-    <td colspan="3">No ladders created yet.</td>
-  </tr>
-  {% endfor %}
-</tbody>
-
-</table>
+<div class="pavonify-table-wrapper">
+  <table class="pavonify-table pavonify-table--compact">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Language</th>
+        <th>Rungs</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="ladderTableBody">
+      {% for ladder in ladders %}
+      <tr>
+        <td>{{ ladder.name }}</td>
+        <td>
+          {% if ladder.language == "de" %}German{% elif ladder.language == "fr" %}French{% elif ladder.language == "sp" %}Spanish{% elif ladder.language == "it" %}Italian{% endif %}
+        </td>
+        <td>
+          {{ ladder.rung_count }}
+          {% if ladder.rung_count < 250 %}
+            <span class="pavonify-badge" title="AI could only produce {{ ladder.rung_count }} phrases, which makes for a short ladder to climb! Ideally it would be 250 rungs or more.">⚠️</span>
+          {% endif %}
+        </td>
+        <td class="ladder-actions">
+          <a href="{% url 'grammar_ladder_detail' ladder.id %}" class="btn-action btn-compact">👁 View</a>
+          <form method="post" action="{% url 'delete_ladder' ladder.id %}" class="ladder-actions__form">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger btn-compact">🗑 Delete</button>
+          </form>
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="4">No ladders created yet.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
 
 <!-- Build Ladder Form (hidden by default) -->
-<div id="ladderForm" style="margin-top: 30px; display: none; border-top: 1px solid #ddd; padding-top: 20px;">
+<div id="ladderForm" class="ladder-form" style="display: none;">
   <h4>Build a New Ladder</h4>
   <form method="post">
     {% csrf_token %}
     <label for="ladder_name">Ladder Name:</label><br>
-    <input type="text" id="ladder_name" name="ladder_name" style="width: 100%; padding: 10px;"><br><br>
+    <input type="text" id="ladder_name" name="ladder_name"><br><br>
 
     <label for="grammar_prompt">Grammar Prompt (for AI):</label><br>
-    <textarea id="grammar_prompt" name="grammar_prompt" rows="3" style="width: 100%; padding: 10px;"></textarea><br><br>
+    <textarea id="grammar_prompt" name="grammar_prompt" rows="3"></textarea><br><br>
 
     <label for="language">Select Language:</label><br>
-    <select id="language" name="language" style="padding: 10px;">
+    <select id="language" name="language">
       <option value="de">🇩🇪 German</option>
       <option value="fr">🇫🇷 French</option>
       <option value="sp">🇪🇸 Spanish</option>
       <option value="it">🇮🇹 Italian</option>
     </select><br><br>
 
-    <button type="submit" style="background-color: #F2A03D; padding: 10px 20px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">
+    <button type="submit" class="btn btn-primary">
       🚀 Generate Ladder (1 Pavonicoin)
     </button>
   </form>

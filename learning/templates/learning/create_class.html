@@ -132,7 +132,7 @@
     <form method="POST" enctype="multipart/form-data">
       {% csrf_token %}
       {{ form.as_p }}
-      <button type="submit">Create Class</button>
+      <button type="submit" class="btn btn-primary">Create Class</button>
     </form>
   </div>
 {% include 'messages.html' %}

@@ -95,7 +95,7 @@
         <form method="POST" action="">
           {% csrf_token %}
           <input type="hidden" name="vocab_list_id" value="{{ vocab_list.id }}">
-          <button type="submit">Disassociate</button>
+          <button type="submit" class="btn btn-danger btn-small">Disassociate</button>
         </form>
       </li>
       {% empty %}

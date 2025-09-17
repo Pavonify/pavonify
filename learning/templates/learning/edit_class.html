@@ -126,19 +126,6 @@
     button[name="delete_selected"]:hover {
       background-color: #d4204c;
     }
-    a.action-link {
-      background-color: #0aa2ef;
-      color: #fff;
-      padding: 6px 10px;
-      border-radius: 5px;
-      text-decoration: none;
-      font-size: 14px;
-      margin: 0 3px;
-      transition: background-color 0.3s ease;
-    }
-    a.action-link:hover {
-      background-color: #086baf;
-    }
     
     /* Back to Dashboard Link */
     .back-link {
@@ -199,14 +186,14 @@
             <td>{{ student.username }}</td>
             <td>{{ student.password }}</td>
             <td>
-              <a href="{% url 'edit_student' student.id %}" class="action-link">Edit</a>
-              <a href="{% url 'delete_student' student.id %}" class="action-link" onclick="return confirm('Are you sure you want to delete this student?');">Delete</a>
+              <a href="{% url 'edit_student' student.id %}" class="btn-action btn-compact">Edit</a>
+              <a href="{% url 'delete_student' student.id %}" class="btn-action btn-compact" onclick="return confirm('Are you sure you want to delete this student?');">Delete</a>
             </td>
           </tr>
           {% endfor %}
         </tbody>
       </table>
-      <button type="submit" name="delete_selected">Delete Selected</button>
+      <button type="submit" name="delete_selected" class="btn btn-danger">Delete Selected</button>
     </form>
     
     <!-- Back to Dashboard Link at the Bottom -->

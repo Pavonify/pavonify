@@ -416,9 +416,9 @@
                     {% endfor %}
                   </ol>
                   <div class="leaderboard-controls" style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
-                    <button class="prev-btn" style="background-color: var(--primary); color: white; padding: 5px 10px; border: none; border-radius: 5px; font-size: 12px; cursor: pointer;" onclick="changePage('{{ class_instance.id }}', '{{ leaderboard.category }}', -1)">⬅ Previous</button>
+                    <button class="btn btn-secondary btn-compact prev-btn" type="button" onclick="changePage('{{ class_instance.id }}', '{{ leaderboard.category }}', -1)">⬅ Previous</button>
                     <span class="page-indicator" id="page-{{ class_instance.id }}-{{ leaderboard.category }}" style="font-size: 14px; font-weight: bold; color: #333;">Page 1</span>
-                    <button class="next-btn" style="background-color: var(--primary); color: white; padding: 5px 10px; border: none; border-radius: 5px; font-size: 12px; cursor: pointer;" onclick="changePage('{{ class_instance.id }}', '{{ leaderboard.category }}', 1)">Next ➡</button>
+                    <button class="btn btn-secondary btn-compact next-btn" type="button" onclick="changePage('{{ class_instance.id }}', '{{ leaderboard.category }}', 1)">Next ➡</button>
                   </div>
                 </div>
               {% empty %}
@@ -542,7 +542,7 @@
                         </div>
                       </td>
                       <td style="padding: 10px; border: 1px solid white; background-color: #f5f5f5; color: black;">
-                        <span class="btn disabled" style="background-color: #aaa !important; pointer-events: none; cursor: default;">Expired</span>
+                        <span class="btn btn-disabled">Expired</span>
                       </td>
                     </tr>
                   {% endfor %}
