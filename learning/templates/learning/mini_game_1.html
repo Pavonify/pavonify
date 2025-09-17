@@ -4,53 +4,97 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Peacock Feeding Frenzy - Pavonify</title>
+  <title>Peacock Conveyor Sorter - Pavonify</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
 
     :root {
-      --peacock-primary: #54278f;
+      --peacock-primary: #5a189a;
       --peacock-secondary: #7b2cbf;
       --peacock-accent: #c77dff;
       --peacock-highlight: #28a745;
       --peacock-warning: #ff2c61;
       --peacock-surface: #f3f5ff;
-      --peacock-shadow: rgba(84, 39, 143, 0.18);
-    }
-
-    * {
-      box-sizing: border-box;
     }
 
     body {
       font-family: 'Poppins', sans-serif;
       margin: 0;
-      min-height: 100vh;
-      background: radial-gradient(circle at top, rgba(199, 125, 255, 0.22), transparent 55%),
-                  var(--peacock-surface);
-      color: #231942;
+      background: var(--peacock-surface);
+      color: #2f2a4a;
       display: flex;
       justify-content: center;
       align-items: flex-start;
-      padding: 35px 18px 60px;
+      min-height: 100vh;
+      padding: 40px 15px;
+    }
+
+    .pane {
+      background: #ffffff;
+      border-radius: 16px;
+      box-shadow: 0 15px 35px rgba(90, 24, 154, 0.15);
+      padding: 30px 24px 40px;
+      width: 100%;
+      max-width: 900px;
+      position: relative;
+      text-align: center;
+    }
+
+    .pane h1 {
+      margin: 0;
+      font-size: 32px;
+      color: var(--peacock-primary);
+    }
+
+    .list-name {
+      margin: 8px 0 20px;
+      color: #7d7a92;
+      font-weight: 600;
+      letter-spacing: 0.4px;
+    }
+
+    .instruction {
+      font-size: 17px;
+      margin-bottom: 25px;
+      color: #4f4a6b;
+    }
+
+    .back-button {
+      position: absolute;
+      left: 24px;
+      top: 24px;
+      background: #d0c4ff;
+      color: var(--peacock-primary);
+      padding: 8px 14px;
+      border-radius: 30px;
+      text-decoration: none;
+      font-weight: 600;
+      box-shadow: 0 4px 10px rgba(122, 44, 191, 0.18);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .back-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 18px rgba(122, 44, 191, 0.22);
     }
 
     .stats {
       position: fixed;
       top: 30px;
       right: 30px;
-      width: 250px;
       background: #ffffff;
-      border-radius: 18px;
-      box-shadow: 0 18px 40px rgba(35, 25, 66, 0.12);
-      padding: 22px 20px;
+      border-radius: 16px;
+      box-shadow: 0 12px 30px rgba(17, 12, 46, 0.15);
+      padding: 20px;
+      width: 240px;
       z-index: 10;
     }
 
     .stats h3 {
-      margin: 0 0 12px;
-      color: var(--peacock-primary);
+      margin-top: 0;
+      margin-bottom: 12px;
       font-size: 18px;
+      color: var(--peacock-primary);
     }
 
     .stats p {
@@ -58,321 +102,130 @@
       font-size: 14px;
     }
 
-    .game-shell {
-      width: 100%;
-      max-width: 980px;
-      background: #ffffff;
-      border-radius: 24px;
-      box-shadow: 0 25px 55px rgba(84, 39, 143, 0.16);
-      padding: 36px 30px 40px;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .back-button {
-      position: absolute;
-      left: 28px;
-      top: 26px;
-      padding: 8px 16px;
-      border-radius: 999px;
-      background: rgba(123, 44, 191, 0.16);
-      color: var(--peacock-primary);
-      text-decoration: none;
-      font-weight: 600;
-      letter-spacing: 0.4px;
-      box-shadow: 0 8px 18px rgba(123, 44, 191, 0.18);
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-
-    .back-button:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 14px 24px rgba(123, 44, 191, 0.24);
-    }
-
-    h1 {
-      margin: 0;
-      font-size: 34px;
-      text-align: center;
-      color: var(--peacock-primary);
-    }
-
-    .list-name {
-      margin: 10px 0 6px;
-      text-align: center;
-      color: #7d7a92;
-      font-weight: 600;
-      letter-spacing: 0.35px;
-    }
-
-    .instruction {
-      text-align: center;
-      color: #403f5a;
-      margin: 12px auto 26px;
-      max-width: 620px;
-      font-size: 17px;
-    }
-
-    .game-stage {
-      display: flex;
-      flex-direction: column;
-      gap: 30px;
-    }
-
-    .conveyor-area {
-      display: grid;
-      gap: 16px;
-    }
-
     .conveyor {
+      margin: 35px auto 25px;
+      padding: 18px;
+      background: linear-gradient(135deg, rgba(122, 44, 191, 0.08), rgba(90, 24, 154, 0.12));
+      border-radius: 20px;
       position: relative;
-      min-height: 120px;
-      border-radius: 18px;
-      padding: 22px 16px;
-      background: linear-gradient(120deg, rgba(123, 44, 191, 0.15), rgba(90, 24, 154, 0.28));
       overflow: hidden;
-      box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.18);
     }
 
-    .conveyor::before,
-    .conveyor::after {
-      content: "";
-      position: absolute;
-      left: 16px;
-      right: 16px;
-      height: 10px;
-      border-radius: 999px;
-      background: rgba(255, 255, 255, 0.55);
-    }
-
-    .conveyor::before {
-      top: 30px;
-    }
-
-    .conveyor::after {
-      bottom: 30px;
-    }
-
-    .conveyor-track {
+    .belt {
+      background: linear-gradient(90deg, rgba(255, 255, 255, 0.35) 0%, rgba(255, 255, 255, 0) 60%),
+                  linear-gradient(135deg, rgba(90, 24, 154, 0.15), rgba(122, 44, 191, 0.3));
+      border-radius: 14px;
+      height: 140px;
+      max-width: 640px;
+      margin: 0 auto;
       position: relative;
-      width: 100%;
-      height: 100%;
+      overflow: hidden;
     }
 
-    .conveyor-card {
+    .belt::before {
+      content: "";
       position: absolute;
       top: 50%;
-      transform: translate(-110%, -50%);
-      padding: 16px 26px;
-      border-radius: 18px;
-      font-weight: 700;
-      font-size: 22px;
-      background: linear-gradient(135deg, #7b2cbf, #54278f);
-      color: #ffffff;
-      box-shadow: 0 18px 36px rgba(84, 39, 143, 0.25);
-      cursor: grab;
-      user-select: none;
-      animation: slide-across var(--duration) linear forwards;
-    }
-
-    .conveyor-card::after {
-      content: "";
-      position: absolute;
-      inset: 0;
-      border-radius: 18px;
-      border: 2px solid rgba(255, 255, 255, 0.28);
-      pointer-events: none;
-    }
-
-    .conveyor-card:active {
-      cursor: grabbing;
-    }
-
-    .conveyor-card.dragging {
-      opacity: 0.9;
-      animation-play-state: paused;
-      box-shadow: 0 20px 45px rgba(84, 39, 143, 0.35);
-      transform: scale(1.04) translateY(-50%);
-    }
-
-    .conveyor-card.inactive {
-      opacity: 0.3;
-      animation-play-state: paused;
-    }
-
-    @keyframes slide-across {
-      from {
-        transform: translate(-120%, -50%);
-      }
-      to {
-        transform: translate(120%, -50%);
-      }
-    }
-
-    .peacock-runway {
-      position: relative;
-      min-height: 240px;
-      border-radius: 24px;
-      padding: 26px 24px 36px;
-      background: linear-gradient(160deg, rgba(40, 167, 69, 0.08), rgba(199, 125, 255, 0.16));
-      box-shadow: inset 0 0 0 2px rgba(123, 44, 191, 0.12);
-      display: flex;
-      flex-wrap: wrap;
-      gap: 26px;
-      justify-content: center;
-      align-items: flex-end;
-    }
-
-    .peacock {
-      position: relative;
-      width: 170px;
-      height: 180px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-end;
-      gap: 8px;
-      animation: peacock-pop 0.35s ease-out;
-    }
-
-    @keyframes peacock-pop {
-      from {
-        transform: translateY(20px) scale(0.9);
-        opacity: 0;
-      }
-      to {
-        transform: translateY(0) scale(1);
-        opacity: 1;
-      }
-    }
-
-    .timer-ring {
-      position: absolute;
-      top: -10px;
-      width: 70px;
-      height: 70px;
-      border-radius: 50%;
-      background: conic-gradient(var(--peacock-highlight) 360deg, rgba(0, 0, 0, 0.08) 0deg);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 10px 22px rgba(84, 39, 143, 0.25);
-    }
-
-    .timer-ring::after {
-      content: "";
-      width: 52px;
-      height: 52px;
-      border-radius: 50%;
-      background: #ffffff;
-      box-shadow: inset 0 0 0 2px rgba(84, 39, 143, 0.08);
-    }
-
-    .timer-number {
-      position: absolute;
-      font-weight: 700;
-      color: var(--peacock-primary);
-      font-size: 18px;
-    }
-
-    .speech-bubble {
-      position: relative;
-      padding: 14px 18px;
-      background: #ffffff;
-      border-radius: 18px;
-      border: 2px solid rgba(123, 44, 191, 0.28);
-      box-shadow: 0 12px 22px rgba(84, 39, 143, 0.18);
-      min-width: 160px;
-      text-align: center;
-      font-weight: 700;
-      color: var(--peacock-primary);
-      transition: transform 0.18s ease, box-shadow 0.18s ease;
-    }
-
-    .speech-bubble::after {
-      content: "";
-      position: absolute;
-      bottom: -18px;
-      left: 50%;
-      transform: translateX(-50%);
-      border-width: 18px 14px 0 14px;
-      border-style: solid;
-      border-color: #ffffff transparent transparent transparent;
-      filter: drop-shadow(0 6px 8px rgba(84, 39, 143, 0.15));
-    }
-
-    .speech-bubble.drop-hover {
-      transform: translateY(-4px) scale(1.03);
-      box-shadow: 0 18px 28px rgba(84, 39, 143, 0.28);
-      border-color: rgba(40, 167, 69, 0.55);
-    }
-
-    .speech-bubble.shake {
-      animation: shake 0.35s ease;
-    }
-
-    @keyframes shake {
-      10%, 90% { transform: translateX(-2px); }
-      20%, 80% { transform: translateX(4px); }
-      30%, 50%, 70% { transform: translateX(-6px); }
-      40%, 60% { transform: translateX(6px); }
-    }
-
-    .peacock-body {
-      width: 120px;
-      height: 120px;
-      background: rgba(123, 44, 191, 0.12);
-      border-radius: 50% 50% 45% 45%;
-      display: flex;
-      align-items: flex-end;
-      justify-content: center;
-      padding: 12px 8px 8px;
-      box-shadow: inset 0 0 0 2px rgba(123, 44, 191, 0.2);
-    }
-
-    .peacock-body img {
+      left: 0;
       width: 100%;
-      height: auto;
+      height: 10px;
+      background: rgba(255, 255, 255, 0.55);
+      transform: translateY(-50%);
+      opacity: 0.65;
+    }
+
+    .card {
+      position: absolute;
+      top: 50%;
+      left: 0;
+      transform: translate(-200px, -50%);
+      background: linear-gradient(135deg, #7b2cbf, #5a189a);
+      color: #ffffff;
+      font-size: 24px;
+      font-weight: 700;
+      border-radius: 16px;
+      padding: 18px 26px;
+      box-shadow: 0 14px 28px rgba(90, 24, 154, 0.25);
+      min-width: 170px;
       pointer-events: none;
+      transition: background 0.3s ease;
     }
 
-    .peacock.fed .speech-bubble {
-      border-color: rgba(40, 167, 69, 0.6);
-      box-shadow: 0 16px 28px rgba(40, 167, 69, 0.24);
+    .card.success {
+      background: var(--peacock-highlight);
+      box-shadow: 0 14px 28px rgba(40, 167, 69, 0.35);
     }
 
-    .peacock.fed .speech-bubble::after {
-      border-top-color: rgba(255, 255, 255, 0.95);
+    .card.fail {
+      background: var(--peacock-warning);
+      box-shadow: 0 14px 28px rgba(255, 44, 97, 0.35);
+    }
+
+    .bin-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 15px;
+      margin-top: 30px;
+    }
+
+    .bin {
+      border: none;
+      border-radius: 14px;
+      padding: 18px 14px;
+      font-size: 17px;
+      font-weight: 600;
+      color: #2f2a4a;
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(122, 44, 191, 0.12);
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.2s ease, background 0.2s ease;
+    }
+
+    .bin:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 16px 30px rgba(122, 44, 191, 0.18);
+    }
+
+    .bin.correct {
+      background: rgba(40, 167, 69, 0.18);
+      color: var(--peacock-highlight);
+      box-shadow: 0 14px 28px rgba(40, 167, 69, 0.25);
+    }
+
+    .bin.incorrect {
+      background: rgba(255, 44, 97, 0.15);
+      color: var(--peacock-warning);
+      box-shadow: 0 14px 28px rgba(255, 44, 97, 0.22);
+    }
+
+    .bin:disabled {
+      cursor: not-allowed;
+      opacity: 0.7;
+      transform: none;
+      box-shadow: 0 10px 22px rgba(122, 44, 191, 0.1);
     }
 
     .status-bar {
-      margin-top: 26px;
+      margin-top: 28px;
       text-align: center;
     }
 
     .feedback {
-      min-height: 32px;
+      min-height: 28px;
       font-size: 18px;
       font-weight: 600;
       color: var(--peacock-primary);
-      transition: color 0.2s ease;
-    }
-
-    .feedback.success {
-      color: var(--peacock-highlight);
-    }
-
-    .feedback.warning {
-      color: var(--peacock-warning);
+      margin-bottom: 12px;
     }
 
     .summary {
       display: inline-flex;
-      gap: 24px;
+      gap: 20px;
       font-weight: 600;
-      color: #46405e;
+      color: #4f4a6b;
     }
 
-    .summary strong {
+    .summary span strong {
       color: var(--peacock-primary);
     }
 
@@ -380,118 +233,66 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      padding: 10px 22px;
-      border-radius: 999px;
+      padding: 10px 18px;
+      border-radius: 28px;
       border: none;
       font-weight: 600;
       text-transform: uppercase;
-      background: linear-gradient(135deg, #7b2cbf, #54278f);
       color: #ffffff;
+      background: linear-gradient(135deg, #7b2cbf, #5a189a);
       cursor: pointer;
-      box-shadow: 0 16px 32px rgba(84, 39, 143, 0.24);
+      box-shadow: 0 10px 20px rgba(122, 44, 191, 0.2);
       transition: transform 0.2s ease, box-shadow 0.2s ease;
-      letter-spacing: 0.6px;
+      text-decoration: none;
     }
 
     .btn:hover {
       transform: translateY(-2px);
-      box-shadow: 0 22px 40px rgba(84, 39, 143, 0.3);
+      box-shadow: 0 14px 24px rgba(122, 44, 191, 0.28);
     }
 
     .play-again {
-      margin-top: 20px;
+      margin-top: 18px;
     }
 
-    .game-over-panel {
-      position: absolute;
-      inset: 0;
-      background: rgba(23, 19, 41, 0.75);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      backdrop-filter: blur(4px);
-      padding: 20px;
-      z-index: 20;
-    }
-
-    .game-over-card {
-      background: #ffffff;
-      padding: 32px 36px;
-      border-radius: 22px;
-      text-align: center;
-      max-width: 420px;
-      box-shadow: 0 22px 45px rgba(0, 0, 0, 0.25);
-    }
-
-    .game-over-card h2 {
-      margin-top: 0;
-      color: var(--peacock-primary);
-      font-size: 28px;
-    }
-
-    .game-over-card p {
-      margin: 12px 0;
-      color: #403f5a;
-      font-weight: 500;
-    }
-
-    .game-over-card strong {
-      color: var(--peacock-secondary);
-    }
-
-    .empty-state {
-      padding: 60px 20px 0;
-      text-align: center;
-      color: #7d7a92;
-      font-weight: 600;
-      font-size: 18px;
-    }
-
-    @media (max-width: 1080px) {
+    @media (max-width: 992px) {
       body {
+        flex-direction: column;
+        align-items: center;
         padding-top: 110px;
       }
 
       .stats {
         position: static;
-        width: 100%;
+        width: calc(100% - 30px);
         max-width: 320px;
-        margin-bottom: 28px;
-      }
-
-      .game-shell {
-        padding-top: 70px;
+        margin-bottom: 25px;
       }
 
       .back-button {
         position: static;
         display: inline-flex;
-        margin-bottom: 18px;
+        margin-bottom: 16px;
+      }
+
+      .pane {
+        padding-top: 20px;
       }
     }
 
-    @media (max-width: 640px) {
-      h1 {
-        font-size: 28px;
+    @media (max-width: 600px) {
+      .pane h1 {
+        font-size: 26px;
+      }
+
+      .card {
+        font-size: 20px;
+        padding: 14px 20px;
+        min-width: 140px;
       }
 
       .instruction {
         font-size: 15px;
-      }
-
-      .peacock {
-        width: 140px;
-        height: 160px;
-      }
-
-      .speech-bubble {
-        min-width: 130px;
-        font-size: 15px;
-      }
-
-      .conveyor-card {
-        font-size: 18px;
-        padding: 12px 18px;
       }
     }
   </style>
@@ -506,38 +307,32 @@
     <p><strong>Total Points:</strong> <span id="total-points">{{ student.total_points }}</span></p>
   </div>
 
-  <div class="game-shell">
+  <div class="pane">
     <a href="{% url 'student_dashboard' %}" class="back-button">Back to Dashboard</a>
-    <h1>Peacock Feeding Frenzy</h1>
+    <h1>Peacock Conveyor Sorter</h1>
     <p class="list-name">{{ vocab_list.name }} • {{ vocab_list.source_language|upper }} ➡ {{ vocab_list.target_language|upper }}</p>
-    <p class="instruction">Drag the correct translation from the moving conveyor belts into each hungry peacock's speech bubble before their timer wheel runs out!</p>
+    <p class="instruction">Sort each word into the correct bin before it glides off the conveyor belt. Keep the Peacock happy!</p>
 
-    <div class="game-stage" id="game-stage">
-      <div class="conveyor-area" id="conveyors"></div>
-      <div class="peacock-runway" id="peacock-runway"></div>
+    <div class="conveyor">
+      <div class="belt" id="belt">
+        <div class="card" id="moving-card">Ready?</div>
+      </div>
+    </div>
+
+    <div class="bin-grid">
+      <button class="bin" type="button" data-index="0"></button>
+      <button class="bin" type="button" data-index="1"></button>
+      <button class="bin" type="button" data-index="2"></button>
+      <button class="bin" type="button" data-index="3"></button>
     </div>
 
     <div class="status-bar">
       <p id="feedback-message" class="feedback" role="status" aria-live="polite"></p>
       <div class="summary">
-        <span>Fed: <strong id="fed-count">0</strong></span>
-        <span>Longest Streak: <strong id="streak-count">0</strong></span>
+        <span>Sorted: <strong id="sorted-count">0</strong></span>
+        <span>Remaining: <strong id="remaining-count">0</strong></span>
       </div>
       <button id="play-again-btn" class="btn play-again" type="button" hidden>Play Again</button>
-    </div>
-
-    <div class="game-over-panel" id="game-over-panel" hidden>
-      <div class="game-over-card">
-        <h2>Game Over</h2>
-        <p id="game-over-reason"></p>
-        <p>You fed <strong id="final-fed-count">0</strong> peacocks.</p>
-        <p>Best streak: <strong id="final-streak-count">0</strong></p>
-        <button id="game-over-restart" class="btn" type="button">Play Again</button>
-      </div>
-    </div>
-
-    <div class="empty-state" id="empty-state" hidden>
-      No words are ready for this mini-game yet. Add more vocabulary to start feeding the peacocks!
     </div>
   </div>
 
@@ -545,29 +340,17 @@
     const words = JSON.parse(`{{ words_json|default:'[]'|safe }}`);
     const progressUrl = "{% url 'update_progress' %}";
     const pointsUrl = "{% url 'update_points' %}";
-    const peacockImageUrl = "{% static 'pavonify_bird.png' %}";
-
     const POINTS_PER_CORRECT = 1;
-    const PEACOCK_LIFETIME = 5000;
-    const INITIAL_PEACOCK_INTERVAL = 6000;
-    const MIN_PEACOCK_INTERVAL = 1800;
-    const INTERVAL_RAMP = 0.94;
-    const CARD_SPAWN_INTERVAL = 1300;
-    const MAX_ACTIVE_CARDS = 12;
-    const TIMER_TICK = 120;
+    const ROUND_DURATION = 8000;
+    const TICK_RATE = 40;
 
-    const conveyorsContainer = document.getElementById("conveyors");
-    const runway = document.getElementById("peacock-runway");
+    const belt = document.getElementById("belt");
+    const card = document.getElementById("moving-card");
+    const bins = Array.from(document.querySelectorAll(".bin"));
     const feedbackMessage = document.getElementById("feedback-message");
-    const fedCountEl = document.getElementById("fed-count");
-    const streakCountEl = document.getElementById("streak-count");
+    const sortedCountEl = document.getElementById("sorted-count");
+    const remainingCountEl = document.getElementById("remaining-count");
     const playAgainBtn = document.getElementById("play-again-btn");
-    const gameOverPanel = document.getElementById("game-over-panel");
-    const gameOverReason = document.getElementById("game-over-reason");
-    const finalFedCount = document.getElementById("final-fed-count");
-    const finalStreakCount = document.getElementById("final-streak-count");
-    const restartButtons = [playAgainBtn, document.getElementById("game-over-restart")];
-    const emptyState = document.getElementById("empty-state");
 
     const sessionPointsEl = document.getElementById("session-points");
     const weeklyPointsEl = document.getElementById("weekly-points");
@@ -578,411 +361,193 @@
     let weeklyPoints = parseInt(weeklyPointsEl.textContent, 10) || 0;
     let totalPoints = parseInt(totalPointsEl.textContent, 10) || 0;
     let timeInMode = 0;
+    let sortedCount = 0;
+    let remaining = words.length;
+    let queue = shuffle([...words]);
+    let currentWord = null;
+    let moveInterval = null;
+    let isLocked = false;
 
-    let activePeacocks = new Map();
-    let peacockTimer = null;
-    let cardSpawner = null;
-    let peacockSpawner = null;
-    let nextPeacockId = 0;
-    let spawnInterval = INITIAL_PEACOCK_INTERVAL;
-    let wordDeck = [];
-    let gameRunning = false;
-    let fedCount = 0;
-    let streak = 0;
-    let longestStreak = 0;
-    let draggedCard = null;
+    remainingCountEl.textContent = remaining;
 
-    if (timeInModeEl) {
-      setInterval(() => {
-        timeInMode += 1;
-        timeInModeEl.textContent = timeInMode;
-      }, 1000);
-    }
+    const timer = setInterval(() => {
+      timeInMode += 1;
+      timeInModeEl.textContent = timeInMode;
+    }, 1000);
 
-    restartButtons.forEach((button) => {
-      if (!button) return;
-      button.addEventListener("click", () => {
-        if (!words.length) {
-          return;
-        }
-        startGame();
-      });
-    });
+    bins.forEach((bin) => bin.addEventListener("click", handleBinClick));
+    playAgainBtn.addEventListener("click", resetGame);
 
     if (!words.length) {
       showNoWordsState();
     } else {
-      buildConveyors();
-      startGame();
+      startRound();
     }
 
     function showNoWordsState() {
-      emptyState.hidden = false;
+      feedbackMessage.textContent = "No words available for this mini-game yet.";
+      feedbackMessage.style.color = "var(--peacock-warning)";
+      card.textContent = "Add more words to play!";
+      card.style.transform = "translate(-200px, -50%)";
+      bins.forEach((bin) => {
+        bin.textContent = "—";
+        bin.disabled = true;
+      });
+      playAgainBtn.hidden = true;
+    }
+
+    function resetGame() {
+      queue = shuffle([...words]);
+      sortedCount = 0;
+      remaining = words.length;
+      sortedCountEl.textContent = sortedCount;
+      remainingCountEl.textContent = remaining;
+      playAgainBtn.hidden = true;
       feedbackMessage.textContent = "";
-      playAgainBtn.hidden = true;
-      conveyorsContainer.innerHTML = "";
-      runway.innerHTML = "";
+      feedbackMessage.style.color = "var(--peacock-primary)";
+      startRound();
     }
 
-    function buildConveyors() {
-      conveyorsContainer.innerHTML = "";
-      for (let i = 0; i < 3; i += 1) {
-        const conveyor = document.createElement("div");
-        conveyor.className = "conveyor";
+    function startRound() {
+      clearInterval(moveInterval);
+      card.classList.remove("success", "fail");
 
-        const track = document.createElement("div");
-        track.className = "conveyor-track";
-        conveyor.appendChild(track);
-        conveyorsContainer.appendChild(conveyor);
-      }
-    }
-
-    function startGame() {
-      if (!words.length) {
-        showNoWordsState();
+      if (!queue.length) {
+        showCompletion();
         return;
       }
 
-      resetState();
-      gameRunning = true;
-      emptyState.hidden = true;
-      playAgainBtn.hidden = true;
-      gameOverPanel.hidden = true;
-      feedbackMessage.textContent = "Feed the peacocks as fast as you can!";
-      feedbackMessage.classList.remove("success", "warning");
+      currentWord = queue.shift();
+      setBinOptions(currentWord);
 
-      spawnInterval = INITIAL_PEACOCK_INTERVAL;
-      scheduleNextPeacock(200);
-      spawnInitialCards();
-
-      clearInterval(cardSpawner);
-      cardSpawner = setInterval(() => {
-        if (document.querySelectorAll('.conveyor-card').length < MAX_ACTIVE_CARDS) {
-          spawnConveyorCard();
-        }
-      }, CARD_SPAWN_INTERVAL);
-
-      clearInterval(peacockTimer);
-      peacockTimer = setInterval(updatePeacocks, TIMER_TICK);
-    }
-
-    function resetState() {
-      fedCount = 0;
-      streak = 0;
-      longestStreak = 0;
-      fedCountEl.textContent = fedCount;
-      streakCountEl.textContent = longestStreak;
-      runway.innerHTML = "";
-      document.querySelectorAll('.conveyor-track').forEach((track) => {
-        track.innerHTML = "";
-      });
-      activePeacocks.clear();
-      if (peacockSpawner) {
-        clearTimeout(peacockSpawner);
-      }
-      wordDeck = shuffle(words);
-    }
-
-    function scheduleNextPeacock(delay = spawnInterval) {
-      if (!gameRunning) {
-        return;
-      }
-
-      peacockSpawner = setTimeout(() => {
-        spawnPeacock();
-        spawnInterval = Math.max(MIN_PEACOCK_INTERVAL, spawnInterval * INTERVAL_RAMP);
-        scheduleNextPeacock(spawnInterval);
-      }, delay);
-    }
-
-    function spawnInitialCards() {
-      const totalCards = Math.min(words.length, MAX_ACTIVE_CARDS);
-      for (let i = 0; i < totalCards; i += 1) {
-        spawnConveyorCard();
-      }
-    }
-
-    function spawnPeacock() {
-      if (!gameRunning) {
-        return;
-      }
-
-      const word = drawWord();
-      if (!word) {
-        return;
-      }
-
-      const peacockId = `peacock-${nextPeacockId += 1}`;
-      const wrapper = document.createElement("div");
-      wrapper.className = "peacock";
-      wrapper.dataset.id = peacockId;
-      wrapper.dataset.wordId = word.id;
-
-      const timerRing = document.createElement("div");
-      timerRing.className = "timer-ring";
-
-      const timerNumber = document.createElement("span");
-      timerNumber.className = "timer-number";
-      timerNumber.textContent = Math.ceil(PEACOCK_LIFETIME / 1000);
-      timerRing.appendChild(timerNumber);
-
-      const speechBubble = document.createElement("div");
-      speechBubble.className = "speech-bubble";
-      speechBubble.textContent = word.word;
-      speechBubble.setAttribute("role", "button");
-      speechBubble.dataset.peacockId = peacockId;
-
-      const body = document.createElement("div");
-      body.className = "peacock-body";
-      const img = document.createElement("img");
-      img.src = peacockImageUrl;
-      img.alt = "Peacock";
-      body.appendChild(img);
-
-      wrapper.appendChild(timerRing);
-      wrapper.appendChild(speechBubble);
-      wrapper.appendChild(body);
-
-      runway.appendChild(wrapper);
-
-      const expiresAt = Date.now() + PEACOCK_LIFETIME;
-      const peacock = {
-        id: peacockId,
-        word,
-        element: wrapper,
-        speechBubble,
-        timerRing,
-        timerNumber,
-        expiresAt,
-        fed: false,
-      };
-
-      activePeacocks.set(peacockId, peacock);
-      attachDropHandlers(peacock);
-      spawnConveyorCard(word);
-    }
-
-    function attachDropHandlers(peacock) {
-      const bubble = peacock.speechBubble;
-      bubble.addEventListener("dragover", (event) => {
-        if (!gameRunning) {
-          return;
-        }
-        event.preventDefault();
-        event.dataTransfer.dropEffect = "move";
+      bins.forEach((bin) => {
+        bin.disabled = false;
+        bin.classList.remove("correct", "incorrect");
       });
 
-      bubble.addEventListener("dragenter", (event) => {
-        if (!gameRunning) {
-          return;
-        }
-        event.preventDefault();
-        bubble.classList.add("drop-hover");
-      });
-
-      bubble.addEventListener("dragleave", () => {
-        bubble.classList.remove("drop-hover");
-      });
-
-      bubble.addEventListener("drop", (event) => {
-        if (!gameRunning) {
-          return;
-        }
-        event.preventDefault();
-        bubble.classList.remove("drop-hover");
-
-        const cardElement = draggedCard;
-        const droppedWordId = cardElement?.dataset.wordId || event.dataTransfer.getData("text/plain");
-        handleDrop(peacock, droppedWordId, cardElement);
-      });
+      feedbackMessage.textContent = "";
+      feedbackMessage.style.color = "var(--peacock-primary)";
+      card.textContent = currentWord.word;
+      isLocked = false;
+      kickOffMovement();
     }
 
-    function spawnConveyorCard(preferredWord = null) {
-      if (!words.length) {
-        return;
-      }
-
-      const trackElements = Array.from(document.querySelectorAll('.conveyor-track'));
-      if (!trackElements.length) {
-        return;
-      }
-
-      const word = preferredWord || drawWord();
-      if (!word) {
-        return;
-      }
-
-      const card = document.createElement("div");
-      card.className = "conveyor-card";
-      card.draggable = true;
-      card.dataset.wordId = word.id;
-      card.textContent = word.translation;
-
-      const duration = randomInRange(9000, 14000);
-      card.style.setProperty('--duration', `${duration}ms`);
-
-      const track = trackElements[Math.floor(Math.random() * trackElements.length)];
-      track.appendChild(card);
-
-      card.addEventListener("animationend", () => {
-        if (card.parentElement) {
-          card.parentElement.removeChild(card);
-        }
+    function showCompletion() {
+      card.textContent = "All Sorted!";
+      card.style.transform = "translate(0, -50%)";
+      card.classList.add("success");
+      bins.forEach((bin) => {
+        bin.disabled = true;
+        bin.textContent = "🎉";
       });
-
-      card.addEventListener("dragstart", (event) => {
-        if (!gameRunning) {
-          event.preventDefault();
-          return;
-        }
-        draggedCard = card;
-        card.classList.add("dragging");
-        event.dataTransfer.effectAllowed = "move";
-        event.dataTransfer.setData("text/plain", String(word.id));
-      });
-
-      card.addEventListener("dragend", () => {
-        draggedCard = null;
-        card.classList.remove("dragging");
-      });
-    }
-
-    function handleDrop(peacock, droppedWordId, cardElement) {
-      if (!peacock || peacock.fed || !gameRunning) {
-        return;
-      }
-
-      if (String(peacock.word.id) === String(droppedWordId)) {
-        if (cardElement && cardElement.parentElement) {
-          cardElement.parentElement.removeChild(cardElement);
-        }
-        feedPeacock(peacock);
-      } else {
-        if (cardElement) {
-          cardElement.classList.add("inactive");
-          setTimeout(() => cardElement.classList.remove("inactive"), 300);
-        }
-        peacock.speechBubble.classList.add("shake");
-        setTimeout(() => peacock.speechBubble.classList.remove("shake"), 360);
-        showFeedback(`Not quite! ${peacock.word.word} needs "${peacock.word.translation}".`, "warning");
-      }
-    }
-
-    function feedPeacock(peacock) {
-      if (!peacock || peacock.fed) {
-        return;
-      }
-
-      peacock.fed = true;
-      activePeacocks.delete(peacock.id);
-      peacock.element.classList.add("fed");
-
-      showFeedback(`Fed! ${peacock.word.word} ➡ ${peacock.word.translation}`, "success");
-
-      fedCount += 1;
-      streak += 1;
-      longestStreak = Math.max(longestStreak, streak);
-      fedCountEl.textContent = fedCount;
-      streakCountEl.textContent = longestStreak;
-
-      submitResult(peacock.word, true);
-
-      setTimeout(() => {
-        peacock.element.remove();
-      }, 420);
-    }
-
-    function updatePeacocks() {
-      if (!gameRunning) {
-        return;
-      }
-
-      const now = Date.now();
-      activePeacocks.forEach((peacock) => {
-        const remaining = peacock.expiresAt - now;
-        if (remaining <= 0) {
-          activePeacocks.delete(peacock.id);
-          triggerGameOver(peacock);
-          return;
-        }
-
-        const ratio = Math.max(remaining / PEACOCK_LIFETIME, 0);
-        const degrees = Math.max(0, Math.min(360, ratio * 360));
-        const color = ratio > 0.45 ? 'var(--peacock-highlight)' : ratio > 0.2 ? '#ffba08' : 'var(--peacock-warning)';
-        peacock.timerRing.style.background = `conic-gradient(${color} ${degrees}deg, rgba(0, 0, 0, 0.08) ${degrees}deg)`;
-        peacock.timerNumber.textContent = Math.ceil(Math.max(remaining, 0) / 1000);
-      });
-    }
-
-    function triggerGameOver(peacock) {
-      if (!gameRunning) {
-        return;
-      }
-
-      gameRunning = false;
-      streak = 0;
-
-      if (peacock && peacock.element) {
-        peacock.element.classList.add("shake");
-        setTimeout(() => peacock.element.remove(), 500);
-        submitResult(peacock.word, false);
-      }
-
-      showFeedback("Oh no! A peacock went hungry.", "warning");
-      finalizeGame("A peacock flew away before getting the right word.");
-    }
-
-    function finalizeGame(reason) {
-      clearInterval(cardSpawner);
-      clearInterval(peacockTimer);
-      if (peacockSpawner) {
-        clearTimeout(peacockSpawner);
-      }
-
-      document.querySelectorAll('.conveyor-card').forEach((card) => {
-        card.classList.add("inactive");
-      });
-
-      finalFedCount.textContent = fedCount;
-      finalStreakCount.textContent = longestStreak;
-      gameOverReason.textContent = reason;
-      gameOverPanel.hidden = false;
+      feedbackMessage.textContent = "Amazing work! The conveyor is clear.";
+      feedbackMessage.style.color = "var(--peacock-highlight)";
       playAgainBtn.hidden = false;
     }
 
-    function drawWord() {
-      if (!words.length) {
-        return null;
+    function setBinOptions(word) {
+      const options = [word];
+      const pool = shuffle(words.filter((item) => item.id !== word.id));
+
+      while (options.length < Math.min(4, words.length) && pool.length) {
+        options.push(pool.shift());
       }
-      if (!wordDeck.length) {
-        wordDeck = shuffle(words);
+
+      while (options.length < bins.length && options.length) {
+        options.push(options[Math.floor(Math.random() * options.length)]);
       }
-      return wordDeck.shift();
+
+      const shuffled = shuffle(options).slice(0, bins.length);
+      bins.forEach((bin, index) => {
+        const option = shuffled[index] || word;
+        bin.textContent = option.translation;
+        bin.dataset.correct = option.id === word.id ? "1" : "0";
+      });
     }
 
-    function shuffle(items) {
-      const arr = [...items];
-      for (let i = arr.length - 1; i > 0; i -= 1) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [arr[i], arr[j]] = [arr[j], arr[i]];
+    function handleBinClick(event) {
+      if (isLocked || !currentWord) {
+        return;
       }
-      return arr;
+
+      isLocked = true;
+      clearInterval(moveInterval);
+      const bin = event.currentTarget;
+      const isCorrect = bin.dataset.correct === "1";
+
+      bins.forEach((button) => (button.disabled = true));
+      bin.classList.add(isCorrect ? "correct" : "incorrect");
+      card.classList.add(isCorrect ? "success" : "fail");
+
+      feedbackMessage.textContent = isCorrect
+        ? `Sorted! ${currentWord.word} ➡ ${currentWord.translation}`
+        : `Oops! ${currentWord.word} = ${currentWord.translation}`;
+      feedbackMessage.style.color = isCorrect ? "var(--peacock-highlight)" : "var(--peacock-warning)";
+
+      submitResult(isCorrect).finally(() => {
+        if (isCorrect) {
+          sortedCount += 1;
+          remaining = Math.max(remaining - 1, 0);
+          sortedCountEl.textContent = sortedCount;
+          remainingCountEl.textContent = remaining;
+        } else {
+          queue.push(currentWord);
+        }
+
+        setTimeout(() => {
+          startRound();
+        }, 900);
+      });
     }
 
-    function randomInRange(min, max) {
-      return Math.floor(Math.random() * (max - min + 1)) + min;
-    }
-
-    function showFeedback(message, type = "") {
-      feedbackMessage.textContent = message;
-      feedbackMessage.classList.remove("success", "warning");
-      if (type) {
-        feedbackMessage.classList.add(type);
+    function handleMiss() {
+      if (isLocked || !currentWord) {
+        return;
       }
+
+      isLocked = true;
+      bins.forEach((button) => (button.disabled = true));
+      card.classList.add("fail");
+      feedbackMessage.textContent = `Missed! ${currentWord.word} = ${currentWord.translation}`;
+      feedbackMessage.style.color = "var(--peacock-warning)";
+
+      submitResult(false).finally(() => {
+        queue.push(currentWord);
+        setTimeout(() => {
+          startRound();
+        }, 1200);
+      });
     }
 
-    async function submitResult(word, isCorrect) {
-      if (!word) {
+    function kickOffMovement() {
+      const beltWidth = belt.clientWidth;
+      const cardWidth = card.offsetWidth;
+      const start = -cardWidth - 24;
+      const end = beltWidth + 24;
+      let progress = 0;
+
+      card.style.transform = `translate(${start}px, -50%)`;
+
+      moveInterval = setInterval(() => {
+        if (isLocked) {
+          clearInterval(moveInterval);
+          return;
+        }
+
+        progress += TICK_RATE / ROUND_DURATION;
+        const clamped = Math.min(progress, 1);
+        const position = start + (end - start) * clamped;
+        card.style.transform = `translate(${position}px, -50%)`;
+
+        if (clamped >= 1) {
+          clearInterval(moveInterval);
+          handleMiss();
+        }
+      }, TICK_RATE);
+    }
+
+    async function submitResult(isCorrect) {
+      if (!currentWord) {
         return;
       }
 
@@ -994,7 +559,7 @@
             "X-CSRFToken": getCSRFToken(),
           },
           body: JSON.stringify({
-            word_id: word.id,
+            word_id: currentWord.id,
             correct: isCorrect,
           }),
         });
@@ -1021,8 +586,6 @@
           if (isCorrect) {
             sessionPoints += POINTS_PER_CORRECT;
             sessionPointsEl.textContent = sessionPoints;
-          } else {
-            streak = 0;
           }
           weeklyPoints = data.weekly_points;
           totalPoints = data.total_points;
@@ -1036,6 +599,15 @@
       } catch (error) {
         console.error("Error updating points:", error);
       }
+    }
+
+    function shuffle(items) {
+      const arr = [...items];
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
     }
 
     function getCSRFToken() {
