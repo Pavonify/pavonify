@@ -52,11 +52,27 @@
             position: relative;
         }
         .header {
-            text-align: center;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            text-align: left;
         }
         .header h1 {
             margin: 0;
             font-size: 28px;
+        }
+        .title-block {
+            flex: 1 1 auto;
+        }
+        .title-block p {
+            margin: 6px 0 0;
+        }
+        .energy-meter-container {
+            display: flex;
+            justify-content: flex-end;
+            min-width: 160px;
         }
         #activity-container {
             margin-top: 30px;
@@ -262,8 +278,11 @@
 <div class="pane">
     <button class="back-button btn" onclick="window.history.back()">Back</button>
     <div class="header">
-        <h1>Assignment: {{ assignment.name }}</h1>
-        <p><strong>Assignment Points:</strong> <span id="assignment-points">{{ current_points }}</span> / {{ total_points }}</p>
+        <div class="title-block">
+            <h1>Assignment: {{ assignment.name }}</h1>
+            <p><strong>Assignment Points:</strong> <span id="assignment-points">{{ current_points }}</span> / {{ total_points }}</p>
+        </div>
+        <div class="energy-meter-container" id="energy-meter-container"></div>
     </div>
     <p><strong>Session Points:</strong> <span id="session-points">0</span></p>
     <div id="streak-container"><div id="streak-bar"></div></div>
@@ -272,12 +291,18 @@
     <div id="activity-container"></div>
 </div>
 <div id="accent-panel" class="accent-panel"></div>
+<script src="{% static 'js/gamehub.js' %}"></script>
+<script src="{% static 'js/mini_game_launcher.js' %}"></script>
 <script>
     document.addEventListener('DOMContentLoaded', () => {
         fetchActivity();
         initAccentKeyboard();
+        setupEnergyMeter();
+        refreshStreakUI();
     });
 
+    const MINI_GAME_MODE = 'assignment';
+    const ENERGY_BASE_PER_CORRECT = 2;
     let sessionPoints = 0;
     let assignmentPoints = {{ current_points }};
     const totalAssignmentPoints = {{ total_points }};
@@ -432,6 +457,106 @@
         gain.gain.exponentialRampToValueAtTime(0.00001, ctx.currentTime + 0.5);
         osc.start();
         osc.stop(ctx.currentTime + 0.5);
+    }
+
+    function setupEnergyMeter() {
+        if (!window.GameHub || typeof window.GameHub.renderEnergyMeter !== 'function') {
+            return;
+        }
+        const container = document.getElementById('energy-meter-container');
+        if (!container) {
+            return;
+        }
+        window.GameHub.renderEnergyMeter(container, {
+            onLaunch: () => launchMiniGame()
+        });
+    }
+
+    function launchMiniGame() {
+        if (!window.MiniGameLauncher || typeof window.MiniGameLauncher.open !== 'function') {
+            return;
+        }
+        window.MiniGameLauncher.open({
+            mode: MINI_GAME_MODE,
+            fetchWords: fetchMiniGameWords,
+            postResult: postMiniGameResult,
+            awardSession: awardMiniGameSession,
+            onSessionAward: award => applySessionAward(award)
+        });
+    }
+
+    async function fetchMiniGameWords(mode) {
+        const response = await fetch(`/api/srs/current-words?mode=${encodeURIComponent(mode)}`, {
+            credentials: 'include'
+        });
+        if (!response.ok) {
+            throw new Error('Failed to load current words');
+        }
+        const data = await response.json();
+        if (!Array.isArray(data)) {
+            throw new Error('Invalid words payload');
+        }
+        return data;
+    }
+
+    async function postMiniGameResult(body) {
+        const response = await fetch('/api/srs/game-result', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            credentials: 'include',
+            body: JSON.stringify(body)
+        });
+        if (!response.ok) {
+            throw new Error('Failed to record game result');
+        }
+    }
+
+    async function awardMiniGameSession(body) {
+        const response = await fetch('/api/srs/session-award', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            credentials: 'include',
+            body: JSON.stringify(body)
+        });
+        if (!response.ok) {
+            throw new Error('Failed to apply session awards');
+        }
+        const pointsDelta = Number(body && body.pointsDelta) || 0;
+        if (pointsDelta) {
+            const assignmentResponse = await fetch("{% url 'update_assignment_points' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                credentials: 'include',
+                body: JSON.stringify({ assignment_id: {{ assignment.id }}, points: pointsDelta })
+            });
+            if (!assignmentResponse.ok) {
+                throw new Error('Failed to update assignment points');
+            }
+        }
+    }
+
+    function applySessionAward(award) {
+        const pointsDelta = Number(award && award.pointsDelta) || 0;
+        if (pointsDelta) {
+            sessionPoints += pointsDelta;
+            assignmentPoints += pointsDelta;
+            document.getElementById('session-points').textContent = sessionPoints;
+            document.getElementById('assignment-points').textContent = Math.min(assignmentPoints, totalAssignmentPoints);
+        }
+        const streakDelta = Number(award && award.streakDelta) || 0;
+        if (streakDelta) {
+            globalStreak = Math.max(globalStreak + streakDelta, 0);
+            refreshStreakUI();
+        }
     }
 
     function initAccentKeyboard() {
@@ -729,53 +854,50 @@
         });
     }
 
-    function updateStreak(correct, count=true) {
-        if (count) {
-            if (correct) {
-                globalStreak += 1;
-            } else {
-                globalStreak = 0;
-            }
+    function computeMultiplierFromStreak(streak) {
+        if (streak >= 185) return 5;
+        if (streak >= 85) return 4;
+        if (streak >= 35) return 3;
+        if (streak >= 10) return 2;
+        return 1;
+    }
 
-            if (globalStreak >= 185) {
-                multiplier = 5;
-            } else if (globalStreak >= 85) {
-                multiplier = 4;
-            } else if (globalStreak >= 35) {
-                multiplier = 3;
-            } else if (globalStreak >= 10) {
-                multiplier = 2;
-            } else {
-                multiplier = 1;
-            }
-            if (assignmentPoints >= totalAssignmentPoints && multiplier < 2) {
-                multiplier = 2;
-            }
+    function refreshStreakUI() {
+        let newMultiplier = computeMultiplierFromStreak(globalStreak);
+        if (assignmentPoints >= totalAssignmentPoints && newMultiplier < 2) {
+            newMultiplier = 2;
         }
-
-        if (multiplier > prevMultiplier) {
+        if (newMultiplier > prevMultiplier) {
             playChirp('multiplier');
         }
-        prevMultiplier = multiplier;
+        multiplier = newMultiplier;
+        prevMultiplier = newMultiplier;
 
         document.getElementById('streak-count').textContent = globalStreak;
         document.getElementById('multiplier').textContent = multiplier;
 
-        let prev = 0;
-        let next = streakThresholds[1];
+        let prev = streakThresholds[0];
+        let next = streakThresholds[1] ?? streakThresholds[0] + 1;
         for (let i = 1; i < streakThresholds.length; i++) {
             if (globalStreak < streakThresholds[i]) {
                 next = streakThresholds[i];
-                prev = streakThresholds[i-1];
                 break;
             }
             prev = streakThresholds[i];
-            next = streakThresholds[i+1] || streakThresholds[i];
+            next = streakThresholds[i + 1] || streakThresholds[i];
         }
-        const percent = Math.min(((globalStreak - prev) / (next - prev)) * 100, 100);
+        const range = Math.max(next - prev, 1);
+        const percent = Math.min(((globalStreak - prev) / range) * 100, 100);
         const bar = document.getElementById('streak-bar');
         bar.style.width = percent + '%';
         bar.style.background = multiplierColors[multiplier];
+    }
+
+    function updateStreak(correct, count=true) {
+        if (count) {
+            globalStreak = correct ? globalStreak + 1 : 0;
+        }
+        refreshStreakUI();
     }
 
     function showFeedback(correct, correctAnswer=null) {
@@ -799,10 +921,14 @@
 
             if (count && correct) {
                 assignmentPoints += 5 * multiplier;
-                document.getElementById('assignment-points').textContent = assignmentPoints;
+                document.getElementById('assignment-points').textContent = Math.min(assignmentPoints, totalAssignmentPoints);
             }
 
             updateStreak(correct, count);
+
+            if (count && correct && window.GameHub && typeof window.GameHub.gainEnergy === 'function') {
+                window.GameHub.gainEnergy(ENERGY_BASE_PER_CORRECT, globalStreak);
+            }
 
             if (count && correct) {
                 sessionPoints += 5 * multiplier;
