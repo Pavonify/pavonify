@@ -73,6 +73,7 @@ urlpatterns = [
     path('match-up-mode/<int:vocab_list_id>/', views.match_up_mode, name='match_up_mode'),
     path('gap-fill-mode/<int:vocab_list_id>/', views.gap_fill_mode, name='gap_fill_mode'),
     path('mini-game-1/<int:vocab_list_id>/', views.mini_game_1, name='mini_game_1'),
+    path('mini-game-1/best-streak/', views.update_mini_game_1_best_streak, name='mini_game_1_best_streak'),
     path('practice-session/<int:vocab_list_id>/', views.practice_session, name='practice_session'),
     path('practice/update_progress/', views.update_progress, name='update_progress'),
     path("lead-teacher-dashboard/", views.lead_teacher_dashboard, name="lead_teacher_dashboard"),
