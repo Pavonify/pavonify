@@ -1159,6 +1159,18 @@ def practice_session(request, vocab_list_id):
     queue = request.session.get(queue_key, [])
     if queue and "activities" not in queue[0]:
         queue = []
+
+    def _image_payload(word: VocabularyWord) -> Optional[Dict[str, str]]:
+        if not word.image_url or not word.image_approved:
+            return None
+        return {
+            "url": word.image_url,
+            "thumb": word.image_thumb_url or word.image_url,
+            "source": word.image_source or "",
+            "attribution": word.image_attribution or "",
+            "license": word.image_license or "",
+            "alt": word.word,
+        }
     exposure_activities = ["show_word", "flashcard"]
     testing_activities = ["typing", "fill_gaps", "multiple_choice", "true_false"]
     matchup_key = f"matchup_shown_{vocab_list_id}"
@@ -1195,7 +1207,12 @@ def practice_session(request, vocab_list_id):
             payload = {
                 "type": "match_up",
                 "words": [
-                    {"id": w.id, "word": w.word, "translation": w.translation}
+                    {
+                        "id": w.id,
+                        "word": w.word,
+                        "translation": w.translation,
+                        "image": _image_payload(w),
+                    }
                     for w in words
                 ],
             }
@@ -1204,6 +1221,7 @@ def practice_session(request, vocab_list_id):
         item = queue.pop(0)
         word = VocabularyWord.objects.get(id=item["id"])
         activity = item["activities"][item["step"]]
+        image_data = _image_payload(word)
 
         if item["step"] + 1 < len(item["activities"]):
             item["step"] += 1
@@ -1212,9 +1230,19 @@ def practice_session(request, vocab_list_id):
         request.session[queue_key] = queue
 
         if activity == "show_word":
-            payload = {"type": "show_word", "word_id": word.id, "prompt": word.translation, "answer": word.word}
+            payload = {
+                "type": "show_word",
+                "word_id": word.id,
+                "prompt": word.translation,
+                "answer": word.word,
+            }
         elif activity == "flashcard":
-            payload = {"type": "flashcard", "word_id": word.id, "prompt": word.word, "answer": word.translation}
+            payload = {
+                "type": "flashcard",
+                "word_id": word.id,
+                "prompt": word.word,
+                "answer": word.translation,
+            }
         elif activity == "typing":
             if random.choice([True, False]):
                 prompt, answer = word.word, word.translation
@@ -1301,6 +1329,9 @@ def practice_session(request, vocab_list_id):
             }
         else:
             payload = {"type": "unknown"}
+
+        if image_data:
+            payload["image"] = image_data
         return JsonResponse(payload)
 
     if not queue:
