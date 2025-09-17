@@ -34,7 +34,7 @@ class User(AbstractUser):
 
     first_name = models.CharField(max_length=50, blank=False)
     last_name = models.CharField(max_length=50, blank=False)
-    email = models.EmailField(unique=True)
+    email = models.EmailField(blank=True)
     country = CountryField(blank_label="Select a country")
 
     # Default premium_expiration to now (expired by default)
