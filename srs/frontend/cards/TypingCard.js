@@ -2,24 +2,30 @@ import React, { useState } from 'react';
 
 export default function TypingCard({ word, onSubmit }) {
   const [value, setValue] = useState('');
-  function handleSubmit(e) {
-    e.preventDefault();
-    onSubmit(value.trim().toLowerCase() === (word.answer || '').toLowerCase(), { user_answer: value });
+
+  function handleSubmit(event) {
+    event.preventDefault();
+    const expected = (word?.answer ?? '').toString().trim().toLowerCase();
+    const guess = value.trim().toLowerCase();
+    onSubmit(guess === expected, { user_answer: value });
   }
+
   return React.createElement(
     'form',
-    { onSubmit: handleSubmit },
-    [
-      React.createElement('input', {
-        key: 'input',
-        value,
-        onChange: e => setValue(e.target.value)
-      }),
-      React.createElement(
-        'button',
-        { key: 'btn', type: 'submit', className: 'btn btn-primary' },
-        'Check'
-      )
-    ]
+    { onSubmit: handleSubmit, className: 'flex flex-col items-center gap-3' },
+    React.createElement('input', {
+      value,
+      onChange: event => setValue(event.target.value),
+      className: 'w-full max-w-xs rounded border border-slate-300 px-3 py-2',
+      'aria-label': 'Type your answer',
+    }),
+    React.createElement(
+      'button',
+      {
+        type: 'submit',
+        className: 'px-4 py-2 rounded-lg bg-emerald-500 text-white shadow hover:bg-emerald-600',
+      },
+      'Check'
+    )
   );
 }
