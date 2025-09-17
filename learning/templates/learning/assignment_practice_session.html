@@ -209,6 +209,53 @@
         .masked-word {
             letter-spacing: 2px;
         }
+
+        .word-visual {
+            margin: 0 auto 20px;
+            max-width: 320px;
+            border-radius: 16px;
+            overflow: hidden;
+            background: rgba(255, 255, 255, 0.95);
+            box-shadow: 0 16px 32px rgba(15, 23, 42, 0.28);
+        }
+
+        .word-visual img {
+            width: 100%;
+            display: block;
+            object-fit: cover;
+            max-height: 220px;
+        }
+
+        .word-visual figcaption {
+            font-size: 12px;
+            line-height: 1.4;
+            color: #0f172a;
+            background: rgba(255, 255, 255, 0.85);
+            padding: 8px 12px;
+        }
+
+        .match-tile.has-image {
+            flex-direction: column;
+            gap: 6px;
+            padding: 12px;
+        }
+
+        .match-image {
+            width: 100%;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .match-image img {
+            width: 100%;
+            height: 80px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .match-word {
+            font-weight: 600;
+        }
     </style>
 </head>
 <body>
@@ -256,6 +303,57 @@
     const flagBaseUrl = "{% static 'flags/' %}";
     const sourceLanguageCode = "{{ vocab_list.source_language|default_if_none:''|lower }}";
     const targetLanguageCode = "{{ vocab_list.target_language|default_if_none:''|lower }}";
+
+    function escapeHtml(value) {
+        if (value === null || value === undefined) {
+            return '';
+        }
+        return String(value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function escapeAttribute(value) {
+        return escapeHtml(value).replace(/`/g, '&#96;');
+    }
+
+    function buildImageCaption(image) {
+        if (!image) {
+            return '';
+        }
+        const parts = [];
+        if (image.source) parts.push(image.source);
+        if (image.license) parts.push(image.license);
+        if (image.attribution) parts.push(image.attribution);
+        return parts.filter(Boolean).join(' • ');
+    }
+
+    function buildImageFigure(image, fallbackAlt = '') {
+        if (!image || !image.url) {
+            return '';
+        }
+        const src = image.thumb || image.url;
+        const alt = image.alt || fallbackAlt || 'Vocabulary illustration';
+        const caption = buildImageCaption(image);
+        return `
+            <figure class="word-visual">
+                <img src="${escapeAttribute(src)}" alt="${escapeAttribute(alt)}">
+                ${caption ? `<figcaption>${escapeHtml(caption)}</figcaption>` : ''}
+            </figure>
+        `;
+    }
+
+    function buildMatchImage(image, fallbackAlt = '') {
+        if (!image || !image.url) {
+            return '';
+        }
+        const src = image.thumb || image.url;
+        const alt = image.alt || fallbackAlt || 'Vocabulary illustration';
+        return `<div class="match-image"><img src="${escapeAttribute(src)}" alt="${escapeAttribute(alt)}"></div>`;
+    }
 
     function resolveFlagCode(code) {
         if (!code) return null;
@@ -418,11 +516,15 @@
 
     function renderShowWord(activity) {
         const container = document.getElementById('activity-container');
+        const imageFigure = buildImageFigure(activity.image, activity.answer);
+        const promptText = escapeHtml(activity.prompt);
+        const answerText = escapeHtml(activity.answer);
         container.innerHTML = `
             <div class="show-word">
-                <p class="vocab-word">${activity.prompt}</p>
+                ${imageFigure}
+                <p class="vocab-word">${promptText}</p>
                 <button id="reveal-word" class="btn">Show Word</button>
-                <div id="revealed-word" class="vocab-word answer-text" style="display:none;">${activity.answer}</div>
+                <div id="revealed-word" class="vocab-word answer-text" style="display:none;">${answerText}</div>
                 <div style="margin-top:10px;">
                     <button id="show-word-next" class="btn" style="display:none;">Next</button>
                 </div>
@@ -441,11 +543,15 @@
 
     function renderFlashcard(activity) {
         const container = document.getElementById('activity-container');
+        const imageFigure = buildImageFigure(activity.image, activity.prompt);
+        const promptText = escapeHtml(activity.prompt);
+        const answerText = escapeHtml(activity.answer);
         container.innerHTML = `
             <div class="flashcard">
-                <p class="vocab-word">${activity.prompt}</p>
+                ${imageFigure}
+                <p class="vocab-word">${promptText}</p>
                 <button id="show-answer" class="btn">Show Answer</button>
-                <div id="answer" class="vocab-word answer-text" style="display:none;">${activity.answer}</div>
+                <div id="answer" class="vocab-word answer-text" style="display:none;">${answerText}</div>
                 <div style="margin-top:10px;">
                     <button id="flashcard-done" class="btn" style="display:none;">I got it!</button>
                 </div>
@@ -464,9 +570,12 @@
 
     function renderTyping(activity) {
         const container = document.getElementById('activity-container');
+        const imageFigure = buildImageFigure(activity.image, activity.answer || activity.prompt);
+        const promptText = escapeHtml(activity.prompt);
         container.innerHTML = `
             <div class="typing">
-                <p class="vocab-word">${activity.prompt}</p>
+                ${imageFigure}
+                <p class="vocab-word">${promptText}</p>
                 <div class="input-section">
                     <div class="language-indicator" id="typing-language-indicator"></div>
                     <input type="text" id="typing-input" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" />
@@ -486,10 +595,14 @@
 
     function renderFillGaps(activity) {
         const container = document.getElementById('activity-container');
+        const imageFigure = buildImageFigure(activity.image, activity.answer);
+        const translationText = escapeHtml(activity.translation);
+        const promptText = escapeHtml(activity.prompt);
         container.innerHTML = `
             <div class="fill-gaps">
-                <p class="vocab-word">${activity.translation}</p>
-                <p class="vocab-word masked-word">${activity.prompt}</p>
+                ${imageFigure}
+                <p class="vocab-word">${translationText}</p>
+                <p class="vocab-word masked-word">${promptText}</p>
                 <div class="input-section">
                     <div class="language-indicator" id="fill-gaps-language-indicator"></div>
                     <input type="text" id="fill-gaps-input" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" />
@@ -509,11 +622,15 @@
 
     function renderMultipleChoice(activity) {
         const container = document.getElementById('activity-container');
+        const imageFigure = buildImageFigure(activity.image, activity.prompt);
+        const promptText = escapeHtml(activity.prompt);
+        const optionsHtml = (activity.options || []).map(opt => `<button class="match-option btn">${escapeHtml(opt)}</button>`).join('');
         container.innerHTML = `
             <div class="multiple-choice">
-                <p class="vocab-word">${activity.prompt}</p>
+                ${imageFigure}
+                <p class="vocab-word">${promptText}</p>
                 <div id="match-options">
-                    ${activity.options.map(opt => `<button class="match-option btn">${opt}</button>`).join('')}
+                    ${optionsHtml}
                 </div>
             </div>
         `;
@@ -528,9 +645,13 @@
 
     function renderTrueFalse(activity) {
         const container = document.getElementById('activity-container');
+        const imageFigure = buildImageFigure(activity.image, activity.prompt);
+        const promptText = escapeHtml(activity.prompt);
+        const shownText = escapeHtml(activity.shown_translation);
         container.innerHTML = `
             <div class="true-false">
-                <p><span class="vocab-word inline">${activity.prompt}</span> - <span class="vocab-word inline">${activity.shown_translation}</span></p>
+                ${imageFigure}
+                <p><span class="vocab-word inline">${promptText}</span> - <span class="vocab-word inline">${shownText}</span></p>
                 <button id="true-btn" class="btn">True</button>
                 <button id="false-btn" class="btn">False</button>
             </div>
@@ -555,39 +676,51 @@
         `;
         const left = document.getElementById('match-l1');
         const right = document.getElementById('match-l2');
-        activity.words.forEach(w => {
+        (activity.words || []).forEach(w => {
             const tile = document.createElement('div');
             tile.className = 'match-tile';
+            if (w.image && w.image.url) {
+                tile.classList.add('has-image');
+            }
             tile.draggable = true;
             tile.dataset.id = w.id;
-            tile.textContent = w.word;
+            tile.dataset.word = w.word;
+            tile.innerHTML = `
+                ${buildMatchImage(w.image, w.word)}
+                <span class="match-word">${escapeHtml(w.word)}</span>
+            `;
             left.appendChild(tile);
 
             const target = document.createElement('div');
             target.className = 'match-target';
             target.dataset.id = w.id;
-            target.textContent = w.translation;
+            target.dataset.translation = w.translation;
+            target.innerHTML = `<span class="match-word">${escapeHtml(w.translation)}</span>`;
             right.appendChild(target);
         });
 
         document.querySelectorAll('.match-tile').forEach(tile => {
             tile.addEventListener('dragstart', e => {
-                e.dataTransfer.setData('text', e.target.dataset.id);
-                e.dataTransfer.setData('text-word', e.target.textContent);
+                const el = e.currentTarget;
+                e.dataTransfer.setData('text', el.dataset.id);
+                e.dataTransfer.setData('text-word', el.dataset.word);
             });
         });
 
         document.querySelectorAll('.match-target').forEach(target => {
             target.addEventListener('dragover', e => e.preventDefault());
             target.addEventListener('drop', e => {
+                e.preventDefault();
+                const el = e.currentTarget;
                 const id = e.dataTransfer.getData('text');
                 const word = e.dataTransfer.getData('text-word');
-                if (id === e.target.dataset.id) {
-                    e.target.classList.add('correct');
-                    e.target.textContent = `${word} = ${e.target.textContent}`;
+                if (id === el.dataset.id) {
+                    el.classList.add('correct');
+                    const translation = el.dataset.translation || '';
+                    el.innerHTML = `<span class="match-word">${escapeHtml(word)}</span> = <span class="match-word">${escapeHtml(translation)}</span>`;
                     const tile = document.querySelector(`.match-tile[data-id='${id}']`);
                     if (tile) tile.remove();
-                    submitResponse(parseInt(id), true, null, null, true, false, 'match_up');
+                    submitResponse(parseInt(id, 10), true, null, null, true, false, 'match_up');
                     if (document.querySelectorAll('.match-tile').length === 0) {
                         setTimeout(() => fetchActivity(), 500);
                     }
