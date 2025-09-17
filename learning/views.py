@@ -652,12 +652,113 @@ def add_students(request, class_id):
 def edit_student(request, student_id):
     student = get_object_or_404(Student, id=student_id)
     if request.method == "POST":
-        student.first_name = request.POST.get("first_name", student.first_name)
-        student.last_name = request.POST.get("last_name", student.last_name)
-        student.year_group = request.POST.get("year_group", student.year_group)
-        student.date_of_birth = request.POST.get("date_of_birth", student.date_of_birth)
-        student.save()
-        return redirect("edit_class", student.classes.first().id)
+        first_name = request.POST.get("first_name", "").strip()
+        last_name = request.POST.get("last_name", "").strip()
+        year_group_raw = request.POST.get("year_group", "").strip()
+        dob_raw = request.POST.get("date_of_birth", "").strip()
+        username_raw = request.POST.get("username", "").strip()
+        password_raw = request.POST.get("password", "").strip()
+
+        errors = False
+        original_values = {
+            "first_name": student.first_name,
+            "last_name": student.last_name,
+            "year_group": student.year_group,
+            "date_of_birth": student.date_of_birth,
+            "username": student.username,
+            "password": student.password,
+        }
+
+        if not first_name:
+            messages.error(request, "First name is required.")
+            errors = True
+        if not last_name:
+            messages.error(request, "Last name is required.")
+            errors = True
+
+        year_group = student.year_group
+        if not year_group_raw:
+            messages.error(request, "Year group is required.")
+            errors = True
+        else:
+            try:
+                year_group = int(year_group_raw)
+                if year_group <= 0:
+                    raise ValueError
+            except ValueError:
+                messages.error(request, "Year group must be a positive number.")
+                errors = True
+
+        date_of_birth = student.date_of_birth
+        if not dob_raw:
+            messages.error(request, "Date of birth is required.")
+            errors = True
+        else:
+            try:
+                date_of_birth = datetime.strptime(dob_raw, "%Y-%m-%d").date()
+            except ValueError:
+                messages.error(request, "Date of birth must be in YYYY-MM-DD format.")
+                errors = True
+
+        username = student.username
+        if not username_raw:
+            messages.error(request, "Username is required.")
+            errors = True
+        else:
+            username = username_raw.lower()
+            if (
+                Student.objects.filter(username=username)
+                .exclude(id=student.id)
+                .exists()
+            ):
+                messages.error(request, "That username is already in use by another student.")
+                errors = True
+
+        password = student.password
+        if not password_raw:
+            messages.error(request, "Password is required.")
+            errors = True
+        else:
+            password = password_raw
+
+        # Update the in-memory student object so the form reflects attempted changes
+        if first_name:
+            student.first_name = first_name
+        if last_name:
+            student.last_name = last_name
+        student.year_group = year_group
+        student.date_of_birth = date_of_birth
+        if username_raw:
+            student.username = username
+        if password_raw:
+            student.password = password
+
+        if errors:
+            return render(request, "learning/edit_student.html", {"student": student})
+
+        updated_fields: List[str] = []
+        if student.first_name != original_values["first_name"]:
+            updated_fields.append("first_name")
+        if student.last_name != original_values["last_name"]:
+            updated_fields.append("last_name")
+        if student.year_group != original_values["year_group"]:
+            updated_fields.append("year_group")
+        if student.date_of_birth != original_values["date_of_birth"]:
+            updated_fields.append("date_of_birth")
+        if student.username != original_values["username"]:
+            updated_fields.append("username")
+        if student.password != original_values["password"]:
+            updated_fields.append("password")
+
+        if updated_fields:
+            student.save(update_fields=updated_fields)
+
+        messages.success(request, "Student details updated successfully.")
+
+        associated_class = student.classes.first()
+        if associated_class:
+            return redirect("edit_class", associated_class.id)
+        return redirect("teacher_dashboard")
     return render(request, "learning/edit_student.html", {"student": student})
 
 

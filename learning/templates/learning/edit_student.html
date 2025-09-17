@@ -4,32 +4,202 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Edit Student – {{ student.first_name }} {{ student.last_name }}</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Fredoka+One&display=swap');
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: #e3f2fd;
+      margin: 0;
+      padding: 40px 20px;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+    }
+
+    .card {
+      background: #ffffff;
+      width: 100%;
+      max-width: 640px;
+      border-radius: 16px;
+      box-shadow: 0 12px 30px rgba(10, 162, 239, 0.15);
+      padding: 32px;
+    }
+
+    h1 {
+      font-family: 'Fredoka One', cursive;
+      margin: 0 0 8px;
+      text-align: center;
+      color: #0aa2ef;
+    }
+
+    .subtitle {
+      text-align: center;
+      margin: 0 0 28px;
+      color: #546e7a;
+      font-size: 0.95rem;
+    }
+
+    form {
+      display: grid;
+      gap: 24px;
+    }
+
+    .form-row {
+      display: grid;
+      gap: 20px;
+    }
+
+    .form-row.two-column {
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+
+    .form-row > div {
+      display: flex;
+      flex-direction: column;
+    }
+
+    label {
+      font-weight: 600;
+      color: #37474f;
+      margin-bottom: 6px;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid #cfd8dc;
+      border-radius: 10px;
+      font-size: 15px;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: #0aa2ef;
+      box-shadow: 0 0 0 3px rgba(10, 162, 239, 0.2);
+    }
+
+    .username-input {
+      text-transform: lowercase;
+    }
+
+    .helper-text {
+      font-size: 0.8rem;
+      color: #78909c;
+      margin-top: 6px;
+    }
+
+    .actions {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .actions button {
+      background-color: #ff2c61;
+      color: #fff;
+      border: none;
+      padding: 14px 20px;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.3s ease, transform 0.1s ease;
+    }
+
+    .actions button:hover {
+      background-color: #d4204c;
+      transform: translateY(-1px);
+    }
+
+    .back-container {
+      margin-top: 16px;
+      text-align: center;
+    }
+
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      color: #0aa2ef;
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .back-link:hover {
+      text-decoration: underline;
+    }
+
+    .no-class {
+      text-align: center;
+      color: #d4204c;
+      font-weight: 600;
+      margin-top: 16px;
+    }
+  </style>
 </head>
 <body>
-  <h1>Edit Student: {{ student.first_name }} {{ student.last_name }}</h1>
+  <div class="card">
+    <h1>Edit Student</h1>
+    <p class="subtitle">Update the student's details and login credentials below.</p>
 
-  <form method="POST">
+    <form method="POST">
       {% csrf_token %}
-      <label for="first_name">First Name:</label>
-      <input type="text" id="first_name" name="first_name" value="{{ student.first_name }}" required><br>
+      <div class="form-row two-column">
+        <div>
+          <label for="first_name">First Name</label>
+          <input type="text" id="first_name" name="first_name" value="{{ student.first_name }}" required>
+        </div>
+        <div>
+          <label for="last_name">Last Name</label>
+          <input type="text" id="last_name" name="last_name" value="{{ student.last_name }}" required>
+        </div>
+      </div>
 
-      <label for="last_name">Last Name:</label>
-      <input type="text" id="last_name" name="last_name" value="{{ student.last_name }}" required><br>
+      <div class="form-row two-column">
+        <div>
+          <label for="year_group">Year Group</label>
+          <input type="number" id="year_group" name="year_group" value="{{ student.year_group }}" min="1" required>
+        </div>
+        <div>
+          <label for="date_of_birth">Date of Birth</label>
+          <input type="date" id="date_of_birth" name="date_of_birth" value="{{ student.date_of_birth|date:'Y-m-d' }}" required>
+        </div>
+      </div>
 
-      <label for="year_group">Year Group:</label>
-      <input type="text" id="year_group" name="year_group" value="{{ student.year_group }}" required><br>
+      <div class="form-row two-column">
+        <div>
+          <label for="username">Username</label>
+          <input type="text" id="username" name="username" value="{{ student.username }}" class="username-input" required>
+          <p class="helper-text">Usernames are kept lowercase for easier logins.</p>
+        </div>
+        <div>
+          <label for="password">Password</label>
+          <input type="text" id="password" name="password" value="{{ student.password }}" required>
+        </div>
+      </div>
 
-      <label for="date_of_birth">Date of Birth:</label>
-      <input type="date" id="date_of_birth" name="date_of_birth" value="{{ student.date_of_birth|date:'Y-m-d' }}" required><br>
+      <div class="actions">
+        <button type="submit">Save Changes</button>
+      </div>
+    </form>
 
-      <button type="submit">Save Changes</button>
-  </form>
+    {% if student.classes.first %}
+      <div class="back-container">
+        <a href="{% url 'edit_class' student.classes.first.id %}" class="back-link">&larr; Back to Class</a>
+      </div>
+    {% else %}
+      <p class="no-class">This student is not assigned to any class.</p>
+    {% endif %}
+  </div>
 
-  {% if student.classes.first %}
-      <a href="{% url 'edit_class' student.classes.first.id %}">Back to Class</a>
-  {% else %}
-      <p>This student is not assigned to any class.</p>
-  {% endif %}
   {% include 'messages.html' %}
 </body>
 </html>
