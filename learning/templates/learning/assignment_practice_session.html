@@ -391,7 +391,7 @@
         const flagCode = resolveFlagCode(info.code);
         const flagSrc = `${flagBaseUrl}${flagCode}.png`;
         const label = info.name;
-        indicator.innerHTML = `<img src="${flagSrc}" alt="${label} flag"><span>Type in ${label}</span>`;
+        indicator.innerHTML = `<img src="${flagSrc}" alt="${label} flag"><span style="color: black;">Type in ${label}</span>`;
         indicator.style.display = 'inline-flex';
     }
 
