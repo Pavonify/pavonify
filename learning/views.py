@@ -20,6 +20,7 @@ from django.templatetags.static import static
 from django.utils import timezone
 from django.utils.timezone import now
 from functools import wraps
+import csv
 import datetime
 from datetime import datetime, timedelta
 import random
@@ -518,27 +519,129 @@ def add_students(request, class_id):
 
         school_to_assign = current_class.school if current_class.school else request.user.school
 
-        for line in bulk_data.splitlines():
-            try:
-                first_name, last_name, year_group, dob = line.split(",")
-                username = generate_student_username(first_name, last_name, dob)
-                password = generate_random_password()
-                student, created = Student.objects.get_or_create(
-                    username=username,
-                    defaults={
-                        "first_name": first_name.strip(),
-                        "last_name": last_name.strip(),
-                        "year_group": int(year_group.strip()),
-                        "date_of_birth": datetime.strptime(dob.strip(), "%d/%m/%Y").date(),
-                        "password": password,
-                        "school": school_to_assign,
-                    },
+        created_students = []
+        attached_existing = 0
+        already_in_class = 0
+
+        reader = csv.reader(bulk_data.splitlines())
+        for line_number, row in enumerate(reader, start=1):
+            if not row or not any(cell.strip() for cell in row):
+                continue
+
+            if len(row) < 4:
+                messages.error(
+                    request,
+                    f"Line {line_number}: expected 4 values (First Name, Surname, Year Group, Date of Birth).",
                 )
-                current_class.students.add(student)
-                if created:
-                    messages.success(request, f"Student {first_name.strip()} added successfully.")
-            except ValueError as e:
-                messages.error(request, f"Error processing line '{line}': {e}")
+                continue
+
+            first_name, last_name, year_group_raw, dob_raw = [cell.strip() for cell in row[:4]]
+
+            if not all([first_name, last_name, year_group_raw, dob_raw]):
+                messages.error(
+                    request,
+                    f"Line {line_number}: missing required values. Please provide First Name, Surname, Year Group, and Date of Birth.",
+                )
+                continue
+
+            try:
+                year_group = int(year_group_raw)
+            except ValueError:
+                messages.error(
+                    request,
+                    f"Line {line_number}: year group '{year_group_raw}' must be a number.",
+                )
+                continue
+
+            try:
+                dob = datetime.strptime(dob_raw, "%d/%m/%Y").date()
+            except ValueError:
+                messages.error(
+                    request,
+                    f"Line {line_number}: date of birth '{dob_raw}' is invalid. Use DD/MM/YYYY format.",
+                )
+                continue
+
+            try:
+                username = generate_student_username(first_name, last_name, dob=dob)
+            except (TypeError, ValueError) as exc:
+                messages.error(request, f"Line {line_number}: could not generate username - {exc}.")
+                continue
+
+            password = generate_random_password()
+            student, created = Student.objects.get_or_create(
+                username=username,
+                defaults={
+                    "first_name": first_name,
+                    "last_name": last_name,
+                    "year_group": year_group,
+                    "date_of_birth": dob,
+                    "password": password,
+                    "school": school_to_assign,
+                },
+            )
+
+            if not created and student.school != school_to_assign:
+                messages.error(
+                    request,
+                    f"Line {line_number}: student '{username}' belongs to a different school and cannot be added.",
+                )
+                continue
+
+            updated_fields: List[str] = []
+            if not created:
+                if student.first_name != first_name:
+                    student.first_name = first_name
+                    updated_fields.append("first_name")
+                if student.last_name != last_name:
+                    student.last_name = last_name
+                    updated_fields.append("last_name")
+                if student.year_group != year_group:
+                    student.year_group = year_group
+                    updated_fields.append("year_group")
+                if student.date_of_birth != dob:
+                    student.date_of_birth = dob
+                    updated_fields.append("date_of_birth")
+                if updated_fields:
+                    student.save(update_fields=updated_fields)
+
+            was_already_in_class = current_class.students.filter(id=student.id).exists()
+            current_class.students.add(student)
+
+            if created:
+                created_students.append(student)
+            elif was_already_in_class:
+                already_in_class += 1
+            else:
+                attached_existing += 1
+
+        if created_students:
+            messages.success(
+                request,
+                (
+                    f"Created {len(created_students)} new student account"
+                    f"{'s' if len(created_students) != 1 else ''}. "
+                    "You can review usernames and passwords from the class page."
+                ),
+            )
+
+        if attached_existing:
+            messages.success(
+                request,
+                f"Added {attached_existing} existing student{'s' if attached_existing != 1 else ''} to the class.",
+            )
+
+        if already_in_class:
+            messages.info(
+                request,
+                f"{already_in_class} student{'s' if already_in_class != 1 else ''} were already enrolled and were skipped.",
+            )
+
+        if not created_students and not attached_existing and not already_in_class:
+            messages.warning(
+                request,
+                "No students were added. Please check the data provided and try again.",
+            )
 
         return redirect("teacher_dashboard")
 
