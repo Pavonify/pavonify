@@ -7,9 +7,6 @@ import logging
 import os
 import time
 
-from django.utils.translation import get_language_info
-
-from .gemini_facts import get_fact
 from .wikimedia_images import search_images
 
 logger = logging.getLogger(__name__)
@@ -20,18 +17,6 @@ MAX_THREADS = int(os.getenv("ENRICH_MAX_THREADS", "8"))  # overall concurrency c
 IMG_LIMIT = int(os.getenv("ENRICH_IMG_LIMIT", "3"))
 
 _FACT_TYPES = {"etymology", "idiom", "trivia"}
-
-
-def _language_label(code: Optional[str]) -> str:
-    if not code:
-        return ""
-    try:
-        info = get_language_info(code)
-    except Exception:
-        info = None
-    if not info:
-        return code or ""
-    return info.get("name_local") or info.get("name") or (code or "")
 
 def _safe_images(payload: Any) -> List[Dict[str, str]]:
     try:
@@ -61,59 +46,6 @@ def _safe_images(payload: Any) -> List[Dict[str, str]]:
         query = payload.get("word") if isinstance(payload, dict) else payload
         logger.warning("image search failed for %r: %s", query, e)
         return []
-
-def _safe_fact(payload: Dict[str, Any]) -> Dict[str, Any]:
-    try:
-        result = get_fact(**payload)
-        preferred = payload.get("preferred_type")
-        if (
-            preferred == "idiom"
-            and not (result.get("text") or "").strip()
-        ):
-            return {"text": "No idiom available.", "type": "idiom", "confidence": 0.0}
-        text = (result.get("text") or "").strip()
-        if not text:
-            return _fallback_fact(payload)
-        result["text"] = text
-        rtype = (result.get("type") or "").strip().lower()
-        if rtype not in _FACT_TYPES:
-            result["type"] = preferred if preferred in _FACT_TYPES and preferred != "idiom" else "trivia"
-        if "confidence" not in result or not isinstance(result.get("confidence"), (int, float)):
-            result["confidence"] = 0.0
-        return result
-    except Exception as e:
-        logger.warning("fact generation failed for %r: %s", payload.get("word"), e)
-        preferred = payload.get("preferred_type")
-        fallback = preferred if preferred in _FACT_TYPES else "trivia"
-        if fallback == "idiom":
-            return {"text": "No idiom available.", "type": "idiom", "confidence": 0.0}
-        adjusted = dict(payload)
-        adjusted["preferred_type"] = fallback
-        return _fallback_fact(adjusted)
-
-
-def _fallback_fact(payload: Dict[str, Any]) -> Dict[str, Any]:
-    word = (payload.get("word") or "").strip()
-    translation = (payload.get("translation") or "").strip()
-    source_label = _language_label(payload.get("source_language")) or (
-        payload.get("source_language") or "the source language"
-    )
-    target_label = _language_label(payload.get("target_language")) or (
-        payload.get("target_language") or "the target language"
-    )
-    fact_type = payload.get("preferred_type")
-    if fact_type not in _FACT_TYPES or fact_type == "idiom":
-        fact_type = "trivia"
-    if translation:
-        text = f'In {target_label}, "{word}" means "{translation}" in {source_label}.'
-    elif word and target_label:
-        text = f'"{word}" is a useful {target_label} word to teach.'
-    else:
-        text = f'Add your own fun fact about "{word}".'
-    if len(text) > 220:
-        text = text[:220].rstrip()
-    return {"text": text, "type": fact_type, "confidence": 0.1}
-
 
 def _with_timeout(fn, arg, timeout: float):
     """Run fn(arg) with a hard timeout; return None on timeout/error."""
@@ -158,32 +90,16 @@ def enrich_one(
     ]
     image_payload = {"word": w, "exclude": exclude_images}
 
-    # run images + fact in parallel, each time-boxed
-    with ThreadPoolExecutor(max_workers=2) as ex:
-        fi = ex.submit(
-            _with_timeout,
-            _safe_images,
-            image_payload,
-            PER_WORD_TIMEOUT,
-        )
-        ff = ex.submit(
-            _with_timeout,
-            _safe_fact,
-            {
-                "word": fact_word,
-                "translation": source_term or None,
-                "source_language": source_language,
-                "target_language": target_language,
-                "preferred_type": requested_type,
-            },
-            PER_WORD_TIMEOUT,
-        )
-        images = fi.result() or []
-        fact = ff.result() or {
-            "text": "",
-            "type": requested_type or "trivia",
-            "confidence": 0.0,
-        }
+    images = _with_timeout(
+        _safe_images,
+        image_payload,
+        PER_WORD_TIMEOUT,
+    ) or []
+    fact = {
+        "text": "",
+        "type": requested_type or "trivia",
+        "confidence": 0.0,
+    }
     return {"word": w, "translation": translation, "images": images, "fact": fact}
 
 def get_enrichments(

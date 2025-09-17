@@ -9,13 +9,8 @@ from learning.services import enrichment
 
 class EnrichmentServiceTests(SimpleTestCase):
     @mock.patch("learning.services.enrichment.search_images", return_value=[])
-    @mock.patch(
-        "learning.services.enrichment.get_fact",
-        return_value={"text": "", "type": "trivia", "confidence": 0.4},
-    )
-    def test_enrich_one_uses_fallback_fact_when_empty(
+    def test_enrich_one_returns_placeholder_fact_when_generation_disabled(
         self,
-        mock_get_fact: mock.Mock,
         mock_search_images: mock.Mock,
     ) -> None:
         result = enrichment.enrich_one(
@@ -26,15 +21,9 @@ class EnrichmentServiceTests(SimpleTestCase):
 
         self.assertEqual(result["word"], "plane")
         self.assertEqual(result["translation"], "avion")
-        self.assertIn("plane", result["fact"]["text"])
-        self.assertIn("avion", result["fact"]["text"])
         self.assertEqual(result["fact"]["type"], "trivia")
-        self.assertGreaterEqual(result["fact"]["confidence"], 0)
-
-        mock_get_fact.assert_called_once()
-        called_kwargs = mock_get_fact.call_args.kwargs
-        self.assertEqual(called_kwargs.get("word"), "plane")
-        self.assertEqual(called_kwargs.get("translation"), "avion")
+        self.assertEqual(result["fact"]["text"], "")
+        self.assertEqual(result["fact"]["confidence"], 0.0)
 
         mock_search_images.assert_called_once()
         args, kwargs = mock_search_images.call_args
