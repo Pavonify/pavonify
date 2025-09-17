@@ -2608,42 +2608,6 @@ def update_points(request):
     except Exception as e:
         return JsonResponse({"success": False, "error": str(e)})
 
-@require_POST
-def update_mini_game_1_best_streak(request):
-    """Persist a student's best streak for the Peacock Feeding Frenzy mini-game."""
-    try:
-        payload = json.loads(request.body)
-    except json.JSONDecodeError:
-        return JsonResponse({"success": False, "error": "Invalid JSON payload"}, status=400)
-
-    student_id = request.session.get("student_id")
-    if not student_id:
-        return JsonResponse({"success": False, "error": "Student not authenticated"}, status=403)
-
-    best_streak = payload.get("best_streak")
-    if best_streak is None:
-        return JsonResponse({"success": False, "error": "Missing best streak"}, status=400)
-
-    try:
-        best_streak_value = int(best_streak)
-    except (TypeError, ValueError):
-        return JsonResponse({"success": False, "error": "Best streak must be an integer"}, status=400)
-
-    if best_streak_value < 0:
-        return JsonResponse({"success": False, "error": "Best streak cannot be negative"}, status=400)
-
-    student = get_object_or_404(Student, id=student_id)
-
-    if best_streak_value > student.mini_game_1_best_streak:
-        student.mini_game_1_best_streak = best_streak_value
-        student.save(update_fields=["mini_game_1_best_streak"])
-
-    return JsonResponse({
-        "success": True,
-        "best_streak": student.mini_game_1_best_streak,
-    })
-
-
 @student_login_required
 def mini_game_1(request, vocab_list_id):
     vocab_list = get_object_or_404(VocabularyList, id=vocab_list_id)

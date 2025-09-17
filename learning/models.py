@@ -116,7 +116,6 @@ class Student(models.Model):
     flashcard_games_played = models.PositiveIntegerField(default=0)
     match_up_games_played = models.PositiveIntegerField(default=0)
     destroy_wall_games_played = models.PositiveIntegerField(default=0)
-    mini_game_1_best_streak = models.PositiveIntegerField(default=0)
 
     def update_streak(self):
         """ Updates the streak based on last activity """
