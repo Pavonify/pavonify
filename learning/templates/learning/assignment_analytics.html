@@ -107,6 +107,50 @@
       display: inline-block;
       transition: transform 0.3s;
     }
+    .btn-gen {
+      background: #005f73;
+      color: #fff;
+      border: none;
+      padding: 12px 16px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 600;
+      min-height: 44px;
+      min-width: 140px;
+      transition: background 0.3s;
+    }
+    .btn-gen:hover,
+    .btn-gen:focus {
+      background: #0a9396;
+      outline: none;
+    }
+    #gen-clipboard {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      padding: 10px;
+      font-family: 'Poppins', sans-serif;
+    }
+    #copy-btn,
+    #close-btn {
+      border: none;
+      border-radius: 8px;
+      padding: 10px 16px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    #copy-btn {
+      background: #005f73;
+      color: #fff;
+    }
+    #close-btn {
+      background: #666;
+      color: #fff;
+    }
+    #copy-btn:hover,
+    #close-btn:hover {
+      opacity: 0.9;
+    }
   </style>
 </head>
 <body>
@@ -114,10 +158,31 @@
   <div class="top-nav">
     <a href="{% url 'teacher_dashboard' %}?pane=classes">&larr; Back to Dashboard</a>
   </div>
-  
+
   <div class="container">
     <h1>Assignment Analytics: {{ assignment.name }}</h1>
-    
+
+    <!-- Sticky action bar -->
+    <div id="teach-now-bar" style="position:sticky; top:60px; z-index:999; background:#fff; padding:8px; border:1px solid #eee; border-radius:10px; display:flex; flex-wrap:wrap; gap:8px; justify-content:flex-end; margin-bottom:12px;">
+      <button class="btn-gen" data-type="do_now">Re-teach Do-Now</button>
+      <button class="btn-gen" data-type="exit_tickets">Exit Tickets</button>
+      <button class="btn-gen" data-type="hinge">Live Hinge</button>
+      <button class="btn-gen" data-type="sentences">Sentence Builders</button>
+      <button class="btn-gen" data-type="game_seed">Mini-game</button>
+    </div>
+
+    <!-- Minimal modal for clipboard -->
+    <div id="gen-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4);">
+      <div style="max-width:700px; margin:10vh auto; background:#fff; padding:16px; border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,0.2);">
+        <h3 id="gen-title">Generated Activity</h3>
+        <textarea id="gen-clipboard" rows="12"></textarea>
+        <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:8px;">
+          <button id="copy-btn">Copy to Clipboard</button>
+          <button id="close-btn">Close</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Tab Navigation -->
     <div class="tabs">
       <div class="tab active" data-tab="overview">Overview</div>
@@ -255,7 +320,7 @@
       </div>
     </div>
   </div>
-  
+
   <script>
     // Tab switching logic.
     const tabs = document.querySelectorAll(".tab");
@@ -304,9 +369,83 @@
         span.style.transform = "rotate(" + rotation + "deg)";
       });
     }
-    
+
     enhanceDifficultWordCloud();
     enhanceEasyWordCloud();
+  </script>
+  <script>
+    (function(){
+      const assignmentId = "{{ assignment.id|escapejs }}";
+
+      function getCookie(name) {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(';').shift();
+        return null;
+      }
+
+      function postJSON(url, data) {
+        const csrfToken = getCookie('csrftoken');
+        return fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': csrfToken || '',
+          },
+          body: JSON.stringify(data),
+          credentials: 'include',
+        }).then(response => {
+          if (!response.ok) {
+            throw new Error('Network response was not ok');
+          }
+          return response.json();
+        });
+      }
+
+      function openModal(title, text) {
+        document.getElementById('gen-title').textContent = title;
+        document.getElementById('gen-clipboard').value = text;
+        document.getElementById('gen-modal').style.display = 'block';
+      }
+
+      function closeModal() {
+        document.getElementById('gen-modal').style.display = 'none';
+      }
+
+      document.querySelectorAll('.btn-gen').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          const type = btn.getAttribute('data-type');
+          try {
+            const response = await postJSON("{% url 'api_generate_activity' %}", {
+              assignment_id: assignmentId,
+              activity_type: type,
+            });
+            openModal(response.activity.title || 'Generated', response.clipboard || '');
+          } catch (error) {
+            openModal('Error', 'Could not generate activity.');
+          }
+        });
+      });
+
+      document.getElementById('close-btn').addEventListener('click', closeModal);
+      document.getElementById('gen-modal').addEventListener('click', (event) => {
+        if (event.target === event.currentTarget) {
+          closeModal();
+        }
+      });
+
+      document.getElementById('copy-btn').addEventListener('click', async () => {
+        const textarea = document.getElementById('gen-clipboard');
+        textarea.select();
+        textarea.setSelectionRange(0, textarea.value.length);
+        try {
+          await navigator.clipboard.writeText(textarea.value);
+        } catch (err) {
+          document.execCommand('copy');
+        }
+      });
+    })();
   </script>
 {% include 'messages.html' %}
 </body>
