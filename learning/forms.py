@@ -71,13 +71,13 @@ class VocabularyListForm(forms.ModelForm):
         fields = ['name', 'source_language', 'target_language']
 
 class BulkAddWordsForm(forms.Form):
+    MAX_WORDS = 300
+    MAX_LENGTH = 100
+
     words = forms.CharField(
         widget=forms.Textarea,
-        help_text="Add words in the format: word,translation (one pair per line)."
+        help_text=f"Add up to {MAX_WORDS} words in the format: word,translation (one pair per line)."
     )
-
-    MAX_WORDS = 100
-    MAX_LENGTH = 100
 
     def clean_words(self):
         """Validate and normalize bulk word input."""
