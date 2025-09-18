@@ -1857,9 +1857,9 @@ def log_assignment_attempt(request):
 def assignment_analytics(request, assignment_id):
     assignment = get_object_or_404(Assignment, id=assignment_id)
 
-    if request.user != assignment.teacher:
+    if not request.user.is_authenticated or not getattr(request.user, "is_teacher", False):
         return HttpResponseForbidden("You do not have permission to view this assignment's analytics.")
-    if not assignment.class_assigned.teachers.filter(id=request.user.id).exists():
+    if assignment.teacher_id != request.user.id and not assignment.class_assigned.teachers.filter(id=request.user.id).exists():
         return HttpResponseForbidden("You do not have permission to view this assignment's analytics.")
 
     progress_list = AssignmentProgress.objects.filter(assignment=assignment)
@@ -1870,88 +1870,155 @@ def assignment_analytics(request, assignment_id):
         .order_by("timestamp")
     )
 
+    total_attempts = len(attempts)
+    total_correct = sum(1 for att in attempts if att.is_correct)
+
     # Student summary
     student_summary = {}
     for att in attempts:
         sid = att.student.id
         wid = att.vocabulary_word.id
-        s = student_summary.setdefault(sid, {"student": att.student, "words": {}})
-        if wid not in s["words"]:
-            s["words"][wid] = {"word": att.vocabulary_word.translation, "wrong": 0, "aced": False}
-        if not s["words"][wid]["aced"]:
+        student_bucket = student_summary.setdefault(
+            sid,
+            {
+                "student": att.student,
+                "words": {},
+                "attempts": 0,
+                "correct": 0,
+            },
+        )
+
+        student_bucket["attempts"] += 1
+        if att.is_correct:
+            student_bucket["correct"] += 1
+
+        if wid not in student_bucket["words"]:
+            student_bucket["words"][wid] = {
+                "word": att.vocabulary_word.translation,
+                "wrong": 0,
+                "aced": False,
+            }
+
+        if not student_bucket["words"][wid]["aced"]:
             if att.is_correct:
-                s["words"][wid]["aced"] = True
+                student_bucket["words"][wid]["aced"] = True
             else:
-                s["words"][wid]["wrong"] += 1
+                student_bucket["words"][wid]["wrong"] += 1
 
     student_summary_list = []
-    for s in student_summary.values():
+    for summary in student_summary.values():
         words_aced, attempts_wrong = [], []
-        for data in s["words"].values():
+        for data in summary["words"].values():
             if data["aced"]:
                 words_aced.append(data["word"])
-                if data["wrong"] > 0:
-                    attempts_wrong.append((data["word"], data["wrong"]))
-        student_summary_list.append({
-            "student": s["student"],
-            "words_aced": words_aced,
-            "attempts_wrong": attempts_wrong,
-        })
+            if data["wrong"] > 0:
+                attempts_wrong.append((data["word"], data["wrong"]))
+
+        attempts_wrong.sort(key=lambda item: item[1], reverse=True)
+
+        attempts_count = summary["attempts"]
+        correct_count = summary["correct"]
+        accuracy = (correct_count / attempts_count * 100) if attempts_count else 0
+
+        student_summary_list.append(
+            {
+                "student": summary["student"],
+                "words_aced": words_aced,
+                "attempts_wrong": attempts_wrong,
+                "total_attempts": attempts_count,
+                "correct_attempts": correct_count,
+                "accuracy": accuracy,
+            }
+        )
 
     # Word summary
     word_summary_dict = {}
     for att in attempts:
         wid = att.vocabulary_word.id
-        w = word_summary_dict.setdefault(wid, {
-            "word": att.vocabulary_word.translation,
-            "wrong_attempts": 0,
-            "total_attempts": 0,
-            "students": set(),
-        })
-        w["total_attempts"] += 1
+        summary = word_summary_dict.setdefault(
+            wid,
+            {
+                "word": att.vocabulary_word.translation,
+                "wrong_attempts": 0,
+                "total_attempts": 0,
+                "students": set(),
+            },
+        )
+        summary["total_attempts"] += 1
         if not att.is_correct:
-            w["wrong_attempts"] += 1
-            w["students"].add(att.student.id)
+            summary["wrong_attempts"] += 1
+            summary["students"].add(att.student.id)
 
     word_summary_list = []
-    for w in word_summary_dict.values():
-        total = w["total_attempts"]
-        percentage = (w["wrong_attempts"] / total) * 100 if total else 0
-        word_summary_list.append({
-            "word": w["word"],
-            "wrong_attempts": w["wrong_attempts"],
-            "students_difficulty": len(w["students"]),
-            "difficulty_percentage": percentage,
-        })
+    for summary in word_summary_dict.values():
+        total = summary["total_attempts"]
+        wrong = summary["wrong_attempts"]
+        percentage = (wrong / total) * 100 if total else 0
+        facility = ((total - wrong) / total * 100) if total else 0
+        word_summary_list.append(
+            {
+                "word": summary["word"],
+                "wrong_attempts": wrong,
+                "students_difficulty": len(summary["students"]),
+                "difficulty_percentage": percentage,
+                "facility_percentage": facility,
+                "total_attempts": total,
+            }
+        )
 
-    # Feedback
-    first_attempts = {}
-    for att in attempts:
-        key = (att.student.id, att.vocabulary_word.id)
-        if key not in first_attempts:
-            first_attempts[key] = att.is_correct
+    struggling_words = [word for word in word_summary_list if word["difficulty_percentage"] >= 50]
+    top_difficult_words = sorted(
+        word_summary_list,
+        key=lambda item: (item["difficulty_percentage"], item["students_difficulty"]),
+        reverse=True,
+    )[:10]
 
-    easy_words, difficult_words = [], []
-    for (sid, wid), is_correct in first_attempts.items():
-        word_text = word_summary_dict[wid]["word"]
-        if is_correct:
-            easy_words.append(word_text)
-        else:
-            difficult_words.append(word_text)
+    quick_win_words = [
+        word
+        for word in sorted(
+            word_summary_list,
+            key=lambda item: (item["difficulty_percentage"], -item["total_attempts"]),
+        )
+        if word["difficulty_percentage"] <= 25
+    ][:8]
 
-    word_cloud_easy = list(set(easy_words))
-    word_cloud_difficult = list(set(difficult_words))
+    focus_students = [
+        {
+            "name": f"{entry['student'].first_name} {entry['student'].last_name}".strip()
+            or entry["student"].username,
+            "accuracy": entry["accuracy"],
+            "attempts": entry["total_attempts"],
+            "needs": [word for word, _ in entry["attempts_wrong"][:2]],
+        }
+        for entry in student_summary_list
+        if entry["total_attempts"] >= 3
+    ]
 
-    top_difficult_words = sorted(word_summary_list, key=lambda x: x["students_difficulty"], reverse=True)[:10]
+    focus_students.sort(key=lambda item: item["accuracy"])
+    focus_students = focus_students[:5]
+
+    celebration_words = [
+        word["word"]
+        for word in sorted(
+            word_summary_list,
+            key=lambda item: (-item["facility_percentage"], -item["total_attempts"]),
+        )
+        if word["facility_percentage"] >= 85
+    ][:10]
 
     context = {
         "assignment": assignment,
         "progress_list": progress_list,
         "student_summary": student_summary_list,
         "word_summary": word_summary_list,
-        "word_cloud_easy": word_cloud_easy,
-        "word_cloud_difficult": word_cloud_difficult,
         "top_difficult_words": top_difficult_words,
+        "class_accuracy": (total_correct / total_attempts * 100) if total_attempts else 0,
+        "total_attempts": total_attempts,
+        "students_completed": sum(1 for progress in progress_list if progress.completed),
+        "struggling_word_count": len(struggling_words),
+        "focus_students": focus_students,
+        "quick_win_words": quick_win_words,
+        "celebration_words": celebration_words,
     }
 
     return render(request, "learning/assignment_analytics.html", context)
