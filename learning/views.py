@@ -2556,27 +2556,30 @@ def progress_dashboard(request):
 
 @login_required
 @user_passes_test(lambda u: u.is_teacher)
-def attach_vocab_list(request, class_id):
-    """
-    Attach a vocabulary list to a class (teacher-only).
-    URL expects class_id. The POST must include either `vocab_list_id` or `vocab_list`.
-    """
-    # Ensure the logged-in user actually teaches this class
-    class_instance = get_object_or_404(Class, id=class_id, teachers=request.user)
+def attach_vocab_list(request, class_id=None, vocab_list_id=None):
+    """Attach a vocabulary list to a class for the logged-in teacher."""
 
     if request.method != "POST":
         return HttpResponseBadRequest("POST required")
 
-    # Allow either field name (seen both variants in templates)
-    vocab_list_id = request.POST.get("vocab_list_id") or request.POST.get("vocab_list")
-    if not vocab_list_id:
-        messages.error(request, "No vocabulary list selected.")
+    # Accept identifiers from either the URL kwargs or the submitted form.
+    class_id = class_id or request.POST.get("class_id") or request.POST.get("class")
+    vocab_list_id = (
+        vocab_list_id
+        or request.POST.get("vocab_list_id")
+        or request.POST.get("vocab_list")
+    )
+
+    if not class_id or not vocab_list_id:
+        messages.error(request, "Please select both a class and a vocabulary list.")
         return redirect("teacher_dashboard")
 
-    # Only allow attaching lists owned by the teacher
-    vocab_list = get_object_or_404(VocabularyList, id=vocab_list_id, teacher=request.user)
+    # Ensure the logged-in teacher owns both resources involved in the attachment.
+    class_instance = get_object_or_404(Class, id=class_id, teachers=request.user)
+    vocab_list = get_object_or_404(
+        VocabularyList, id=vocab_list_id, teacher=request.user
+    )
 
-    # Create the association in both directions (ManyToMany on both models)
     class_instance.vocabulary_lists.add(vocab_list)
     vocab_list.classes.add(class_instance)
 
