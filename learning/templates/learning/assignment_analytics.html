@@ -95,17 +95,282 @@
       width: 0%;
       transition: width 0.3s;
     }
-    /* Word Clouds */
-    .word-cloud {
-      border: 1px solid #ddd;
-      padding: 10px;
-      min-height: 100px;
-      margin-bottom: 20px;
+    .btn-gen {
+      background: #005f73;
+      color: #fff;
+      border: none;
+      padding: 12px 16px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 600;
+      min-height: 44px;
+      min-width: 140px;
+      transition: background 0.3s;
     }
-    .word-cloud span {
-      margin: 5px;
-      display: inline-block;
-      transition: transform 0.3s;
+    .btn-gen:hover,
+    .btn-gen:focus {
+      background: #0a9396;
+      outline: none;
+    }
+    .btn-download {
+      background: #fff;
+      border: 2px solid var(--primary);
+      color: var(--primary);
+      padding: 10px 16px;
+      border-radius: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      min-height: 44px;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-download:hover,
+    .btn-download:focus {
+      background: var(--primary);
+      color: #fff;
+    }
+    #teach-now-bar {
+      position: sticky;
+      top: 72px;
+      z-index: 400;
+      background: #fff;
+      padding: 8px 12px;
+      border: 1px solid #eee;
+      border-radius: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 16px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+    }
+    .teach-now-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: flex-start;
+    }
+    #gen-clipboard {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      padding: 10px;
+      font-family: 'Poppins', sans-serif;
+      height: 50vh;
+      resize: vertical;
+    }
+    #copy-btn,
+    #close-btn {
+      border: none;
+      border-radius: 8px;
+      padding: 10px 16px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    #copy-btn {
+      background: #005f73;
+      color: #fff;
+    }
+    #close-btn {
+      background: #666;
+      color: #fff;
+    }
+    #copy-btn:hover,
+    #close-btn:hover {
+      opacity: 0.9;
+    }
+    #gen-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.45);
+      z-index: 1200;
+      backdrop-filter: blur(2px);
+    }
+    #gen-modal * {
+      pointer-events: auto;
+    }
+    .modal-dialog {
+      position: relative;
+      max-width: 720px;
+      max-height: 80vh;
+      margin: 10vh auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 16px;
+      box-shadow: 0 16px 40px rgba(0,0,0,0.18);
+      overflow: auto;
+      pointer-events: auto;
+    }
+    .feedback-cards {
+      display: grid;
+      gap: 16px;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      margin-bottom: 24px;
+      text-align: left;
+    }
+    .feedback-card {
+      background: #f5f9ff;
+      border: 1px solid rgba(26, 115, 232, 0.15);
+      border-radius: 14px;
+      padding: 18px;
+      position: relative;
+      overflow: hidden;
+    }
+    .feedback-card::after {
+      content: "";
+      position: absolute;
+      top: -40px;
+      right: -40px;
+      width: 120px;
+      height: 120px;
+      background: rgba(26, 115, 232, 0.08);
+      border-radius: 50%;
+    }
+    .feedback-card h4 {
+      font-size: 0.9rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--dark);
+      margin-bottom: 8px;
+    }
+    .feedback-card .metric {
+      font-size: 2.4rem;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 4px;
+    }
+    .feedback-card p {
+      margin: 0;
+      font-size: 0.85rem;
+      color: #4a4a4a;
+    }
+    .feedback-grid {
+      display: grid;
+      gap: 20px;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      margin-bottom: 24px;
+      text-align: left;
+    }
+    .feedback-panel {
+      background: #fff;
+      border-radius: 14px;
+      padding: 18px;
+      border: 1px solid #eee;
+      box-shadow: 0 12px 24px rgba(13, 13, 13, 0.04);
+    }
+    .feedback-panel.full-width {
+      grid-column: 1 / -1;
+    }
+    .feedback-panel h3 {
+      margin-bottom: 12px;
+      font-size: 1.2rem;
+      color: var(--primary);
+    }
+    .priority-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .priority-item-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: 600;
+    }
+    .progress-track {
+      width: 100%;
+      height: 10px;
+      background: #f0f4ff;
+      border-radius: 999px;
+      overflow: hidden;
+      margin-top: 6px;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #f97316, #dc2626);
+    }
+    .focus-students {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .focus-students li {
+      background: #f9fafb;
+      border-radius: 10px;
+      padding: 10px 12px;
+      border: 1px solid rgba(26, 115, 232, 0.08);
+    }
+    .focus-students .student-name {
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .focus-students .student-meta {
+      font-size: 0.85rem;
+      color: #555;
+    }
+    .focus-students .student-needs {
+      font-size: 0.85rem;
+      margin-top: 4px;
+    }
+    .chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .chip {
+      background: rgba(52, 168, 83, 0.12);
+      color: #166534;
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+    .chip-muted {
+      background: #f3f4f6;
+      color: #6b7280;
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: 0.9rem;
+    }
+    .mini-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .mini-table th,
+    .mini-table td {
+      border: 1px solid #e5e7eb;
+      padding: 8px;
+      text-align: left;
+      font-size: 0.95rem;
+    }
+    .mini-table th {
+      background: rgba(26, 115, 232, 0.1);
+      color: #1a237e;
+    }
+    @media (max-width: 640px) {
+      #teach-now-bar {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .teach-now-actions {
+        width: 100%;
+        justify-content: center;
+      }
+      .btn-download {
+        width: 100%;
+        justify-content: center;
+      }
     }
   </style>
 </head>
@@ -114,10 +379,37 @@
   <div class="top-nav">
     <a href="{% url 'teacher_dashboard' %}?pane=classes">&larr; Back to Dashboard</a>
   </div>
-  
+
   <div class="container">
     <h1>Assignment Analytics: {{ assignment.name }}</h1>
-    
+
+    <!-- Sticky action bar -->
+    <div id="teach-now-bar">
+      <div class="teach-now-actions">
+        <button class="btn-gen" data-type="do_now">Re-teach Do-Now</button>
+        <button class="btn-gen" data-type="exit_tickets">Exit Tickets</button>
+        <button class="btn-gen" data-type="hinge">Live Hinge</button>
+        <button class="btn-gen" data-type="sentences">Sentence Builders</button>
+        <button class="btn-gen" data-type="game_seed">Mini-game</button>
+      </div>
+      <a class="btn-download" href="{% url 'api_export_progress' assignment.id %}">
+        <i class="fas fa-file-arrow-down" aria-hidden="true"></i>
+        <span>Download Progress (.xlsx)</span>
+      </a>
+    </div>
+
+    <!-- Minimal modal for clipboard -->
+    <div id="gen-modal">
+      <div class="modal-dialog">
+        <h3 id="gen-title">Generated Activity</h3>
+        <textarea id="gen-clipboard" rows="12"></textarea>
+        <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:8px;">
+          <button id="copy-btn">Copy to Clipboard</button>
+          <button id="close-btn">Close</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Tab Navigation -->
     <div class="tabs">
       <div class="tab active" data-tab="overview">Overview</div>
@@ -227,35 +519,119 @@
     <!-- Feedback Tab -->
     <div class="tab-content" id="feedback">
       <h2>Feedback</h2>
-      <div>
-        <h3>Word Cloud (Easy)</h3>
-        <div class="word-cloud" id="word-cloud-easy">
-          {% for word in word_cloud_easy %}
-            <span style="font-size: 16px;">{{ word }}</span>
-          {% endfor %}
+      <div class="feedback-cards">
+        <div class="feedback-card">
+          <h4>Class accuracy</h4>
+          <div class="metric">{{ class_accuracy|floatformat:1 }}%</div>
+          <p>{{ total_attempts }} attempts logged across {{ student_summary|length }} students.</p>
+        </div>
+        <div class="feedback-card">
+          <h4>Completed</h4>
+          <div class="metric">{{ students_completed }}</div>
+          <p>students finished the assignment.</p>
+        </div>
+        <div class="feedback-card">
+          <h4>Reteach candidates</h4>
+          <div class="metric">{{ struggling_word_count }}</div>
+          <p>words below 50% accuracy.</p>
+        </div>
+        <div class="feedback-card">
+          <h4>Action tips</h4>
+          <p style="font-size: 0.95rem; margin-top: 24px;">Use the quick-action bar to launch activities targeted at these needs.</p>
         </div>
       </div>
-      <div>
-        <h3>Word Cloud (Difficult)</h3>
-        <div class="word-cloud" id="word-cloud-difficult">
-          {% for word in top_difficult_words %}
-            <span data-difficulty="{{ word.students_difficulty }}">{{ word.word }}</span>
-          {% endfor %}
+
+      <div class="feedback-grid">
+        <div class="feedback-panel">
+          <h3>Priority words to re-teach</h3>
+          <p style="margin-top:-4px; font-size:0.9rem; color:#555;">High-difficulty words ranked by incorrect attempts.</p>
+          <ul class="priority-list">
+            {% for word in top_difficult_words|slice:":5" %}
+              <li>
+                <div class="priority-item-title">
+                  <span>{{ word.word }}</span>
+                  <span>{{ word.difficulty_percentage|floatformat:0 }}% incorrect</span>
+                </div>
+                <div class="progress-track" role="presentation">
+                  <div class="progress-fill" style="width: {{ word.difficulty_percentage|floatformat:0 }}%;"></div>
+                </div>
+                <div class="student-meta" style="font-size:0.8rem; color:#666; margin-top:4px;">
+                  {{ word.students_difficulty }} student{{ word.students_difficulty|pluralize }} struggled • {{ word.total_attempts }} attempts
+                </div>
+              </li>
+            {% empty %}
+              <li>No word difficulty data yet.</li>
+            {% endfor %}
+          </ul>
         </div>
-      </div>
-      <div>
-        <h3>Top 10 Difficult Words</h3>
-        <ol>
-          {% for word in top_difficult_words %}
-            <li>{{ word.word }} - {{ word.students_difficulty }} students</li>
-          {% empty %}
-            <li>No data available.</li>
-          {% endfor %}
-        </ol>
+
+        <div class="feedback-panel">
+          <h3>Students to check in</h3>
+          <p style="margin-top:-4px; font-size:0.9rem; color:#555;">Lowest accuracy learners with at least three attempts.</p>
+          <ul class="focus-students">
+            {% for student in focus_students %}
+              <li>
+                <div class="student-name">{{ student.name }}</div>
+                <div class="student-meta">{{ student.accuracy|floatformat:0 }}% accuracy across {{ student.attempts }} attempts</div>
+                {% if student.needs %}
+                  <div class="student-needs"><strong>Focus words:</strong> {{ student.needs|join:', ' }}</div>
+                {% endif %}
+              </li>
+            {% empty %}
+              <li class="chip-muted">Everyone is on track! 🎉</li>
+            {% endfor %}
+          </ul>
+        </div>
+
+        <div class="feedback-panel">
+          <h3>Confidence boosters</h3>
+          <p style="margin-top:-4px; font-size:0.9rem; color:#555;">Celebrate the vocabulary the class now owns.</p>
+          <div class="chip-row">
+            {% if quick_win_words %}
+              {% for word in quick_win_words %}
+                <span class="chip">{{ word.word }} · {{ word.facility_percentage|floatformat:0 }}%</span>
+              {% endfor %}
+            {% elif celebration_words %}
+              {% for word in celebration_words %}
+                <span class="chip">{{ word }}</span>
+              {% endfor %}
+            {% else %}
+              <span class="chip-muted">No mastery highlights yet.</span>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="feedback-panel full-width">
+          <h3>Top 10 difficult words</h3>
+          <table class="mini-table">
+            <thead>
+              <tr>
+                <th>Word</th>
+                <th>Incorrect attempts</th>
+                <th>Students affected</th>
+                <th>Difficulty</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for word in top_difficult_words %}
+                <tr>
+                  <td>{{ word.word }}</td>
+                  <td>{{ word.wrong_attempts }}</td>
+                  <td>{{ word.students_difficulty }}</td>
+                  <td>{{ word.difficulty_percentage|floatformat:0 }}%</td>
+                </tr>
+              {% empty %}
+                <tr>
+                  <td colspan="4">No data available.</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   </div>
-  
+
   <script>
     // Tab switching logic.
     const tabs = document.querySelectorAll(".tab");
@@ -268,45 +644,90 @@
         document.getElementById(tab.getAttribute("data-tab")).classList.add("active");
       });
     });
-    
-    // Enhance Word Cloud for Difficult Words:
-    // Use the "data-difficulty" attribute to set a dynamic font size.
-    function enhanceDifficultWordCloud() {
-      const cloud = document.getElementById("word-cloud-difficult");
-      const spans = cloud.querySelectorAll("span");
-      spans.forEach(span => {
-        const difficulty = parseInt(span.getAttribute("data-difficulty")) || 0;
-        // Compute a font size: base 16px plus 2px per student (adjust scaling as needed)
-        const fontSize = 16 + (difficulty * 2);
-        span.style.fontSize = fontSize + "px";
-        // Random color from a preset list
-        const colors = ["#e74c3c", "#3498db", "#2ecc71", "#f1c40f", "#9b59b6"];
-        const randomColor = colors[Math.floor(Math.random() * colors.length)];
-        span.style.color = randomColor;
-        // Random rotation between -15 and 15 degrees.
-        const rotation = Math.floor(Math.random() * 31) - 15;
-        span.style.display = "inline-block";
-        span.style.transform = "rotate(" + rotation + "deg)";
+  </script>
+  <script>
+    (function(){
+      const assignmentId = "{{ assignment.id|escapejs }}";
+
+      function getCookie(name) {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(';').shift();
+        return null;
+      }
+
+      const modal = document.getElementById('gen-modal');
+      const modalDialog = modal.querySelector('.modal-dialog');
+
+      function postJSON(url, data) {
+        const csrfToken = getCookie('csrftoken');
+        return fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': csrfToken || '',
+          },
+          body: JSON.stringify(data),
+          credentials: 'include',
+        }).then(response => {
+          if (!response.ok) {
+            throw new Error('Network response was not ok');
+          }
+          return response.json();
+        });
+      }
+
+      function openModal(title, text) {
+        document.getElementById('gen-title').textContent = title;
+        const textarea = document.getElementById('gen-clipboard');
+        textarea.value = text || '';
+        modal.style.display = 'block';
+        textarea.focus();
+      }
+
+      function closeModal() {
+        modal.style.display = 'none';
+      }
+
+      document.querySelectorAll('.btn-gen').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          const type = btn.getAttribute('data-type');
+          try {
+            const response = await postJSON("{% url 'api_generate_activity' %}", {
+              assignment_id: assignmentId,
+              activity_type: type,
+            });
+            openModal(response.activity.title || 'Generated', response.clipboard || '');
+          } catch (error) {
+            openModal('Error', 'Could not generate activity.');
+          }
+        });
       });
-    }
-    
-    // Enhance the easy word cloud with random colors and rotations (but constant size)
-    function enhanceEasyWordCloud() {
-      const cloud = document.getElementById("word-cloud-easy");
-      const spans = cloud.querySelectorAll("span");
-      spans.forEach(span => {
-        span.style.fontSize = "16px";
-        const colors = ["#3498db", "#2ecc71", "#f1c40f", "#e67e22", "#9b59b6"];
-        const randomColor = colors[Math.floor(Math.random() * colors.length)];
-        span.style.color = randomColor;
-        const rotation = Math.floor(Math.random() * 31) - 15;
-        span.style.display = "inline-block";
-        span.style.transform = "rotate(" + rotation + "deg)";
+
+      document.getElementById('close-btn').addEventListener('click', closeModal);
+      modal.addEventListener('click', (event) => {
+        if (event.target === event.currentTarget) {
+          closeModal();
+        }
       });
-    }
-    
-    enhanceDifficultWordCloud();
-    enhanceEasyWordCloud();
+      if (modalDialog) {
+        modalDialog.addEventListener('click', (event) => {
+          event.stopPropagation();
+        });
+      }
+
+      document.getElementById('copy-btn').addEventListener('click', async () => {
+        const textarea = document.getElementById('gen-clipboard');
+        textarea.select();
+        textarea.setSelectionRange(0, textarea.value.length);
+        try {
+          await navigator.clipboard.writeText(textarea.value);
+        } catch (err) {
+          document.execCommand('copy');
+        }
+      });
+    })();
   </script>
 {% include 'messages.html' %}
 </body>
