@@ -188,21 +188,14 @@
       background: rgba(0, 0, 0, 0.45);
       z-index: 1200;
       backdrop-filter: blur(2px);
-      padding: 24px 16px;
-      overflow-y: auto;
-      align-items: flex-start;
-      justify-content: center;
     }
     .modal-dialog {
-      width: 100%;
       max-width: 720px;
+      margin: 10vh auto;
       background: #fff;
       padding: 20px;
       border-radius: 16px;
       box-shadow: 0 16px 40px rgba(0,0,0,0.18);
-      position: relative;
-      max-height: 80vh;
-      overflow: auto;
     }
     .feedback-cards {
       display: grid;
@@ -397,13 +390,13 @@
     </div>
 
     <!-- Minimal modal for clipboard -->
-    <div id="gen-modal" aria-hidden="true">
-      <div class="modal-dialog" role="dialog" aria-modal="true" tabindex="-1" aria-labelledby="gen-title">
+    <div id="gen-modal">
+      <div class="modal-dialog">
         <h3 id="gen-title">Generated Activity</h3>
         <textarea id="gen-clipboard" rows="12"></textarea>
         <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:8px;">
-          <button id="copy-btn" type="button">Copy to Clipboard</button>
-          <button id="close-btn" type="button">Close</button>
+          <button id="copy-btn">Copy to Clipboard</button>
+          <button id="close-btn">Close</button>
         </div>
       </div>
     </div>
@@ -673,80 +666,18 @@
         });
       }
 
-      const modalOverlay = document.getElementById('gen-modal');
-      const modalDialog = modalOverlay ? modalOverlay.querySelector('.modal-dialog') : null;
-      const modalTitle = document.getElementById('gen-title');
-      const modalTextarea = document.getElementById('gen-clipboard');
-      const closeButton = document.getElementById('close-btn');
-      const copyButton = document.getElementById('copy-btn');
-      const pageBody = document.body;
-      let previousBodyOverflow = pageBody ? pageBody.style.overflow : '';
-      let lastTriggerButton = null;
-      let copyResetTimer = null;
-
-      function resetCopyButton() {
-        if (copyResetTimer) {
-          window.clearTimeout(copyResetTimer);
-          copyResetTimer = null;
-        }
-        if (copyButton) {
-          copyButton.disabled = false;
-          copyButton.textContent = 'Copy to Clipboard';
-        }
-      }
-
       function openModal(title, text) {
-        if (modalTitle) {
-          modalTitle.textContent = title;
-        }
-        if (modalTextarea) {
-          modalTextarea.value = text;
-          modalTextarea.scrollTop = 0;
-        }
-        if (modalOverlay) {
-          modalOverlay.style.display = 'flex';
-          modalOverlay.setAttribute('aria-hidden', 'false');
-          modalOverlay.scrollTop = 0;
-        }
-        if (pageBody) {
-          previousBodyOverflow = pageBody.style.overflow;
-          pageBody.style.overflow = 'hidden';
-        }
-        if (modalDialog) {
-          try {
-            modalDialog.focus({ preventScroll: true });
-          } catch (err) {
-            modalDialog.focus();
-          }
-        }
-        document.addEventListener('keydown', handleDocumentKeydown);
+        document.getElementById('gen-title').textContent = title;
+        document.getElementById('gen-clipboard').value = text;
+        document.getElementById('gen-modal').style.display = 'block';
       }
 
       function closeModal() {
-        if (modalOverlay) {
-          modalOverlay.style.display = 'none';
-          modalOverlay.setAttribute('aria-hidden', 'true');
-        }
-        if (pageBody) {
-          pageBody.style.overflow = previousBodyOverflow || '';
-        }
-        if (lastTriggerButton) {
-          lastTriggerButton.focus();
-          lastTriggerButton = null;
-        }
-        resetCopyButton();
-        document.removeEventListener('keydown', handleDocumentKeydown);
+        document.getElementById('gen-modal').style.display = 'none';
       }
-
-      const handleDocumentKeydown = (event) => {
-        if (event.key === 'Escape') {
-          closeModal();
-        }
-      };
 
       document.querySelectorAll('.btn-gen').forEach((btn) => {
         btn.addEventListener('click', async () => {
-          lastTriggerButton = btn;
           const type = btn.getAttribute('data-type');
           try {
             const response = await postJSON("{% url 'api_generate_activity' %}", {
@@ -760,49 +691,23 @@
         });
       });
 
-      if (closeButton) {
-        closeButton.addEventListener('click', closeModal);
-      }
-
-      if (modalOverlay && modalDialog) {
-        modalOverlay.addEventListener('click', (event) => {
-          if (!modalDialog.contains(event.target)) {
-            closeModal();
-          }
-        });
-      }
-
-      function announceCopySuccess() {
-        if (!copyButton) {
-          return;
+      document.getElementById('close-btn').addEventListener('click', closeModal);
+      document.getElementById('gen-modal').addEventListener('click', (event) => {
+        if (event.target === event.currentTarget) {
+          closeModal();
         }
-        if (copyResetTimer) {
-          window.clearTimeout(copyResetTimer);
-        }
-        copyButton.disabled = true;
-        copyButton.textContent = 'Copied!';
-        copyResetTimer = window.setTimeout(() => {
-          copyButton.disabled = false;
-          copyButton.textContent = 'Copy to Clipboard';
-          copyResetTimer = null;
-        }, 1600);
-      }
+      });
 
-      if (copyButton && modalTextarea) {
-        copyButton.addEventListener('click', async () => {
-          modalTextarea.select();
-          modalTextarea.setSelectionRange(0, modalTextarea.value.length);
-          try {
-            await navigator.clipboard.writeText(modalTextarea.value);
-            announceCopySuccess();
-          } catch (err) {
-            const legacyCopied = document.execCommand('copy');
-            if (legacyCopied !== false) {
-              announceCopySuccess();
-            }
-          }
-        });
-      }
+      document.getElementById('copy-btn').addEventListener('click', async () => {
+        const textarea = document.getElementById('gen-clipboard');
+        textarea.select();
+        textarea.setSelectionRange(0, textarea.value.length);
+        try {
+          await navigator.clipboard.writeText(textarea.value);
+        } catch (err) {
+          document.execCommand('copy');
+        }
+      });
     })();
   </script>
 {% include 'messages.html' %}
