@@ -274,7 +274,7 @@ a.btn:hover, button.btn:hover {
     /* Action Buttons (Off-white, Blue Border) */
     .btn-action {
       background-color: #fff; /* Off-white */
-      border: 2px solid var(--primary); 
+      border: 2px solid var(--primary);
       color: var(--primary);
       padding: 6px 12px;
       border-radius: 6px;
@@ -292,6 +292,24 @@ a.btn:hover, button.btn:hover {
     }
     .btn-action:active {
       transform: translateY(0);
+    }
+
+    .inline-form {
+      display: inline;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      margin-left: 8px;
+    }
+
+    .status-badge.closed {
+      background-color: var(--highlight);
+      color: #fff;
     }
 
     /* Tables */
@@ -664,7 +682,12 @@ a.btn:hover, button.btn:hover {
               <tbody>
                 {% for assignment in class_instance.live_assignments %}
                 <tr>
-                  <td>{{ assignment.name }}</td>
+                  <td>
+                    {{ assignment.name }}
+                    {% if assignment.is_closed %}
+                      <span class="status-badge closed">Closed Early</span>
+                    {% endif %}
+                  </td>
                   <td>{{ assignment.deadline|date:"M d, Y H:i" }}</td>
                   <td>
                     {% if request.user.is_premium %}
@@ -672,6 +695,13 @@ a.btn:hover, button.btn:hover {
                     {% else %}
                       <span class="upgrade-message">Upgrade for Analytics</span>
                     {% endif %}
+                    <form method="post" action="{% url 'close_assignment' assignment.id %}" class="inline-form">
+                      {% csrf_token %}
+                      <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                      <button type="submit" class="btn-action" onclick="return confirm('Close this assignment early?');">
+                        Close Early
+                      </button>
+                    </form>
                   </td>
                 </tr>
                 {% empty %}

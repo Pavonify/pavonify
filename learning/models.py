@@ -230,6 +230,7 @@ class Assignment(models.Model):
     vocab_list = models.ForeignKey(VocabularyList, on_delete=models.CASCADE)
     deadline = models.DateTimeField()
     target_points = models.IntegerField()  # Total target points for the assignment
+    is_closed = models.BooleanField(default=False)
 
     # Existing Modes
     include_flashcards = models.BooleanField(default=False)

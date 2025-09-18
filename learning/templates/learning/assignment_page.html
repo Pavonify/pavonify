@@ -58,6 +58,33 @@
             flex-wrap: wrap;
         }
 
+        .teacher-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .close-assignment-form {
+            display: inline-block;
+        }
+
+        .close-assignment-form .btn {
+            background-color: var(--highlight);
+        }
+
+        .close-assignment-form .btn:hover {
+            background-color: #7e0f26;
+        }
+
+        .assignment-status-badge {
+            display: inline-block;
+            padding: 6px 10px;
+            border-radius: 6px;
+            background-color: var(--highlight);
+            color: #fff;
+            font-weight: bold;
+        }
+
         .info-box {
             background-color: var(--accent);
             color: white;
@@ -168,6 +195,19 @@
             <div class="info-box">Deadline: {{ assignment.deadline|date:"M d, Y H:i" }}</div>
             <div class="info-box"><span id="countdown-timer"></span></div>
             <a href="{% url 'student_dashboard' %}" class="btn">Dashboard</a>
+            {% if request.user.is_authenticated and request.user.is_teacher and request.user == assignment.teacher %}
+            <div class="teacher-actions">
+                {% if assignment.is_closed %}
+                <span class="assignment-status-badge">Closed Early</span>
+                {% else %}
+                <form method="post" action="{% url 'close_assignment' assignment.id %}" class="close-assignment-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                    <button type="submit" class="btn" onclick="return confirm('Close this assignment early?');">Close Assignment</button>
+                </form>
+                {% endif %}
+            </div>
+            {% endif %}
         </div>
     </div>
 

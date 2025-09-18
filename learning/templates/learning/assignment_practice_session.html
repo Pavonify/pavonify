@@ -59,6 +59,11 @@
             gap: 16px;
             text-align: left;
         }
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
         .header h1 {
             margin: 0;
             font-size: 28px;
@@ -73,6 +78,23 @@
             display: flex;
             justify-content: flex-end;
             min-width: 160px;
+        }
+        .close-assignment-form {
+            display: inline-block;
+        }
+        .close-assignment-form .btn {
+            background-color: var(--highlight);
+        }
+        .close-assignment-form .btn:hover {
+            background-color: #7e0f26;
+        }
+        .assignment-status-badge {
+            display: inline-block;
+            padding: 8px 12px;
+            border-radius: 6px;
+            background-color: var(--highlight);
+            color: #fff;
+            font-weight: 600;
         }
         #activity-container {
             margin-top: 30px;
@@ -281,6 +303,19 @@
         <div class="title-block">
             <h1>Assignment: {{ assignment.name }}</h1>
             <p><strong>Assignment Points:</strong> <span id="assignment-points">{{ current_points }}</span> / {{ total_points }}</p>
+        </div>
+        <div class="header-actions">
+            {% if request.user.is_authenticated and request.user.is_teacher and request.user == assignment.teacher %}
+                {% if assignment.is_closed %}
+                    <span class="assignment-status-badge">Closed Early</span>
+                {% else %}
+                    <form method="post" action="{% url 'close_assignment' assignment.id %}" class="close-assignment-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                        <button type="submit" class="btn" onclick="return confirm('Close this assignment early?');">Close Assignment</button>
+                    </form>
+                {% endif %}
+            {% endif %}
         </div>
         <div class="energy-meter-container" id="energy-meter-container"></div>
     </div>
