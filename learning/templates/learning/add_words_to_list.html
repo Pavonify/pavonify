@@ -126,6 +126,11 @@
     background-color: #087bb8;
   }
 
+  .preview-btn[disabled] {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
   /* Back Link */
   .back-link {
     display: inline-block;
@@ -584,8 +589,11 @@
     const modal = document.getElementById('bulk-enrichment-modal');
     const closeButton = document.getElementById('bulk-enrichment-close');
     const rootContainer = document.getElementById('bulk-enrichment-root');
+    const textarea = document.querySelector('textarea[name="words"]');
+    const ENRICHMENT_LIMIT = 100;
+    const ENRICHMENT_DISABLED_TOOLTIP = 'enhancements disabled above 100 words';
 
-    if (!previewButton || !modal || !rootContainer) {
+    if (!previewButton || !modal || !rootContainer || !textarea) {
       return;
     }
 
@@ -643,14 +651,39 @@
       return Array.from(seen.values());
     }
 
-    previewButton.addEventListener('click', function () {
-      const textarea = document.querySelector('textarea[name="words"]');
-      if (!textarea) {
-        return;
+    function setEnhancementAvailability(entriesCount) {
+      const shouldDisable = entriesCount > ENRICHMENT_LIMIT;
+      previewButton.disabled = shouldDisable;
+      if (shouldDisable) {
+        previewButton.setAttribute('title', ENRICHMENT_DISABLED_TOOLTIP);
+        previewButton.setAttribute('aria-disabled', 'true');
+      } else {
+        previewButton.removeAttribute('title');
+        previewButton.removeAttribute('aria-disabled');
       }
-      const entries = parseWords(textarea.value);
+      return shouldDisable;
+    }
+
+    function getCurrentEntries() {
+      return parseWords(textarea.value);
+    }
+
+    function refreshEnhancementButton() {
+      const entries = getCurrentEntries();
+      setEnhancementAvailability(entries.length);
+      return entries;
+    }
+
+    textarea.addEventListener('input', refreshEnhancementButton);
+    refreshEnhancementButton();
+
+    previewButton.addEventListener('click', function () {
+      const entries = refreshEnhancementButton();
       if (entries.length === 0) {
         alert('Please add at least one word before previewing.');
+        return;
+      }
+      if (entries.length > ENRICHMENT_LIMIT) {
         return;
       }
       confirmed = false;
