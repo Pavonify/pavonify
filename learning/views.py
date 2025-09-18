@@ -2092,7 +2092,7 @@ def create_checkout_session(request):
             cancel_url="https://www.pavonify.com/teacher-dashboard/",
             client_reference_id=str(request.user.id),
             subscription_data={"metadata": {"teacher_id": str(request.user.id)}},
-            allow_promotion_codes: true,
+            allow_promotion_codes=True,
         )
         return JsonResponse({"checkout_url": session.url})
     except stripe.error.StripeError as e:
