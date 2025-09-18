@@ -22,7 +22,6 @@ from django_countries.fields import CountryField
 from django.contrib import admin
 from django.urls import path
 from learning import views  # Import views from the learning app
-from learning import views_api
 from learning.views import flashcard_mode, delete_reading_lab_text
 from django.contrib.auth.decorators import login_required
 from learning.views import update_assignment_points, log_assignment_attempt, refresh_leaderboard, delete_teacher_account, class_leaderboard, buy_pavicoins, pavicoins_success, teacher_upgrade, create_checkout_session, worksheet_lab_view, custom_404_view, teacher_account_settings, grammar_lab, delete_ladder
@@ -124,12 +123,6 @@ urlpatterns = [
     path('api/achievements/', include('achievements.urls')),
     path("api/vocab/enrichment/preview", EnrichmentPreviewAPI.as_view(), name="vocab-enrichment-preview"),
     path("api/vocab/enrichment/confirm", EnrichmentConfirmAPI.as_view(), name="vocab-enrichment-confirm"),
-    path("api/analytics/<int:assignment_id>/word-stats/", views_api.api_word_stats, name="api_word_stats"),
-    path("api/analytics/<int:assignment_id>/mode-breakdown/", views_api.api_mode_breakdown, name="api_mode_breakdown"),
-    path("api/analytics/<int:assignment_id>/student-mastery/", views_api.api_student_mastery, name="api_student_mastery"),
-    path("api/analytics/<int:assignment_id>/heatmap/", views_api.api_heatmap, name="api_heatmap"),
-    path("api/analytics/<int:assignment_id>/overview/", views_api.api_overview, name="api_overview"),
-    path("api/generate-activity/", views_api.api_generate_activity, name="api_generate_activity"),
 
 
 ]

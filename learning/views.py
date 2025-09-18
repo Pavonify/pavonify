@@ -1857,9 +1857,9 @@ def log_assignment_attempt(request):
 def assignment_analytics(request, assignment_id):
     assignment = get_object_or_404(Assignment, id=assignment_id)
 
-    if not request.user.is_authenticated or not getattr(request.user, "is_teacher", False):
+    if request.user != assignment.teacher:
         return HttpResponseForbidden("You do not have permission to view this assignment's analytics.")
-    if assignment.teacher_id != request.user.id and not assignment.class_assigned.teachers.filter(id=request.user.id).exists():
+    if not assignment.class_assigned.teachers.filter(id=request.user.id).exists():
         return HttpResponseForbidden("You do not have permission to view this assignment's analytics.")
 
     progress_list = AssignmentProgress.objects.filter(assignment=assignment)
