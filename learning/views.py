@@ -19,6 +19,7 @@ from django.core.paginator import Paginator
 from django.templatetags.static import static
 from django.utils import timezone
 from django.utils.timezone import now
+from django.utils.http import url_has_allowed_host_and_scheme
 from functools import wraps
 import csv
 import datetime
@@ -186,12 +187,16 @@ def teacher_dashboard(request):
         students = students.order_by("last_name", "first_name")
 
     # Annotate each class with live and expired assignments
+    current_time = now()
     for class_instance in classes:
         class_instance.live_assignments = Assignment.objects.filter(
-            class_assigned=class_instance, deadline__gte=datetime.now()
+            class_assigned=class_instance,
+            deadline__gte=current_time,
+            is_closed=False,
         )
-        class_instance.expired_assignments = Assignment.objects.filter(
-            class_assigned=class_instance, deadline__lt=datetime.now()
+        class_instance.expired_assignments = (
+            Assignment.objects.filter(class_assigned=class_instance)
+            .filter(Q(deadline__lt=current_time) | Q(is_closed=True))
         )
 
     # Attach unattached classes to each vocabulary list
@@ -232,7 +237,9 @@ def teacher_dashboard(request):
 
     pending_assignments = []
     active_assignments = Assignment.objects.filter(
-        class_assigned__in=classes, deadline__gte=now()
+        class_assigned__in=classes,
+        deadline__gte=current_time,
+        is_closed=False,
     )
     for assignment in active_assignments:
         total_students = assignment.class_assigned.students.count()
@@ -851,11 +858,19 @@ def student_dashboard(request):
     student = get_object_or_404(Student, id=student_id)
     classes = student.classes.all()
 
+    current_time = now()
     for class_instance in classes:
         for class_student in class_instance.students.all():
             class_student.reset_periodic_points()
-        live_assignments = Assignment.objects.filter(class_assigned=class_instance, deadline__gte=now())
-        expired_assignments = Assignment.objects.filter(class_assigned=class_instance, deadline__lt=now())
+        live_assignments = Assignment.objects.filter(
+            class_assigned=class_instance,
+            deadline__gte=current_time,
+            is_closed=False,
+        )
+        expired_assignments = (
+            Assignment.objects.filter(class_assigned=class_instance)
+            .filter(Q(deadline__lt=current_time) | Q(is_closed=True))
+        )
 
         for assignment in live_assignments:
             progress = AssignmentProgress.objects.filter(student=student, assignment=assignment).first()
@@ -1620,6 +1635,33 @@ def delete_assignment(request, assignment_id):
     return redirect("teacher_dashboard")
 
 
+@login_required
+@require_POST
+def close_assignment(request, assignment_id):
+    assignment = get_object_or_404(Assignment, id=assignment_id)
+
+    if request.user != assignment.teacher:
+        messages.error(request, "You are not authorized to close this assignment.")
+        return redirect("teacher_dashboard")
+
+    if assignment.is_closed:
+        messages.info(request, "This assignment is already closed.")
+    else:
+        assignment.is_closed = True
+        assignment.save(update_fields=["is_closed"])
+        messages.success(request, "Assignment closed successfully.")
+
+    next_url = request.POST.get("next")
+    if next_url and url_has_allowed_host_and_scheme(
+        next_url,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        return redirect(next_url)
+
+    return redirect("teacher_dashboard")
+
+
 @student_login_required
 def assignment_page(request, assignment_id):
     student_id = request.session.get("student_id")
@@ -1628,6 +1670,10 @@ def assignment_page(request, assignment_id):
 
     student = get_object_or_404(Student, id=student_id)
     assignment = get_object_or_404(Assignment, id=assignment_id)
+
+    if assignment.is_closed:
+        messages.info(request, "This assignment has been closed by your teacher.")
+        return redirect("student_dashboard")
 
     if not assignment.class_assigned.students.filter(id=student.id).exists():
         return render(request, "learning/access_denied.html", status=403)

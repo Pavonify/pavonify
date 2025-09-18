@@ -85,6 +85,7 @@ urlpatterns = [
     path('create-assignment/<uuid:class_id>/', views.create_assignment, name='create_assignment'),
     path('assignment-analytics/<int:assignment_id>/', views.assignment_analytics, name='assignment_analytics'),
     path('delete-assignment/<int:assignment_id>/', views.delete_assignment, name='delete_assignment'),
+    path('close-assignment/<int:assignment_id>/', views.close_assignment, name='close_assignment'),
     path('assignment/flashcard/<int:assignment_id>/', views.flashcard_mode_assignment, name='flashcard_mode_assignment'),
     path('assignment/destroy-the-wall/<int:assignment_id>/', views.destroy_wall_mode_assignment, name='destroy_wall_mode_assignment'),
     path('assignment/unscramble/<int:assignment_id>/', views.unscramble_the_word_assignment, name='unscramble_the_word_assignment'), 

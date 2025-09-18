@@ -546,7 +546,9 @@
                       <td style="padding: 10px; border: 1px solid white; background-color: #f5f5f5; color: black;">{{ assignment.name }}</td>
                       <td style="padding: 10px; border: 1px solid white; background-color: #f5f5f5; color: black;">{{ assignment.deadline|date:"M d, Y H:i" }}</td>
                       <td style="padding: 10px; border: 1px solid white; background-color: #f5f5f5; color: black;">
-                        <span class="status-badge" style="display: inline-block; padding: 6px 12px; border-radius: 5px; font-weight: bold; background-color: #777; color: white; min-width: 100px;">Expired</span>
+                        <span class="status-badge" style="display: inline-block; padding: 6px 12px; border-radius: 5px; font-weight: bold; background-color: #777; color: white; min-width: 100px;">
+                          {% if assignment.is_closed %}Closed Early{% else %}Expired{% endif %}
+                        </span>
                       </td>
                       <td style="padding: 10px; border: 1px solid white; background-color: #f5f5f5; color: black;">
                         <div class="progress-container" style="position: relative; width: 120px; height: 25px; background-color: #ddd; border-radius: 5px; overflow: hidden; display: inline-flex; align-items: center; justify-content: center; font-weight: bold; color: white;">
