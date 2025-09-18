@@ -4,122 +4,426 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    
-    <title>{{ post.title }} - Pavonify Blog</title>
-    <meta name="description" content="{{ post.content|truncatewords:25 }}">
 
-    <!-- ✅ Import Font Awesome for icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <title>{{ post.title }} - Pavonify Blog</title>
+    <meta name="description" content="{{ post.content|striptags|truncatewords:25 }}">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Fredoka+One&family=Source+Code+Pro:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SzlrxWUlpfuzQ+pcUCosxcglQRNAq/DZjVsC0lE40xsADsfeQoEypE+enwcOiGjk/bSuGGKHEyjSoQ1zVisanQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Fredoka+One&display=swap');
-    h1 { font-family: 'Fredoka One', cursive; }
-        /* General Styles */
-        body {
-            font-family: 'Poppins', sans-serif;
-            margin: 0;
-            padding: 0;
-            min-height: 100vh;
-            background: #e3f2fd;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+      :root {
+        --primary: #1A73E8;
+        --accent: #F2A03D;
+        --secondary-accent: #34A853;
+        --background: #F2EFE9;
+        --dark: #0D0D0D;
+        --highlight: #A6173D;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: 'Poppins', sans-serif;
+        background: var(--background);
+        color: var(--dark);
+        line-height: 1.75;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      a {
+        color: var(--primary);
+        text-decoration: none;
+        transition: color 0.3s ease, transform 0.3s ease;
+      }
+
+      a:hover,
+      a:focus {
+        color: var(--accent);
+      }
+
+      header {
+        background: linear-gradient(135deg, var(--primary), #2050D0);
+        color: #fff;
+        padding: 80px 20px 60px;
+        position: relative;
+        overflow: hidden;
+      }
+
+      header::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(circle at top left, rgba(255, 255, 255, 0.25), transparent 60%);
+        pointer-events: none;
+      }
+
+      .header-inner {
+        max-width: 900px;
+        margin: 0 auto;
+        position: relative;
+        z-index: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+      }
+
+      .breadcrumb {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 16px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.18);
+        color: #fff;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        width: fit-content;
+      }
+
+      .breadcrumb:hover {
+        color: #fff;
+        background: rgba(255, 255, 255, 0.3);
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: rgba(255, 255, 255, 0.2);
+        color: #fff;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        font-weight: 600;
+        font-size: 0.8rem;
+        padding: 8px 18px;
+        border-radius: 999px;
+      }
+
+      header h1 {
+        font-family: 'Fredoka One', cursive;
+        font-size: 3rem;
+        letter-spacing: 1px;
+      }
+
+      .header-meta {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        flex-wrap: wrap;
+        font-size: 0.95rem;
+        color: rgba(255, 255, 255, 0.9);
+      }
+
+      .header-meta span,
+      .header-meta time {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .header-meta i {
+        font-size: 1rem;
+      }
+
+      nav {
+        background: #fff;
+        box-shadow: 0 12px 30px rgba(26, 115, 232, 0.08);
+        padding: 14px 24px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 28px;
+        position: sticky;
+        top: 0;
+        z-index: 20;
+      }
+
+      nav a {
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.9rem;
+        letter-spacing: 0.08em;
+        color: var(--dark);
+        padding-bottom: 6px;
+        border-bottom: 2px solid transparent;
+        transition: color 0.3s ease, border-color 0.3s ease;
+      }
+
+      nav a:hover,
+      nav a:focus-visible {
+        color: var(--accent);
+        border-color: var(--accent);
+        outline: none;
+      }
+
+      nav a.active,
+      nav a[aria-current="page"] {
+        color: var(--primary);
+        border-color: var(--primary);
+      }
+
+      main {
+        flex: 1;
+        width: 100%;
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 50px 20px 80px;
+        display: flex;
+        flex-direction: column;
+        gap: 40px;
+      }
+
+      article {
+        background: #fff;
+        border-radius: 22px;
+        box-shadow: 0 28px 55px rgba(26, 115, 232, 0.1);
+        padding: 48px;
+        display: flex;
+        flex-direction: column;
+        gap: 28px;
+      }
+
+      .article-image {
+        border-radius: 18px;
+        overflow: hidden;
+        box-shadow: 0 20px 40px rgba(15, 23, 42, 0.15);
+      }
+
+      .article-image img {
+        width: 100%;
+        height: auto;
+        display: block;
+      }
+
+      .article-content {
+        font-size: 1.05rem;
+        color: #2f3133;
+        display: flex;
+        flex-direction: column;
+        gap: 1.2em;
+      }
+
+      .article-content p {
+        margin: 0;
+      }
+
+      .article-content h2,
+      .article-content h3,
+      .article-content h4 {
+        font-family: 'Fredoka One', cursive;
+        color: var(--primary);
+        margin: 1.6em 0 0.6em;
+        line-height: 1.3;
+      }
+
+      .article-content ul,
+      .article-content ol {
+        padding-left: 1.5em;
+        display: grid;
+        gap: 0.6em;
+      }
+
+      .article-content a {
+        color: var(--highlight);
+        font-weight: 600;
+        text-decoration: underline;
+        text-decoration-thickness: 2px;
+        text-decoration-color: rgba(166, 23, 61, 0.3);
+      }
+
+      .article-content blockquote {
+        border-left: 4px solid var(--accent);
+        padding: 0.6em 1.4em;
+        background: rgba(242, 160, 61, 0.08);
+        border-radius: 12px;
+        font-style: italic;
+        color: #4a4d50;
+      }
+
+      .article-content code {
+        font-family: 'Source Code Pro', monospace;
+        background: rgba(26, 115, 232, 0.08);
+        padding: 2px 6px;
+        border-radius: 6px;
+        font-size: 0.95em;
+      }
+
+      .article-content pre {
+        background: #0f172a;
+        color: #e2e8f0;
+        padding: 18px;
+        border-radius: 14px;
+        overflow-x: auto;
+        font-size: 0.9rem;
+      }
+
+      .article-content img {
+        max-width: 100%;
+        border-radius: 14px;
+        box-shadow: 0 18px 36px rgba(15, 23, 42, 0.12);
+      }
+
+      .article-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 20px;
+        border-radius: 999px;
+        border: 2px solid var(--primary);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .back-link:hover {
+        color: #fff;
+        background: var(--primary);
+      }
+
+      .cta-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        padding: 14px 28px;
+        border-radius: 999px;
+        background: var(--accent);
+        color: #fff;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        box-shadow: 0 18px 30px rgba(242, 160, 61, 0.35);
+      }
+
+      .cta-button:hover {
+        background: var(--highlight);
+        color: #fff;
+      }
+
+      footer {
+        text-align: center;
+        padding: 30px 20px 60px;
+        color: #5f6368;
+        font-size: 0.9rem;
+      }
+
+      footer a {
+        color: var(--primary);
+        font-weight: 600;
+      }
+
+      @media (max-width: 900px) {
+        header h1 {
+          font-size: 2.6rem;
+        }
+      }
+
+      @media (max-width: 768px) {
+        nav {
+          flex-wrap: wrap;
+          gap: 16px;
         }
 
-        /* Blog Header */
-        .blog-header {
-            background-color: #0aa2ef;
-            color: white;
-            text-align: center;
-            padding: 20px;
-            width: 100%;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        nav a {
+          margin: 4px 0;
         }
 
-        .blog-header h1 {
-            margin: 0;
-            font-size: 28px;
+        main {
+          padding: 40px 16px 60px;
         }
 
-        /* Blog Post Container */
-        .blog-container {
-            width: 90%;
-            max-width: 800px;
-            margin: 20px auto;
-            padding: 20px;
-            background: white;
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            text-align: left;
+        article {
+          padding: 32px;
         }
 
-        .blog-container h1 {
-            margin-top: 0;
-            color: #0aa2ef;
-            font-size: 28px;
+        .article-actions {
+          flex-direction: column;
+          align-items: stretch;
         }
 
-        .blog-container p {
-            font-size: 16px;
-            color: #333;
-            line-height: 1.6;
+        .back-link,
+        .cta-button {
+          justify-content: center;
         }
+      }
 
-        .blog-container .meta {
-            font-size: 14px;
-            color: #555;
-            margin-bottom: 15px;
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+          scroll-behavior: auto !important;
         }
-
-        /* Featured Image */
-        .blog-image {
-            width: 100%;
-            height: auto;
-            border-radius: 5px;
-            margin: 15px 0;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-        }
-
-        /* Return Button */
-        .return-btn {
-            display: inline-block;
-            margin-top: 20px;
-            padding: 10px 15px;
-            background-color: #ff2c61;
-            color: white;
-            border-radius: 5px;
-            text-decoration: none;
-            font-size: 16px;
-            transition: background-color 0.3s ease;
-        }
-
-        .return-btn:hover {
-            background-color: #d4204c;
-        }
+      }
     </style>
 </head>
 <body>
-
-    <!-- Blog Header -->
-    <div class="blog-header">
-        <h1>📝 Pavonify Blog</h1>
-    </div>
-
-    <!-- Blog Post Content -->
-    <div class="blog-container">
+    <header>
+      <div class="header-inner">
+        <a class="breadcrumb" href="{% url 'blog_list' %}"><i class="fas fa-arrow-left" aria-hidden="true"></i> All articles</a>
+        <span class="badge"><i class="fas fa-star" aria-hidden="true"></i> Pavonify Blog</span>
         <h1>{{ post.title }}</h1>
-        <p class="meta">By {{ post.author }} | {{ post.created_at|date:"F j, Y" }}</p>
+        <div class="header-meta">
+          <span><i class="fas fa-user" aria-hidden="true"></i> {{ post.author }}</span>
+          <time datetime="{{ post.created_at|date:'c' }}"><i class="fas fa-calendar-alt" aria-hidden="true"></i> {{ post.created_at|date:"F j, Y" }}</time>
+          <span><i class="fas fa-pen" aria-hidden="true"></i> Updated {{ post.updated_at|date:"F j, Y" }}</span>
+        </div>
+      </div>
+    </header>
 
+    <nav>
+      <a href="{% url 'landing_page' %}#features">Features</a>
+      <a href="{% url 'landing_page' %}#comparison">Comparison</a>
+      <a href="{% url 'landing_page' %}#roadmap">Roadmap</a>
+      <a href="{% url 'blog_list' %}" class="active" aria-current="page">Blog</a>
+      <a href="mailto:contact@pavonify.com">Contact</a>
+    </nav>
+
+    <main>
+      <article>
         {% if post.featured_image %}
-            <img src="{{ post.featured_image.url }}" alt="{{ post.title }}" class="blog-image">
+        <figure class="article-image">
+          <img src="{{ post.featured_image.url }}" alt="{{ post.title }}">
+        </figure>
         {% endif %}
 
-        <p>{{ post.content|linebreaks|safe }}</p>
-    </div>
+        <div class="article-content">
+          {{ post.content|linebreaks|safe }}
+        </div>
+      </article>
 
-    <!-- Return to Blog Button -->
-    <a href="{% url 'blog_list' %}" class="return-btn"><i class="fas fa-arrow-left"></i> Return to Blog</a>
+      <div class="article-actions">
+        <a class="back-link" href="{% url 'blog_list' %}"><i class="fas fa-arrow-left" aria-hidden="true"></i> Back to all posts</a>
+        <a class="cta-button" href="{% url 'register_teacher' %}">
+          Try Pavonify for free <i class="fas fa-arrow-right" aria-hidden="true"></i>
+        </a>
+      </div>
+    </main>
 
-{% include 'messages.html' %}
+    <footer>
+      <p>&copy; {% now "Y" %} Pavonify. Ready when you are to energise language learning.</p>
+    </footer>
+
+    {% include 'messages.html' %}
 </body>
 </html>
