@@ -5,9 +5,21 @@ from django.utils import timezone
 from datetime import timedelta
 from django.utils.html import format_html
 from .models import (
-    School, User, Class, Student, VocabularyList, VocabularyWord,
-    Progress, Assignment, AssignmentProgress, Trophy, StudentTrophy, Announcement, ReadingLabText, AssignmentAttempt
-
+    School,
+    User,
+    Class,
+    Student,
+    VocabularyList,
+    VocabularyWord,
+    Progress,
+    Assignment,
+    AssignmentProgress,
+    Trophy,
+    StudentTrophy,
+    Announcement,
+    ReadingLabText,
+    AssignmentAttempt,
+    Tag,
 )
 
 @admin.register(Trophy)
@@ -68,6 +80,13 @@ class VocabularyListAdmin(admin.ModelAdmin):
     list_display = ('name', 'source_language', 'target_language', 'teacher')
     search_fields = ('name', 'source_language', 'target_language')
     list_filter = ('source_language', 'target_language')
+
+
+@admin.register(Tag)
+class TagAdmin(admin.ModelAdmin):
+    list_display = ("name", "teacher")
+    search_fields = ("name", "teacher__username")
+    list_filter = ("teacher",)
 
 
 # **📌 Vocabulary Word Admin**

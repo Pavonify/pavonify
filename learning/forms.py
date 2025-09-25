@@ -1,5 +1,13 @@
 from django import forms
-from .models import VocabularyWord, VocabularyList, Class, User, Student, Assignment
+from .models import (
+    VocabularyWord,
+    VocabularyList,
+    Class,
+    User,
+    Student,
+    Assignment,
+    Tag,
+)
 from django.contrib.auth.forms import UserCreationForm
 from django.utils import timezone
 from datetime import timedelta
@@ -65,6 +73,63 @@ class TeacherRegistrationForm(UserCreationForm):
 class VocabularyListForm(forms.ModelForm):
     source_language = forms.ChoiceField(choices=LANGUAGE_CHOICES, label="Source Language")
     target_language = forms.ChoiceField(choices=LANGUAGE_CHOICES, label="Target Language")
+    tag_names = forms.CharField(
+        required=False,
+        label="Tags",
+        help_text="Separate multiple tags with commas.",
+    )
+
+    def __init__(self, *args, teacher=None, **kwargs):
+        self.teacher = teacher
+        super().__init__(*args, **kwargs)
+
+        if self.instance.pk and not self.teacher:
+            self.teacher = self.instance.teacher
+
+        if self.teacher:
+            existing_tags = Tag.objects.filter(teacher=self.teacher).order_by("name")
+            if existing_tags.exists():
+                tag_list = ", ".join(existing_tags.values_list("name", flat=True))
+                self.fields["tag_names"].help_text = (
+                    "Separate multiple tags with commas. Existing tags: " + tag_list
+                )
+
+        if self.instance.pk:
+            current_tags = self.instance.tags.order_by("name").values_list("name", flat=True)
+            self.initial["tag_names"] = ", ".join(current_tags)
+
+    def clean_tag_names(self):
+        raw_tags = self.cleaned_data.get("tag_names", "")
+        if not raw_tags:
+            return []
+
+        tag_names = []
+        for tag in raw_tags.split(","):
+            cleaned = tag.strip()
+            if cleaned and cleaned not in tag_names:
+                tag_names.append(cleaned)
+        return tag_names
+
+    def _save_tags(self, instance):
+        tag_names = self.cleaned_data.get("tag_names", [])
+        teacher = self.teacher or getattr(instance, "teacher", None)
+        if teacher is None:
+            return
+
+        tags = []
+        for name in tag_names:
+            tag, _ = Tag.objects.get_or_create(teacher=teacher, name=name)
+            tags.append(tag)
+        instance.tags.set(tags)
+
+    def save(self, commit=True):
+        instance = super().save(commit=commit)
+        if commit:
+            self._save_tags(instance)
+        return instance
+
+    def save_tags(self, instance):
+        self._save_tags(instance)
 
     class Meta:
         model = VocabularyList

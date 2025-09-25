@@ -57,6 +57,7 @@ from .models import (
     GrammarLadder,
     LadderItem,
     Announcement,
+    Tag,
 )
 from achievements.models import Trophy as AchievementTrophy, TrophyUnlock
 from achievements.services.evaluator import read_metric
@@ -169,6 +170,23 @@ def teacher_dashboard(request):
 
     reading_lab_texts = ReadingLabText.objects.filter(teacher=request.user).order_by('-created_at')
     vocab_lists = VocabularyList.objects.filter(teacher=request.user)
+    filtered_vocab_lists = vocab_lists
+    all_tags = Tag.objects.filter(teacher=request.user).order_by('name')
+
+    selected_tag_ids: List[int] = []
+    for raw_tag_id in request.GET.getlist("tags"):
+        try:
+            selected_tag_ids.append(int(raw_tag_id))
+        except (TypeError, ValueError):
+            continue
+
+    if selected_tag_ids:
+        for tag_id in selected_tag_ids:
+            filtered_vocab_lists = filtered_vocab_lists.filter(tags__id=tag_id)
+        filtered_vocab_lists = filtered_vocab_lists.distinct()
+
+    filtered_vocab_lists = filtered_vocab_lists.prefetch_related("tags")
+    vocab_lists = vocab_lists.prefetch_related("tags")
     classes = Class.objects.filter(teachers=request.user).distinct()
 
     # --- Student filtering and sorting ---
@@ -256,6 +274,7 @@ def teacher_dashboard(request):
     return render(request, "learning/teacher_dashboard.html", {
         "user": request.user,
         "vocab_lists": vocab_lists,
+        "filtered_vocab_lists": filtered_vocab_lists,
         "classes": classes,
         "students": students,
         "selected_class_id": selected_class_id,
@@ -266,6 +285,8 @@ def teacher_dashboard(request):
         "by_class_leaderboards": by_class_leaderboards,
         "pending_assignments": pending_assignments,
         "inactive_students": inactive_students,
+        "vocabulary_tags": all_tags,
+        "selected_tag_ids": selected_tag_ids,
     })
 
 
@@ -278,15 +299,16 @@ def teacher_dashboard(request):
 def add_vocabulary_list(request):
     from .forms import VocabularyListForm
     if request.method == 'POST':
-        form = VocabularyListForm(request.POST)
+        form = VocabularyListForm(request.POST, teacher=request.user)
         if form.is_valid():
             vocab_list = form.save(commit=False)
             vocab_list.teacher = request.user
             vocab_list.save()
+            form.save_tags(vocab_list)
             messages.success(request, "Vocabulary list created successfully!")
             return redirect('teacher_dashboard')
     else:
-        form = VocabularyListForm()
+        form = VocabularyListForm(teacher=request.user)
     return render(request, 'learning/add_vocabulary_list.html', {'form': form})
 
 
@@ -296,13 +318,13 @@ def edit_vocabulary_list_details(request, list_id):
     from .forms import VocabularyListForm
     vocab_list = get_object_or_404(VocabularyList, id=list_id, teacher=request.user)
     if request.method == 'POST':
-        form = VocabularyListForm(request.POST, instance=vocab_list)
+        form = VocabularyListForm(request.POST, instance=vocab_list, teacher=request.user)
         if form.is_valid():
             form.save()
             messages.success(request, "List details updated successfully!")
             return redirect('teacher_dashboard')
     else:
-        form = VocabularyListForm(instance=vocab_list)
+        form = VocabularyListForm(instance=vocab_list, teacher=request.user)
     return render(request, 'learning/edit_vocabulary_list_details.html', {'form': form, 'vocab_list': vocab_list})
 
 
