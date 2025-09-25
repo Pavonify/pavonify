@@ -64,7 +64,74 @@
       border-radius: 10px;
       box-shadow: 0 4px 8px rgba(0,0,0,0.1);
     }
-    
+
+    .class-details-card {
+      background: #f7fbff;
+      border: 1px solid #d6ecff;
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 30px;
+    }
+
+    .class-details-card h2 {
+      margin-top: 0;
+      color: #0aa2ef;
+      font-size: 22px;
+      margin-bottom: 15px;
+    }
+
+    .class-form {
+      display: grid;
+      gap: 15px;
+    }
+
+    .form-field {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .form-field label {
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: #333;
+    }
+
+    .form-field input,
+    .form-field select {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #cfe3f5;
+      border-radius: 6px;
+      font-size: 15px;
+    }
+
+    .form-actions {
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .btn-primary {
+      background-color: #0aa2ef;
+      color: #fff;
+      border: none;
+      padding: 10px 18px;
+      border-radius: 6px;
+      font-size: 15px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    .btn-primary:hover {
+      background-color: #0888c8;
+    }
+
+    .error-message {
+      color: #d4204c;
+      font-size: 13px;
+      margin-top: 5px;
+    }
+
     /* Teacher List */
     .teacher-list {
       margin-bottom: 20px;
@@ -151,6 +218,30 @@
   
   <!-- Main Content Container -->
   <div class="container">
+    <div class="class-details-card">
+      <h2>Class Details</h2>
+      <form method="POST" class="class-form">
+        {% csrf_token %}
+        <div class="form-field">
+          <label for="{{ class_form.name.id_for_label }}">Class Name</label>
+          {{ class_form.name }}
+          {% if class_form.name.errors %}
+            <div class="error-message">{{ class_form.name.errors|join:', ' }}</div>
+          {% endif %}
+        </div>
+        <div class="form-field">
+          <label for="{{ class_form.language.id_for_label }}">Language</label>
+          {{ class_form.language }}
+          {% if class_form.language.errors %}
+            <div class="error-message">{{ class_form.language.errors|join:', ' }}</div>
+          {% endif %}
+        </div>
+        <div class="form-actions">
+          <button type="submit" name="save_class" class="btn-primary">Save Changes</button>
+        </div>
+      </form>
+    </div>
+
     <!-- Teacher List -->
     <div class="teacher-list">
       <p>Teachers:</p>
