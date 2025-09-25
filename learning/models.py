@@ -157,12 +157,27 @@ class Student(models.Model):
         self.monthly_points += amount
         self.save()
 
+class Tag(models.Model):
+    name = models.CharField(max_length=50)
+    teacher = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="vocabulary_tags"
+    )
+
+    class Meta:
+        unique_together = ("teacher", "name")
+        ordering = ["name"]
+
+    def __str__(self) -> str:  # pragma: no cover - simple string representation
+        return self.name
+
+
 class VocabularyList(models.Model):
     name = models.CharField(max_length=100)
     source_language = models.CharField(max_length=50)
     target_language = models.CharField(max_length=50)
     teacher = models.ForeignKey(User, on_delete=models.CASCADE)
     classes = models.ManyToManyField(Class, related_name="linked_vocab_lists", blank=True)
+    tags = models.ManyToManyField("Tag", related_name="vocabulary_lists", blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

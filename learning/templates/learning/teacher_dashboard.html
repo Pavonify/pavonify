@@ -335,6 +335,78 @@ a.btn:hover, button.btn:hover {
       background-color: #f9f9f9;
     }
 
+    .vocab-filter-form {
+      margin: 20px 0;
+      padding: 16px;
+      background-color: #fff;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    .vocab-filter-form fieldset {
+      border: none;
+      margin: 0 0 12px 0;
+      padding: 0;
+    }
+
+    .vocab-filter-form legend {
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .tag-checkboxes {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .tag-checkbox {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      background-color: #f1f5f9;
+      border-radius: 999px;
+      font-size: 0.9rem;
+    }
+
+    .tag-filter-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .no-tags-message {
+      margin: 0;
+      color: #64748b;
+      font-style: italic;
+    }
+
+    .tag-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      justify-content: center;
+    }
+
+    .tag-pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background-color: #e0f2fe;
+      color: #0369a1;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    .tag-pill--empty {
+      background-color: #f8fafc;
+      color: #94a3b8;
+      font-weight: 500;
+    }
+
     /* Flags: small round icons */
     .flag {
       width: 20px;
@@ -551,15 +623,38 @@ a.btn:hover, button.btn:hover {
       {% else %}
       <a href="{% url 'add_vocabulary_list' %}" class="btn">Create List</a>
       {% endif %}
+      <form method="get" class="vocab-filter-form">
+        <input type="hidden" name="pane" value="vocabulary">
+        <fieldset>
+          <legend>Filter by tags</legend>
+          <div class="tag-checkboxes">
+            {% for tag in vocabulary_tags %}
+              <label class="tag-checkbox">
+                <input type="checkbox" name="tags" value="{{ tag.id }}" {% if tag.id in selected_tag_ids %}checked{% endif %}>
+                <span>{{ tag.name }}</span>
+              </label>
+            {% empty %}
+              <p class="no-tags-message">No tags yet. Add tags while creating vocabulary lists to organise them.</p>
+            {% endfor %}
+          </div>
+        </fieldset>
+        <div class="tag-filter-actions">
+          <button type="submit" class="btn-action">Apply Filters</button>
+          {% if selected_tag_ids %}
+            <a href="?pane=vocabulary" class="btn-action">Clear</a>
+          {% endif %}
+        </div>
+      </form>
       <table>
         <thead>
           <tr>
             <th>List</th>
+            <th>Tags</th>
             <th>Actions</th>
           </tr>
         </thead>
         <tbody>
-          {% for vocab_list in vocab_lists %}
+          {% for vocab_list in filtered_vocab_lists %}
             {% if request.user.is_premium or forloop.counter0 < 3 %}
           <tr>
             <td>
@@ -568,6 +663,15 @@ a.btn:hover, button.btn:hover {
                 <img class="flag" src="{% static 'flags/'|add:vocab_list.source_language|add:'.png' %}" alt="{{ vocab_list.source_language }}">
                 <i class="fas fa-arrow-right"></i>
                 <img class="flag" src="{% static 'flags/'|add:vocab_list.target_language|add:'.png' %}" alt="{{ vocab_list.target_language }}">
+              </div>
+            </td>
+            <td>
+              <div class="tag-list">
+                {% for tag in vocab_list.tags.all %}
+                  <span class="tag-pill">{{ tag.name }}</span>
+                {% empty %}
+                  <span class="tag-pill tag-pill--empty">No tags</span>
+                {% endfor %}
               </div>
             </td>
             <td>
