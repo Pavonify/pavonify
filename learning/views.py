@@ -501,17 +501,30 @@ def create_class(request):
 def edit_class(request, class_id):
     current_class = get_object_or_404(Class, id=class_id)
     students = current_class.students.all()
+    from .forms import ClassForm
+
+    class_form = ClassForm(instance=current_class)
 
     if request.method == "POST":
         if "delete_selected" in request.POST:
             selected_students = request.POST.getlist("selected_students")
             Student.objects.filter(id__in=selected_students).delete()
             messages.success(request, "Selected students have been deleted.")
-        return redirect("edit_class", class_id=class_id)
+            return redirect("edit_class", class_id=class_id)
+
+        class_form = ClassForm(request.POST, request.FILES or None, instance=current_class)
+
+        if class_form.is_valid():
+            class_form.save()
+            messages.success(request, "Class details updated successfully.")
+            return redirect("edit_class", class_id=class_id)
+
+        messages.error(request, "Please correct the errors below to update the class.")
 
     return render(request, "learning/edit_class.html", {
         "class_instance": current_class,
         "students": students,
+        "class_form": class_form,
     })
 
 
