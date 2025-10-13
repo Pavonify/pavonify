@@ -157,6 +157,117 @@ class Student(models.Model):
         self.monthly_points += amount
         self.save()
 
+
+class ClubSession(models.Model):
+    """Represents a single club meeting where attendance is taken."""
+
+    club = models.ForeignKey(
+        Class, on_delete=models.CASCADE, related_name="sessions"
+    )
+    session_date = models.DateField()
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="club_sessions_created",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("club", "session_date")
+        ordering = ["-session_date", "-created_at"]
+
+    def __str__(self) -> str:  # pragma: no cover - simple representation
+        return f"{self.club.name} on {self.session_date.isoformat()}"
+
+
+class ClubAttendance(models.Model):
+    """Tracks a student's attendance for a given club session."""
+
+    STATUS_PRESENT = "present"
+    STATUS_ABSENT = "absent"
+    STATUS_CHOICES = (
+        (STATUS_PRESENT, "Present"),
+        (STATUS_ABSENT, "Absent"),
+    )
+
+    session = models.ForeignKey(
+        ClubSession, on_delete=models.CASCADE, related_name="attendance_records"
+    )
+    student = models.ForeignKey(
+        Student, on_delete=models.CASCADE, related_name="club_attendance"
+    )
+    status = models.CharField(
+        max_length=10, choices=STATUS_CHOICES, default=STATUS_PRESENT
+    )
+    is_one_off = models.BooleanField(default=False)
+    original_club = models.ForeignKey(
+        Class,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="one_off_attendances",
+    )
+    noted_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("session", "student")
+
+    def __str__(self) -> str:  # pragma: no cover - simple representation
+        return f"{self.student} - {self.session} ({self.status})"
+
+
+class StudentCalendarEntry(models.Model):
+    """One-off entries that appear on a student's calendar."""
+
+    student = models.ForeignKey(
+        Student, on_delete=models.CASCADE, related_name="calendar_entries"
+    )
+    club_session = models.ForeignKey(
+        ClubSession, on_delete=models.CASCADE, related_name="calendar_entries"
+    )
+    is_one_off = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("student", "club_session")
+
+    def __str__(self) -> str:  # pragma: no cover - simple representation
+        return f"{self.student} - {self.club_session}"
+
+
+class TeacherNotification(models.Model):
+    """Notifies teachers when a student attends a different club."""
+
+    teacher = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="teacher_notifications"
+    )
+    student = models.ForeignKey(
+        Student, on_delete=models.CASCADE, related_name="teacher_notifications"
+    )
+    original_club = models.ForeignKey(
+        Class, on_delete=models.CASCADE, related_name="attendance_notifications"
+    )
+    alternate_session = models.ForeignKey(
+        ClubSession, on_delete=models.CASCADE, related_name="notifications"
+    )
+    message = models.TextField()
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = (
+            "teacher",
+            "student",
+            "original_club",
+            "alternate_session",
+        )
+        ordering = ["-created_at"]
+
+    def __str__(self) -> str:  # pragma: no cover - simple representation
+        return self.message
+
 class Tag(models.Model):
     name = models.CharField(max_length=50)
     teacher = models.ForeignKey(

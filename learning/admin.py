@@ -20,6 +20,10 @@ from .models import (
     ReadingLabText,
     AssignmentAttempt,
     Tag,
+    ClubSession,
+    ClubAttendance,
+    StudentCalendarEntry,
+    TeacherNotification,
 )
 
 @admin.register(Trophy)
@@ -87,6 +91,60 @@ class TagAdmin(admin.ModelAdmin):
     list_display = ("name", "teacher")
     search_fields = ("name", "teacher__username")
     list_filter = ("teacher",)
+
+
+@admin.register(ClubSession)
+class ClubSessionAdmin(admin.ModelAdmin):
+    list_display = ("club", "session_date", "created_by", "created_at")
+    search_fields = ("club__name",)
+    list_filter = ("club", "session_date")
+
+
+@admin.register(ClubAttendance)
+class ClubAttendanceAdmin(admin.ModelAdmin):
+    list_display = (
+        "session",
+        "student",
+        "status",
+        "is_one_off",
+        "original_club",
+        "noted_at",
+    )
+    search_fields = (
+        "student__first_name",
+        "student__last_name",
+        "session__club__name",
+    )
+    list_filter = ("status", "is_one_off", "session__club")
+
+
+@admin.register(StudentCalendarEntry)
+class StudentCalendarEntryAdmin(admin.ModelAdmin):
+    list_display = ("student", "club_session", "is_one_off", "created_at")
+    search_fields = (
+        "student__first_name",
+        "student__last_name",
+        "club_session__club__name",
+    )
+    list_filter = ("is_one_off",)
+
+
+@admin.register(TeacherNotification)
+class TeacherNotificationAdmin(admin.ModelAdmin):
+    list_display = (
+        "teacher",
+        "student",
+        "original_club",
+        "alternate_session",
+        "is_read",
+        "created_at",
+    )
+    search_fields = (
+        "teacher__username",
+        "student__first_name",
+        "student__last_name",
+    )
+    list_filter = ("is_read", "original_club")
 
 
 # **📌 Vocabulary Word Admin**

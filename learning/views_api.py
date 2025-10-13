@@ -31,7 +31,15 @@ from .analytics import (
     student_mastery,
     word_stats,
 )
-from .models import Assignment, AssignmentAttempt, AssignmentProgress, Student
+from .models import (
+    Assignment,
+    AssignmentAttempt,
+    AssignmentProgress,
+    Class,
+    ClubAttendance,
+    Student,
+)
+from .services.attendance import add_student_to_session, get_or_create_session
 
 
 def _column_letter(index: int) -> str:
@@ -367,3 +375,68 @@ def api_generate_activity(request):
         return HttpResponseBadRequest("Unknown activity_type")
 
     return JsonResponse({"activity": data, "clipboard": as_plaintext(data)})
+
+
+@require_POST
+@login_required
+def api_add_one_off_attendance(request, class_id):
+    """Allow a teacher to add a one-off attendee to a club session."""
+
+    if not getattr(request.user, "is_teacher", False):
+        return HttpResponseForbidden("Only teachers can record attendance.")
+
+    club = get_object_or_404(Class, id=class_id)
+    if not club.teachers.filter(id=request.user.id).exists():
+        return HttpResponseForbidden("You are not assigned to this club.")
+
+    try:
+        payload = json.loads(request.body or "{}")
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON payload."}, status=400)
+
+    student_id = payload.get("student_id")
+    session_date_raw = payload.get("session_date")
+    status = payload.get("status", ClubAttendance.STATUS_PRESENT)
+
+    if not student_id or not session_date_raw:
+        return JsonResponse(
+            {"error": "student_id and session_date are required."}, status=400
+        )
+
+    try:
+        session_date = datetime.strptime(session_date_raw, "%Y-%m-%d").date()
+    except (TypeError, ValueError):
+        return JsonResponse(
+            {"error": "session_date must be in YYYY-MM-DD format."}, status=400
+        )
+
+    valid_statuses = {choice[0] for choice in ClubAttendance.STATUS_CHOICES}
+    if status not in valid_statuses:
+        return JsonResponse({"error": "Invalid attendance status."}, status=400)
+
+    student = get_object_or_404(Student, id=student_id)
+    if student.school_id != club.school_id:
+        return JsonResponse(
+            {"error": "Student does not belong to this school."}, status=400
+        )
+
+    session, _ = get_or_create_session(club, session_date, created_by=request.user)
+    attendance, created = add_student_to_session(
+        session, student, status=status
+    )
+
+    original_club_id = (
+        str(attendance.original_club_id) if attendance.original_club_id else None
+    )
+
+    return JsonResponse(
+        {
+            "attendance_id": attendance.id,
+            "session_id": session.id,
+            "status": attendance.status,
+            "is_one_off": attendance.is_one_off,
+            "original_club_id": original_club_id,
+            "session_date": session.session_date.isoformat(),
+        },
+        status=201 if created else 200,
+    )
