@@ -134,6 +134,11 @@ urlpatterns = [
         views_api.api_export_progress,
         name="api_export_progress",
     ),
+    path(
+        "api/classes/<uuid:class_id>/attendance/one-off/",
+        views_api.api_add_one_off_attendance,
+        name="api_add_one_off_attendance",
+    ),
     path("api/generate-activity/", views_api.api_generate_activity, name="api_generate_activity"),
 
 
