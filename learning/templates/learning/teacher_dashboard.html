@@ -794,6 +794,7 @@ a.btn:hover, button.btn:hover {
                   </td>
                   <td>{{ assignment.deadline|date:"M d, Y H:i" }}</td>
                   <td>
+                    <a href="{% url 'edit_assignment' assignment.id %}" class="btn-action">Edit</a>
                     {% if request.user.is_premium %}
                       <a href="{% url 'assignment_analytics' assignment.id %}" class="btn-action">Analytics</a>
                     {% else %}
@@ -831,6 +832,7 @@ a.btn:hover, button.btn:hover {
                   <td>{{ assignment.name }}</td>
                   <td>{{ assignment.deadline|date:"M d, Y H:i" }}</td>
                   <td>
+                    <a href="{% url 'edit_assignment' assignment.id %}" class="btn-action">Edit</a>
                     {% if request.user.is_premium %}
                       <a href="{% url 'assignment_analytics' assignment.id %}" class="btn-action">Analytics</a>
                     {% else %}

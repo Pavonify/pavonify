@@ -84,6 +84,7 @@ urlpatterns = [
     path('destroy-the-wall/<int:vocab_list_id>/', views.destroy_the_wall, name='destroy_the_wall'),
     path('unscramble-the-word/<int:vocab_list_id>/', views.unscramble_the_word, name='unscramble_the_word'),
     path('create-assignment/<uuid:class_id>/', views.create_assignment, name='create_assignment'),
+    path('edit-assignment/<int:assignment_id>/', views.edit_assignment, name='edit_assignment'),
     path('assignment-analytics/<int:assignment_id>/', views.assignment_analytics, name='assignment_analytics'),
     path('delete-assignment/<int:assignment_id>/', views.delete_assignment, name='delete_assignment'),
     path('close-assignment/<int:assignment_id>/', views.close_assignment, name='close_assignment'),
