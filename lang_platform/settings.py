@@ -47,7 +47,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-
+    
     'learning',  # Your main app
     'blog',  # ✅ Add your new blog app
     'django_q',
@@ -56,8 +56,6 @@ INSTALLED_APPS = [
     'srs',
     'rest_framework',
     'achievements',
-    'channels',
-    'live',
 ]
 
 
@@ -93,23 +91,8 @@ TEMPLATES = [
     },
 ]
 
-# ASGI / WSGI Applications
+# WSGI Application
 WSGI_APPLICATION = 'lang_platform.wsgi.application'
-ASGI_APPLICATION = 'lang_platform.asgi.application'
-
-REDIS_URL = os.getenv("REDIS_URL")
-GAME_PIN_LENGTH = int(os.getenv("GAME_PIN_LENGTH", "6"))
-QUESTION_TIME_DEFAULT = int(os.getenv("QUESTION_TIME_DEFAULT", "20"))
-GAME_MAX_CLASS_SIZE = int(os.getenv("GAME_MAX_CLASS_SIZE", "200"))
-
-CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "channels_redis.core.RedisChannelLayer",
-        "CONFIG": {
-            "hosts": [REDIS_URL] if REDIS_URL else [("127.0.0.1", 6379)],
-        },
-    }
-}
 
 # Database Configuration
 DATABASE_URL = os.getenv("DATABASE_URL")
