@@ -1,0 +1,599 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Live Practice Competition Console</title>
+  <style>
+    :root {
+      --blue: #2563eb;
+      --blue-dark: #1d4ed8;
+      --slate: #0f172a;
+      --slate-light: #f1f5f9;
+      --green: #15803d;
+      --orange: #f97316;
+      --red: #dc2626;
+    }
+
+    body {
+      font-family: "Poppins", "Segoe UI", sans-serif;
+      background: var(--slate-light);
+      margin: 0;
+      color: var(--slate);
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 24px 16px 64px;
+    }
+
+    h1 {
+      font-size: 2.25rem;
+      margin-bottom: 0.5rem;
+    }
+
+    h2 {
+      font-size: 1.5rem;
+      margin-bottom: 0.75rem;
+    }
+
+    h3 {
+      font-size: 1.125rem;
+      margin-top: 1.5rem;
+    }
+
+    p {
+      margin: 0.5rem 0;
+    }
+
+    a.back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 600;
+      color: var(--blue);
+      text-decoration: none;
+      margin-bottom: 1rem;
+    }
+
+    a.back-link:hover {
+      text-decoration: underline;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 18px;
+      padding: 24px;
+      margin-top: 24px;
+      box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
+    }
+
+    form label {
+      display: block;
+      font-weight: 600;
+      margin-top: 1rem;
+    }
+
+    form select,
+    form input,
+    form button,
+    button {
+      font: inherit;
+    }
+
+    select,
+    input[type="number"] {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(15, 23, 42, 0.15);
+      margin-top: 0.5rem;
+    }
+
+    select[multiple] {
+      min-height: 160px;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    .btn-primary,
+    .btn-secondary,
+    .btn-danger {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.35rem;
+      padding: 10px 18px;
+      border-radius: 999px;
+      border: none;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .btn-primary {
+      background: var(--blue);
+      color: #fff;
+    }
+
+    .btn-primary:hover {
+      background: var(--blue-dark);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: #fff;
+      color: var(--blue);
+      border: 1px solid rgba(37, 99, 235, 0.3);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(37, 99, 235, 0.05);
+    }
+
+    .btn-danger {
+      background: var(--red);
+      color: #fff;
+    }
+
+    .btn-danger:hover {
+      background: #b91c1c;
+    }
+
+    button[disabled],
+    .btn-primary[disabled],
+    .btn-secondary[disabled],
+    .btn-danger[disabled] {
+      cursor: not-allowed;
+      opacity: 0.55;
+      box-shadow: none;
+      transform: none;
+    }
+
+    .button-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin: 16px 0 0;
+    }
+
+    .session-meta {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .session-meta p {
+      background: rgba(37, 99, 235, 0.08);
+      padding: 12px;
+      border-radius: 12px;
+      margin: 0;
+      font-weight: 600;
+    }
+
+    .leaderboard-list {
+      list-style: none;
+      padding: 0;
+      margin: 12px 0 0;
+    }
+
+    .leaderboard-list li {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: rgba(148, 163, 184, 0.18);
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+
+    .leaderboard-list li span:last-child {
+      color: var(--blue-dark);
+    }
+
+    .session-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: grid;
+      gap: 16px;
+    }
+
+    .session-item {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      border: 1px solid rgba(15, 23, 42, 0.1);
+      border-radius: 14px;
+      padding: 14px 18px;
+      background: rgba(255, 255, 255, 0.8);
+    }
+
+    .session-item strong {
+      display: block;
+      font-size: 1rem;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .badge-lobby {
+      background: rgba(37, 99, 235, 0.14);
+      color: var(--blue-dark);
+    }
+
+    .badge-running {
+      background: rgba(21, 128, 61, 0.16);
+      color: var(--green);
+    }
+
+    .badge-ended {
+      background: rgba(15, 23, 42, 0.12);
+      color: var(--slate);
+    }
+
+    .alert {
+      margin-top: 16px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      font-weight: 600;
+    }
+
+    .alert-info {
+      background: rgba(37, 99, 235, 0.12);
+      color: var(--blue-dark);
+    }
+
+    .alert-success {
+      background: rgba(21, 128, 61, 0.12);
+      color: var(--green);
+    }
+
+    .alert-error {
+      background: rgba(220, 38, 38, 0.15);
+      color: var(--red);
+    }
+
+    @media (max-width: 600px) {
+      h1 {
+        font-size: 1.75rem;
+      }
+
+      .card {
+        padding: 18px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="container" data-live-console data-api-base="{{ api_base_url }}" data-question-default="{{ question_time_default }}">
+    <a href="{% url 'teacher_dashboard' %}" class="back-link">&#8592; Back to dashboard</a>
+    <h1>Live Practice Competition</h1>
+    <p>Launch a real-time session for your class and track a live leaderboard as students answer.</p>
+
+    <section class="card">
+      <h2>Create a new live session</h2>
+      {% if classes %}
+      <form id="create-session-form">
+        {% csrf_token %}
+        <label for="class-id">Class</label>
+        <select id="class-id" name="class_id" required>
+          <option value="" disabled selected>Select a class</option>
+          {% for clazz in classes %}
+          <option value="{{ clazz.id }}">{{ clazz.name }}</option>
+          {% endfor %}
+        </select>
+
+        <label for="vocab-list-ids">Vocabulary lists</label>
+        <select id="vocab-list-ids" name="vocab_list_ids" multiple required>
+          {% for vocab_list in vocab_lists %}
+          <option value="{{ vocab_list.id }}">{{ vocab_list.name }}</option>
+          {% endfor %}
+        </select>
+        <p style="font-size:0.85rem;color:rgba(15,23,42,0.7);">Hold Ctrl (Windows) or Command (Mac) to select multiple lists.</p>
+
+        <div class="form-row">
+          <div>
+            <label for="total-questions">Total questions</label>
+            <input id="total-questions" name="total_questions" type="number" min="1" max="50" value="10" required>
+          </div>
+          <div>
+            <label for="question-time">Seconds per question</label>
+            <input id="question-time" name="question_time_sec" type="number" min="5" max="120" value="{{ question_time_default }}" required>
+          </div>
+          <div>
+            <label for="scoring-mode">Scoring mode</label>
+            <select id="scoring-mode" name="scoring_mode">
+              {% for value, label in scoring_modes %}
+              <option value="{{ value }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-primary" style="margin-top:1.5rem;">Create session</button>
+      </form>
+      {% else %}
+        <p>You need at least one class to create a live competition. Create a class from your dashboard first.</p>
+      {% endif %}
+    </section>
+
+    {% if recent_sessions %}
+    <section class="card">
+      <h2>Recent sessions</h2>
+      <p>Select a session below to reopen its controls.</p>
+      <ul class="session-list">
+        {% for session in recent_sessions %}
+        <li class="session-item">
+          <div>
+            <strong>{{ session.clazz.name }}</strong>
+            <span class="badge badge-{{ session.status|lower }}">{{ session.get_status_display }}</span>
+            <p style="margin:4px 0 0;font-size:0.9rem;">PIN: {{ session.pin }}</p>
+          </div>
+          <button type="button" class="btn-secondary" data-open-session="{{ session.id }}" data-session-pin="{{ session.pin }}" data-session-status="{{ session.status }}" data-session-class="{{ session.clazz.name }}" data-session-total="{{ session.total_questions }}">
+            Open controls
+          </button>
+        </li>
+        {% endfor %}
+      </ul>
+    </section>
+    {% endif %}
+
+    <section class="card" id="session-console" hidden>
+      <h2>Session controls</h2>
+      <div class="session-meta">
+        <p>Class: <span id="console-class">—</span></p>
+        <p>PIN: <span id="console-pin">—</span></p>
+        <p>Status: <span id="console-status">—</span></p>
+        <p>Question: <span id="console-question">0 / 0</span></p>
+      </div>
+
+      <div class="button-row">
+        <button type="button" id="start-session" class="btn-primary">Start game</button>
+        <button type="button" id="next-question" class="btn-primary" disabled>Next question</button>
+        <button type="button" id="end-session" class="btn-danger" disabled>End game</button>
+      </div>
+
+      <div class="leaderboard" style="margin-top:24px;">
+        <h3>Live leaderboard preview</h3>
+        <ul class="leaderboard-list" id="console-leaderboard"></ul>
+        <p id="leaderboard-empty" style="margin-top:8px;color:rgba(15,23,42,0.65);">No participants yet.</p>
+      </div>
+
+      <div id="console-alerts" role="status" aria-live="polite"></div>
+    </section>
+  </main>
+
+  <script>
+    const root = document.querySelector('[data-live-console]');
+    if (root) {
+      const apiBaseRaw = root.dataset.apiBase || '/api/live-games/';
+      const apiBase = apiBaseRaw.endsWith('/') ? apiBaseRaw : `${apiBaseRaw}/`;
+      const defaultQuestionTime = Number(root.dataset.questionDefault || '20');
+      const csrfToken = () => {
+        const input = root.querySelector('input[name="csrfmiddlewaretoken"]');
+        return input ? input.value : '';
+      };
+
+      const form = document.getElementById('create-session-form');
+      const consoleCard = document.getElementById('session-console');
+      const statusEl = document.getElementById('console-status');
+      const classEl = document.getElementById('console-class');
+      const pinEl = document.getElementById('console-pin');
+      const questionEl = document.getElementById('console-question');
+      const leaderboardList = document.getElementById('console-leaderboard');
+      const leaderboardEmpty = document.getElementById('leaderboard-empty');
+      const alertsEl = document.getElementById('console-alerts');
+      const startBtn = document.getElementById('start-session');
+      const nextBtn = document.getElementById('next-question');
+      const endBtn = document.getElementById('end-session');
+
+      let activeSession = null;
+      let pollHandle = null;
+
+      const statusLabels = {
+        LOBBY: 'Lobby',
+        RUNNING: 'Running',
+        ENDED: 'Ended',
+      };
+
+      function setAlert(message, variant = 'info') {
+        alertsEl.textContent = '';
+        if (!message) {
+          alertsEl.className = '';
+          return;
+        }
+        alertsEl.className = `alert alert-${variant}`;
+        alertsEl.textContent = message;
+      }
+
+      function updateButtons(status) {
+        startBtn.disabled = status !== 'LOBBY';
+        nextBtn.disabled = status !== 'RUNNING';
+        endBtn.disabled = status === 'ENDED';
+      }
+
+      function renderLeaderboard(entries) {
+        leaderboardList.textContent = '';
+        if (!entries || !entries.length) {
+          leaderboardEmpty.hidden = false;
+          return;
+        }
+        leaderboardEmpty.hidden = true;
+        entries.forEach(item => {
+          const li = document.createElement('li');
+          const name = document.createElement('span');
+          name.textContent = `${item.rank}. ${item.name}`;
+          const score = document.createElement('span');
+          score.textContent = `${item.score} pts • 🔥${item.streak}`;
+          li.appendChild(name);
+          li.appendChild(score);
+          leaderboardList.appendChild(li);
+        });
+      }
+
+      function stopPolling() {
+        if (pollHandle) {
+          clearInterval(pollHandle);
+          pollHandle = null;
+        }
+      }
+
+      async function refreshState() {
+        if (!activeSession) return;
+        try {
+          const response = await fetch(`${apiBase}${activeSession.id}/state/`, {
+            headers: { 'Accept': 'application/json' },
+          });
+          if (!response.ok) throw new Error('Failed to load state');
+          const data = await response.json();
+          const status = data.status || activeSession.status;
+          activeSession.status = status;
+          activeSession.total_questions = data.total_questions || activeSession.total_questions;
+          const currentIdx = data.current_question_idx || 0;
+          statusEl.textContent = statusLabels[status] || status;
+          questionEl.textContent = `${currentIdx} / ${activeSession.total_questions || 0}`;
+          renderLeaderboard(data.leaderboard);
+          updateButtons(status);
+          if (status === 'ENDED') {
+            stopPolling();
+          }
+        } catch (error) {
+          console.error(error);
+          setAlert('Unable to refresh the session. Try again shortly.', 'error');
+        }
+      }
+
+      function activateSession(session) {
+        activeSession = session;
+        classEl.textContent = session.className || '—';
+        pinEl.textContent = session.pin || '—';
+        statusEl.textContent = statusLabels[session.status] || session.status;
+        questionEl.textContent = `0 / ${session.total_questions || 0}`;
+        consoleCard.hidden = false;
+        updateButtons(session.status);
+        setAlert('Session ready. Share the PIN with students to join.', 'info');
+        stopPolling();
+        refreshState();
+        pollHandle = window.setInterval(refreshState, 5000);
+      }
+
+      async function postAction(actionPath, successMessage) {
+        if (!activeSession) return;
+        try {
+          const response = await fetch(`${apiBase}${activeSession.id}/${actionPath}`, {
+            method: 'POST',
+            headers: {
+              'X-CSRFToken': csrfToken(),
+            },
+          });
+          if (!response.ok) {
+            const payload = await response.json().catch(() => ({}));
+            const detail = payload.detail ? `: ${payload.detail}` : '';
+            throw new Error(`Action failed${detail}`);
+          }
+          setAlert(successMessage, 'success');
+          await refreshState();
+        } catch (error) {
+          console.error(error);
+          setAlert(error.message || 'Something went wrong.', 'error');
+          await refreshState();
+        }
+      }
+
+      startBtn?.addEventListener('click', () => postAction('start/', 'Session started.')); 
+      nextBtn?.addEventListener('click', () => postAction('next/', 'Sent the next question.'));
+      endBtn?.addEventListener('click', () => postAction('end/', 'Session ended.'));
+
+      form?.addEventListener('submit', async event => {
+        event.preventDefault();
+        const formData = new FormData(form);
+        const classId = formData.get('class_id');
+        const classSelect = document.getElementById('class-id');
+        const className = classSelect && classSelect.options[classSelect.selectedIndex]
+          ? classSelect.options[classSelect.selectedIndex].textContent
+          : '';
+        const vocabIds = formData.getAll('vocab_list_ids');
+        const totalQuestions = Number(formData.get('total_questions') || '0');
+        const questionTime = Number(formData.get('question_time_sec') || defaultQuestionTime);
+        const scoringMode = formData.get('scoring_mode') || 'STANDARD';
+
+        if (!classId || !vocabIds.length) {
+          setAlert('Pick a class and at least one vocabulary list.', 'error');
+          return;
+        }
+
+        setAlert('Creating session…', 'info');
+        try {
+          const response = await fetch(apiBase, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': csrfToken(),
+            },
+            body: JSON.stringify({
+              class_id: classId,
+              vocab_list_ids: vocabIds,
+              total_questions: totalQuestions,
+              question_time_sec: questionTime,
+              scoring_mode: scoringMode,
+            }),
+          });
+
+          if (!response.ok) {
+            const payload = await response.json().catch(() => ({}));
+            const detail = payload.detail || JSON.stringify(payload);
+            throw new Error(detail || 'Unable to create the session.');
+          }
+
+          const data = await response.json();
+          activateSession({
+            id: data.id,
+            pin: data.pin,
+            status: data.status,
+            total_questions: data.total_questions,
+            className,
+          });
+          setAlert('Session created. When ready, press “Start game”.', 'success');
+        } catch (error) {
+          console.error(error);
+          setAlert(error.message || 'Unable to create the session.', 'error');
+        }
+      });
+
+      document.querySelectorAll('[data-open-session]').forEach(button => {
+        button.addEventListener('click', () => {
+          const session = {
+            id: button.dataset.openSession,
+            pin: button.dataset.sessionPin,
+            status: button.dataset.sessionStatus,
+            className: button.dataset.sessionClass,
+            total_questions: Number(button.dataset.sessionTotal || '0'),
+          };
+          activateSession(session);
+        });
+      });
+
+      window.addEventListener('beforeunload', () => stopPolling());
+    }
+  </script>
+</body>
+</html>
