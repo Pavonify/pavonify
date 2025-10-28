@@ -39,6 +39,7 @@ from .decorators import student_login_required
 from .utils import generate_student_username, generate_random_password
 from .memory import memory_meter
 from .spaced_repetition import get_due_words, schedule_review, _get_user_from_student
+from .forms import AssignmentForm
 
 from .models import (
     Progress,
@@ -1622,6 +1623,37 @@ def create_assignment(request, class_id):
         "class_assigned": class_assigned,
         "vocab_lists": vocab_lists,
     })
+
+
+@login_required
+def edit_assignment(request, assignment_id):
+    assignment = get_object_or_404(Assignment, id=assignment_id)
+
+    if request.user != assignment.teacher:
+        messages.error(request, "You are not authorized to edit this assignment.")
+        return redirect("teacher_dashboard")
+
+    class_assigned = assignment.class_assigned
+    form = AssignmentForm(request.POST or None, instance=assignment)
+    form.fields["vocab_list"].queryset = class_assigned.vocabulary_lists.all()
+
+    if request.method == "POST":
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Assignment updated successfully.")
+            return redirect("teacher_dashboard")
+        messages.error(request, "Please correct the errors below.")
+
+    return render(
+        request,
+        "learning/edit_assignment.html",
+        {
+            "form": form,
+            "assignment": assignment,
+            "class_assigned": class_assigned,
+            "vocab_lists": form.fields["vocab_list"].queryset,
+        },
+    )
 
 
 @csrf_exempt

@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Edit Assignment</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Fredoka+One&display=swap');
+    h1 { font-family: 'Fredoka One', cursive; }
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: #e3f2fd;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .page-header {
+      width: 100%;
+      max-width: 800px;
+      margin-bottom: 20px;
+      position: relative;
+      text-align: center;
+    }
+
+    .page-header h1 {
+      margin-top: 10px;
+      font-size: 28px;
+      color: #0aa2ef;
+    }
+
+    form {
+      background: #fff;
+      padding: 30px;
+      border-radius: 10px;
+      width: 100%;
+      max-width: 800px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    form label {
+      display: block;
+      margin-top: 15px;
+      font-weight: bold;
+      color: #333;
+    }
+
+    form input[type="text"],
+    form input[type="datetime-local"],
+    form input[type="number"],
+    form select {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      font-size: 16px;
+    }
+
+    .form-errors {
+      margin-top: 10px;
+      color: #d4204c;
+      font-size: 14px;
+    }
+
+    button[type="submit"],
+    .back-btn {
+      margin-top: 25px;
+      background-color: #ff2c61;
+      color: #fff;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 5px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    button[type="submit"]:hover,
+    .back-btn:hover {
+      background-color: #d4204c;
+    }
+
+    .button-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+  </style>
+</head>
+<body>
+  <div class="page-header">
+    <h1>Edit Assignment for {{ class_assigned.name }}</h1>
+  </div>
+
+  <form method="post">
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}
+      <div class="form-errors">
+        {% for error in form.non_field_errors %}
+          <div>{{ error }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <label for="id_name">Assignment Name:</label>
+    <input type="text" name="name" id="id_name" value="{{ form.name.value|default_if_none:'' }}" required>
+    {% if form.name.errors %}
+      <div class="form-errors">
+        {% for error in form.name.errors %}
+          <div>{{ error }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <label for="id_vocab_list">Vocabulary List:</label>
+    <select name="vocab_list" id="id_vocab_list" required>
+      {% with selected_vocabulary=form.vocab_list.value %}
+        {% for vocab in vocab_lists %}
+          <option value="{{ vocab.id }}" {% if selected_vocabulary|stringformat:"s" == vocab.id|stringformat:"s" %}selected{% endif %}>{{ vocab.name }}</option>
+        {% endfor %}
+      {% endwith %}
+    </select>
+    {% if form.vocab_list.errors %}
+      <div class="form-errors">
+        {% for error in form.vocab_list.errors %}
+          <div>{{ error }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <label for="id_deadline">Deadline:</label>
+    <input type="datetime-local" name="deadline" id="id_deadline" value="{{ form.deadline.value|default_if_none:'' }}" required>
+    {% if form.deadline.errors %}
+      <div class="form-errors">
+        {% for error in form.deadline.errors %}
+          <div>{{ error }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <label for="id_target_points">Target Points:</label>
+    <input type="number" name="target_points" id="id_target_points" value="{{ form.target_points.value|default_if_none:'' }}" required>
+    {% if form.target_points.errors %}
+      <div class="form-errors">
+        {% for error in form.target_points.errors %}
+          <div>{{ error }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <div id="approx-time" style="margin-top:5px;color:#555;"></div>
+
+    <div class="button-row">
+      <button type="submit" class="btn btn-primary">Save Changes</button>
+      <a href="{% url 'teacher_dashboard' %}" class="back-btn" style="text-decoration:none; text-align:center;">Cancel</a>
+    </div>
+  </form>
+
+  <script>
+    function formatTime(seconds) {
+      const mins = Math.floor(seconds / 60);
+      const secs = seconds % 60;
+      const parts = [];
+      if (mins > 0) parts.push(mins + ' minute' + (mins === 1 ? '' : 's'));
+      if (secs > 0) parts.push(secs + ' second' + (secs === 1 ? '' : 's'));
+      return parts.length ? parts.join(' ') : '0 seconds';
+    }
+
+    function updateApproxTime() {
+      const points = parseInt(document.getElementById('id_target_points').value) || 0;
+      const seconds = points;
+      document.getElementById('approx-time').textContent = 'Approximate length: ' + formatTime(seconds);
+    }
+
+    document.getElementById('id_target_points').addEventListener('input', updateApproxTime);
+    updateApproxTime();
+  </script>
+  {% include 'messages.html' %}
+</body>
+</html>

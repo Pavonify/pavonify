@@ -201,6 +201,13 @@ class AssignmentForm(forms.ModelForm):
             "target_points",
         ]
         widgets = {
-            "deadline": forms.DateTimeInput(attrs={"type": "datetime-local"}),
+            "deadline": forms.DateTimeInput(
+                attrs={"type": "datetime-local"},
+                format="%Y-%m-%dT%H:%M",
+            ),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["deadline"].input_formats = ["%Y-%m-%dT%H:%M"]
 
