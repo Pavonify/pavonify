@@ -29,11 +29,13 @@ from learning.views import update_assignment_points, log_assignment_attempt, ref
 from django.conf.urls import handler404
 from learning.webhooks import stripe_webhook
 from learning.api.enrichment import EnrichmentPreviewAPI, EnrichmentConfirmAPI
+from live.views import teacher_live_console
 handler404 = custom_404_view
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('teacher-dashboard/', views.teacher_dashboard, name='teacher_dashboard'),
+    path('teacher-dashboard/live-competition/', teacher_live_console, name='live_teacher_console'),
     path('register-teacher/', views.register_teacher, name='register_teacher'),
     path('vocabulary/', views.teacher_dashboard, name='vocabulary_list'),  # Previously "vocabulary_list"
     path('leaderboard/', views.leaderboard, name='leaderboard'),
@@ -123,6 +125,7 @@ urlpatterns = [
     path("grammar-lab/<int:ladder_id>/", views.grammar_ladder_detail, name="grammar_ladder_detail"),
     path('api/srs/', include('srs.urls')),
     path('api/achievements/', include('achievements.urls')),
+    path('api/live-games/', include('live.urls')),
     path("api/vocab/enrichment/preview", EnrichmentPreviewAPI.as_view(), name="vocab-enrichment-preview"),
     path("api/vocab/enrichment/confirm", EnrichmentConfirmAPI.as_view(), name="vocab-enrichment-confirm"),
     path("api/analytics/<int:assignment_id>/word-stats/", views_api.api_word_stats, name="api_word_stats"),

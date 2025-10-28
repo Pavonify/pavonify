@@ -38,6 +38,7 @@ from typing import Any, Dict, List, Optional
 from .decorators import student_login_required
 from .utils import generate_student_username, generate_random_password
 from .memory import memory_meter
+from .services.question_flow import QuestionFlowEngine
 from .spaced_repetition import get_due_words, schedule_review, _get_user_from_student
 from .forms import AssignmentForm
 
@@ -1198,6 +1199,9 @@ def get_words(request):
     return JsonResponse({"words": list(words)})
 
 
+question_engine = QuestionFlowEngine()
+
+
 @student_login_required
 def practice_session(request, vocab_list_id):
     student = get_object_or_404(Student, id=request.session.get("student_id"))
@@ -1211,17 +1215,6 @@ def practice_session(request, vocab_list_id):
     if queue and "activities" not in queue[0]:
         queue = []
 
-    def _image_payload(word: VocabularyWord) -> Optional[Dict[str, str]]:
-        if not word.image_url or not word.image_approved:
-            return None
-        return {
-            "url": word.image_url,
-            "thumb": word.image_thumb_url or word.image_url,
-            "source": word.image_source or "",
-            "attribution": word.image_attribution or "",
-            "license": word.image_license or "",
-            "alt": word.word,
-        }
     exposure_activities = ["show_word", "flashcard"]
     testing_activities = ["typing", "fill_gaps", "multiple_choice", "true_false"]
     matchup_key = f"matchup_shown_{vocab_list_id}"
@@ -1262,7 +1255,7 @@ def practice_session(request, vocab_list_id):
                         "id": w.id,
                         "word": w.word,
                         "translation": w.translation,
-                        "image": _image_payload(w),
+                        "image": QuestionFlowEngine._image_payload(w),
                     }
                     for w in words
                 ],
@@ -1272,117 +1265,13 @@ def practice_session(request, vocab_list_id):
         item = queue.pop(0)
         word = VocabularyWord.objects.get(id=item["id"])
         activity = item["activities"][item["step"]]
-        image_data = _image_payload(word)
-
         if item["step"] + 1 < len(item["activities"]):
             item["step"] += 1
             queue.append(item)
             random.shuffle(queue)
         request.session[queue_key] = queue
 
-        if activity == "show_word":
-            payload = {
-                "type": "show_word",
-                "word_id": word.id,
-                "prompt": word.translation,
-                "answer": word.word,
-            }
-        elif activity == "flashcard":
-            payload = {
-                "type": "flashcard",
-                "word_id": word.id,
-                "prompt": word.word,
-                "answer": word.translation,
-            }
-        elif activity == "typing":
-            if random.choice([True, False]):
-                prompt, answer = word.word, word.translation
-                answer_language = "target"
-            else:
-                prompt, answer = word.translation, word.word
-                answer_language = "source"
-            payload = {
-                "type": "typing",
-                "word_id": word.id,
-                "prompt": prompt,
-                "answer": answer,
-                "answer_language": answer_language,
-            }
-        elif activity == "fill_gaps":
-            if random.choice([True, False]):
-                source, target = word.translation, word.word
-                answer_language = "source"
-            else:
-                source, target = word.word, word.translation
-                answer_language = "target"
-            masked = list(target)
-            indices = list(range(len(masked)))
-            random.shuffle(indices)
-            for i in indices[: len(masked) // 2]:
-                if masked[i].isalpha():
-                    masked[i] = "_"
-            payload = {
-                "type": "fill_gaps",
-                "word_id": word.id,
-                "prompt": "".join(masked),
-                "translation": source,
-                "answer": target,
-                "answer_language": answer_language,
-            }
-        elif activity == "multiple_choice":
-            if random.choice([True, False]):
-                prompt = word.word
-                answer = word.translation
-                distractors = list(
-                    VocabularyWord.objects.filter(list=vocab_list)
-                    .exclude(id=word.id)
-                    .values_list("translation", flat=True)
-                )
-            else:
-                prompt = word.translation
-                answer = word.word
-                distractors = list(
-                    VocabularyWord.objects.filter(list=vocab_list)
-                    .exclude(id=word.id)
-                    .values_list("word", flat=True)
-                )
-            random.shuffle(distractors)
-            options = distractors[:3] + [answer]
-            random.shuffle(options)
-            payload = {
-                "type": "multiple_choice",
-                "word_id": word.id,
-                "prompt": prompt,
-                "options": options,
-                "answer": answer,
-            }
-        elif activity == "true_false":
-            if random.choice([True, False]):
-                prompt, correct_answer = word.word, word.translation
-                pool = VocabularyWord.objects.filter(list=vocab_list).exclude(id=word.id).values_list(
-                    "translation", flat=True
-                )
-            else:
-                prompt, correct_answer = word.translation, word.word
-                pool = VocabularyWord.objects.filter(list=vocab_list).exclude(id=word.id).values_list(
-                    "word", flat=True
-                )
-            translations = list(pool)
-            shown = correct_answer
-            if translations and random.choice([True, False]):
-                shown = random.choice(translations)
-            payload = {
-                "type": "true_false",
-                "word_id": word.id,
-                "prompt": prompt,
-                "shown_translation": shown,
-                "answer": shown == correct_answer,
-            }
-        else:
-            payload = {"type": "unknown"}
-
-        if image_data:
-            payload["image"] = image_data
+        payload = question_engine.build_activity_payload(word, activity)
         return JsonResponse(payload)
 
     if not queue:
