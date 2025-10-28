@@ -123,6 +123,7 @@ urlpatterns = [
     path("grammar-lab/<int:ladder_id>/", views.grammar_ladder_detail, name="grammar_ladder_detail"),
     path('api/srs/', include('srs.urls')),
     path('api/achievements/', include('achievements.urls')),
+    path('api/live-games/', include('live.urls')),
     path("api/vocab/enrichment/preview", EnrichmentPreviewAPI.as_view(), name="vocab-enrichment-preview"),
     path("api/vocab/enrichment/confirm", EnrichmentConfirmAPI.as_view(), name="vocab-enrichment-confirm"),
     path("api/analytics/<int:assignment_id>/word-stats/", views_api.api_word_stats, name="api_word_stats"),
