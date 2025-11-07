@@ -3,6 +3,32 @@ const JSON_HEADERS = {
   Accept: "application/json",
 };
 
+function getCookie(name) {
+  if (typeof document === "undefined") {
+    return null;
+  }
+  const cookies = document.cookie ? document.cookie.split("; ") : [];
+  for (let index = 0; index < cookies.length; index += 1) {
+    const cookie = cookies[index];
+    const separator = cookie.indexOf("=");
+    const key = separator > -1 ? cookie.substring(0, separator) : cookie;
+    if (decodeURIComponent(key) === name) {
+      const value = separator > -1 ? cookie.substring(separator + 1) : "";
+      return decodeURIComponent(value);
+    }
+  }
+  return null;
+}
+
+function withCsrf(headers) {
+  const token = getCookie("csrftoken");
+  const base = { ...headers };
+  if (token) {
+    base["X-CSRFToken"] = token;
+  }
+  return base;
+}
+
 function handleError(response, data) {
   const detail = data && typeof data === "object" ? data.detail : null;
   const message = detail || `Request failed with status ${response.status}`;
@@ -31,7 +57,7 @@ export function createLiveApi(fetchImpl = fetch) {
     async createSession(payload) {
       const response = await fetchImpl(buildUrl("/"), {
         method: "POST",
-        headers: JSON_HEADERS,
+        headers: withCsrf(JSON_HEADERS),
         credentials: "include",
         body: JSON.stringify({
           class_id: payload.classId,
@@ -47,7 +73,7 @@ export function createLiveApi(fetchImpl = fetch) {
     async startSession(sessionId) {
       const response = await fetchImpl(buildUrl(`/${sessionId}/start/`), {
         method: "POST",
-        headers: JSON_HEADERS,
+        headers: withCsrf(JSON_HEADERS),
         credentials: "include",
       });
       return handleJsonResponse(response);
@@ -56,7 +82,7 @@ export function createLiveApi(fetchImpl = fetch) {
     async advanceSession(sessionId) {
       const response = await fetchImpl(buildUrl(`/${sessionId}/next/`), {
         method: "POST",
-        headers: JSON_HEADERS,
+        headers: withCsrf(JSON_HEADERS),
         credentials: "include",
       });
       return handleJsonResponse(response);
@@ -65,7 +91,7 @@ export function createLiveApi(fetchImpl = fetch) {
     async endSession(sessionId) {
       const response = await fetchImpl(buildUrl(`/${sessionId}/end/`), {
         method: "POST",
-        headers: JSON_HEADERS,
+        headers: withCsrf(JSON_HEADERS),
         credentials: "include",
       });
       if (!response.ok) {
@@ -76,7 +102,7 @@ export function createLiveApi(fetchImpl = fetch) {
     async joinSession(sessionId, payload = {}) {
       const response = await fetchImpl(buildUrl(`/${sessionId}/join/`), {
         method: "POST",
-        headers: JSON_HEADERS,
+        headers: withCsrf(JSON_HEADERS),
         credentials: "include",
         body: JSON.stringify(payload),
       });
@@ -86,7 +112,7 @@ export function createLiveApi(fetchImpl = fetch) {
     async submitAnswer(sessionId, payload) {
       const response = await fetchImpl(buildUrl(`/${sessionId}/answer/`), {
         method: "POST",
-        headers: JSON_HEADERS,
+        headers: withCsrf(JSON_HEADERS),
         credentials: "include",
         body: JSON.stringify({
           questionIndex: payload.questionIndex,
@@ -99,7 +125,7 @@ export function createLiveApi(fetchImpl = fetch) {
     async fetchState(sessionId) {
       const response = await fetchImpl(buildUrl(`/${sessionId}/state/`), {
         method: "GET",
-        headers: JSON_HEADERS,
+        headers: withCsrf(JSON_HEADERS),
         credentials: "include",
       });
       return handleJsonResponse(response);
