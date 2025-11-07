@@ -141,6 +141,37 @@
     form select[name="country"] {
       background-image: none !important;
     }
+    .school-section {
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 15px;
+      margin-top: 10px;
+      background-color: #f8fafc;
+    }
+    .school-section legend {
+      font-weight: 600;
+      color: var(--primary);
+      margin-bottom: 10px;
+    }
+    .school-option-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .school-option-group label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    .school-mode {
+      margin-top: 10px;
+    }
+    .school-mode.hidden {
+      display: none;
+    }
   </style>
 
   <script>
@@ -205,6 +236,36 @@
           <div class="error-message">{{ form.password2.errors.0 }}</div>
         {% endif %}
 
+        <fieldset class="school-section">
+          <legend>School Licence</legend>
+          <p style="font-size:14px; color:#555;">Create a new school to become the lead, or join an existing school with an invite code.</p>
+          <div class="school-option-group">
+            {% for option in form.school_option %}
+              <label>
+                {{ option.tag }} {{ option.choice_label }}
+              </label>
+            {% endfor %}
+          </div>
+          {% if form.school_option.errors %}
+            <div class="error-message">{{ form.school_option.errors.0 }}</div>
+          {% endif %}
+          <div id="create-school-section" class="school-mode">
+            <label for="{{ form.school_name.id_for_label }}">{{ form.school_name.label }}</label>
+            {{ form.school_name }}
+            {% if form.school_name.errors %}
+              <div class="error-message">{{ form.school_name.errors.0 }}</div>
+            {% endif %}
+          </div>
+          <div id="join-school-section" class="school-mode hidden">
+            <label for="{{ form.school_code.id_for_label }}">{{ form.school_code.label }}</label>
+            {{ form.school_code }}
+            <small>Enter the 6-character code shared by your school lead.</small>
+            {% if form.school_code.errors %}
+              <div class="error-message">{{ form.school_code.errors.0 }}</div>
+            {% endif %}
+          </div>
+        </fieldset>
+
         <label for="{{ form.country.id_for_label }}">{{ form.country.label }}</label>
         {{ form.country }}
         {% if form.country.errors %}
@@ -212,7 +273,7 @@
         {% endif %}
 
         <div class="checkbox-container">
-          <input type="checkbox" id="privacy-policy-checkbox">
+          <input type="checkbox" id="privacy-policy-checkbox" required>
           <label for="privacy-policy-checkbox">
             I accept the <a href="{% static 'Privacy Policy for Pavonify.pdf' %}" target="_blank">Privacy Policy</a>.
           </label>
@@ -223,5 +284,27 @@
     </div>
   </div>
 {% include 'messages.html' %}
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const schoolOptions = document.querySelectorAll('input[name="school_option"]');
+      const createSection = document.getElementById('create-school-section');
+      const joinSection = document.getElementById('join-school-section');
+
+      function toggleSchoolSections() {
+        const selected = document.querySelector('input[name="school_option"]:checked');
+        const mode = selected ? selected.value : 'create';
+        if (mode === 'join') {
+          createSection.classList.add('hidden');
+          joinSection.classList.remove('hidden');
+        } else {
+          joinSection.classList.add('hidden');
+          createSection.classList.remove('hidden');
+        }
+      }
+
+      schoolOptions.forEach(option => option.addEventListener('change', toggleSchoolSections));
+      toggleSchoolSections();
+    });
+  </script>
 </body>
 </html>

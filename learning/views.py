@@ -39,6 +39,7 @@ from .decorators import student_login_required
 from .utils import generate_student_username, generate_random_password
 from .memory import memory_meter
 from .services.question_flow import QuestionFlowEngine
+from .services.schools import build_school_leaderboard, school_teachers
 from .spaced_repetition import get_due_words, schedule_review, _get_user_from_student
 from .forms import AssignmentForm
 
@@ -171,9 +172,23 @@ def teacher_dashboard(request):
         return redirect("login")
 
     reading_lab_texts = ReadingLabText.objects.filter(teacher=request.user).order_by('-created_at')
-    vocab_lists = VocabularyList.objects.filter(teacher=request.user)
-    filtered_vocab_lists = vocab_lists
+
+    school = request.user.school
+    own_vocab_lists = VocabularyList.objects.filter(teacher=request.user).prefetch_related("tags")
+    filtered_vocab_lists = own_vocab_lists
     all_tags = Tag.objects.filter(teacher=request.user).order_by('name')
+
+    school_shared_vocab_lists = VocabularyList.objects.none()
+    if school:
+        school_shared_vocab_lists = (
+            VocabularyList.objects.filter(
+                shared_with_school=True,
+                teacher__school=school,
+            )
+            .exclude(teacher=request.user)
+            .select_related("teacher")
+            .prefetch_related("tags")
+        )
 
     selected_tag_ids: List[int] = []
     for raw_tag_id in request.GET.getlist("tags"):
@@ -183,12 +198,10 @@ def teacher_dashboard(request):
             continue
 
     if selected_tag_ids:
-        for tag_id in selected_tag_ids:
-            filtered_vocab_lists = filtered_vocab_lists.filter(tags__id=tag_id)
-        filtered_vocab_lists = filtered_vocab_lists.distinct()
+        filtered_vocab_lists = (
+            filtered_vocab_lists.filter(tags__id__in=selected_tag_ids).distinct()
+        )
 
-    filtered_vocab_lists = filtered_vocab_lists.prefetch_related("tags")
-    vocab_lists = vocab_lists.prefetch_related("tags")
     classes = Class.objects.filter(teachers=request.user).distinct()
 
     # --- Student filtering and sorting ---
@@ -220,9 +233,22 @@ def teacher_dashboard(request):
         )
 
     # Attach unattached classes to each vocabulary list
-    for vocab_list in vocab_lists:
+    for vocab_list in own_vocab_lists:
         vocab_list.unattached_classes = classes.exclude(
             id__in=vocab_list.classes.values_list("id", flat=True)
+        )
+
+    school_leaderboard = None
+    school_teachers_list = []
+    school_lead = None
+    if school:
+        school_leaderboard = build_school_leaderboard(school)
+        school_teachers_list = list(school_teachers(school))
+        school_lead = next((teacher for teacher in school_teachers_list if teacher.is_school_lead), None)
+
+    for shared_list in school_shared_vocab_lists:
+        shared_list.owner_display = (
+            shared_list.teacher.get_full_name() or shared_list.teacher.username
         )
 
     # Announcements Pagination (3 posts per page)
@@ -275,8 +301,9 @@ def teacher_dashboard(request):
 
     return render(request, "learning/teacher_dashboard.html", {
         "user": request.user,
-        "vocab_lists": vocab_lists,
+        "vocab_lists": own_vocab_lists,
         "filtered_vocab_lists": filtered_vocab_lists,
+        "school_shared_vocab_lists": school_shared_vocab_lists,
         "classes": classes,
         "students": students,
         "selected_class_id": selected_class_id,
@@ -289,6 +316,10 @@ def teacher_dashboard(request):
         "inactive_students": inactive_students,
         "vocabulary_tags": all_tags,
         "selected_tag_ids": selected_tag_ids,
+        "school": school,
+        "school_teachers": school_teachers_list,
+        "school_lead": school_lead,
+        "school_leaderboard": school_leaderboard,
     })
 
 
@@ -328,6 +359,83 @@ def edit_vocabulary_list_details(request, list_id):
     else:
         form = VocabularyListForm(instance=vocab_list, teacher=request.user)
     return render(request, 'learning/edit_vocabulary_list_details.html', {'form': form, 'vocab_list': vocab_list})
+
+
+@login_required
+@user_passes_test(lambda u: u.is_teacher)
+@require_POST
+def toggle_vocab_list_sharing(request, list_id):
+    vocab_list = get_object_or_404(VocabularyList, id=list_id, teacher=request.user)
+
+    if not request.user.school:
+        messages.error(request, "Join a school before sharing lists.")
+        return redirect(f"{reverse('teacher_dashboard')}?pane=vocabulary")
+
+    desired_values = [value.lower() for value in request.POST.getlist("shared_with_school")]
+    share = any(value in {"1", "true", "on", "yes"} for value in desired_values)
+    vocab_list.shared_with_school = share
+    vocab_list.save(update_fields=["shared_with_school"])
+
+    if share:
+        messages.success(request, f"'{vocab_list.name}' is now shared with your school.")
+    else:
+        messages.success(request, f"'{vocab_list.name}' is no longer shared with your school.")
+    return redirect(f"{reverse('teacher_dashboard')}?pane=vocabulary")
+
+
+@login_required
+@user_passes_test(lambda u: u.is_teacher)
+@require_POST
+def duplicate_vocabulary_list(request, list_id):
+    source_list = get_object_or_404(VocabularyList, id=list_id)
+
+    if source_list.teacher_id != request.user.id:
+        if not (
+            source_list.shared_with_school
+            and request.user.school
+            and source_list.teacher.school_id == request.user.school_id
+        ):
+            return HttpResponseForbidden("You do not have access to duplicate this list.")
+
+    new_name = request.POST.get("name") or f"{source_list.name} (Copy)"
+
+    duplicate = VocabularyList.objects.create(
+        name=new_name,
+        source_language=source_list.source_language,
+        target_language=source_list.target_language,
+        teacher=request.user,
+        shared_with_school=False,
+    )
+
+    words_to_copy = [
+        VocabularyWord(
+            list=duplicate,
+            word=word.word,
+            translation=word.translation,
+            image_url=word.image_url,
+            image_thumb_url=word.image_thumb_url,
+            image_source=word.image_source,
+            image_attribution=word.image_attribution,
+            image_license=word.image_license,
+            image_approved=False,
+            word_fact_text=word.word_fact_text,
+            word_fact_type=word.word_fact_type,
+            word_fact_confidence=word.word_fact_confidence,
+            word_fact_approved=False,
+        )
+        for word in source_list.words.all()
+    ]
+    VocabularyWord.objects.bulk_create(words_to_copy)
+
+    if source_list.tags.exists():
+        tags = []
+        for tag in source_list.tags.all():
+            tag_copy, _ = Tag.objects.get_or_create(teacher=request.user, name=tag.name)
+            tags.append(tag_copy)
+        duplicate.tags.set(tags)
+
+    messages.success(request, f"'{duplicate.name}' was created from '{source_list.name}'.")
+    return redirect(f"{reverse('teacher_dashboard')}?pane=vocabulary")
 
 
 @login_required
@@ -484,10 +592,91 @@ def delete_vocabulary_list(request, pk):
 
 
 def leaderboard(request):
-    leaderboard_data = Progress.objects.values('student__username').annotate(
-        total_points=Sum('points')
-    ).order_by('-total_points')
-    return render(request, 'learning/leaderboard.html', {'leaderboard': leaderboard_data})
+    scope = request.GET.get("scope", "class")
+    class_id = request.GET.get("class_id")
+
+    classes = Class.objects.filter(teachers=request.user).distinct()
+    selected_class = None
+    school = getattr(request.user, "school", None)
+    entries = []
+
+    if scope == "school":
+        if school:
+            leaderboard = build_school_leaderboard(school)
+            entries = [
+                {
+                    "label": f"{student['first_name']} {student['last_name']}".strip(),
+                    "total_points": student["total_points"],
+                }
+                for student in leaderboard.top_students
+            ]
+        else:
+            scope = "class"
+
+    if scope == "grade":
+        if school:
+            grade_totals = (
+                Student.objects.filter(school=school)
+                .values("year_group")
+                .annotate(total_points=Sum("total_points"))
+                .order_by("-total_points")
+            )
+            entries = [
+                {
+                    "label": f"Year {row['year_group']}",
+                    "total_points": row["total_points"],
+                }
+                for row in grade_totals
+            ]
+        else:
+            scope = "class"
+
+    if scope == "language":
+        if school:
+            language_totals = (
+                Class.objects.filter(school=school)
+                .values("language")
+                .annotate(total_points=Sum("students__total_points"))
+                .order_by("-total_points")
+            )
+            entries = [
+                {
+                    "label": row["language"],
+                    "total_points": row["total_points"] or 0,
+                }
+                for row in language_totals
+            ]
+        else:
+            scope = "class"
+
+    if scope == "class":
+        if class_id:
+            selected_class = get_object_or_404(Class, id=class_id)
+            if request.user not in selected_class.teachers.all():
+                return HttpResponseForbidden("You do not have access to this class leaderboard.")
+        else:
+            selected_class = classes.first()
+
+        if selected_class:
+            entries = [
+                {
+                    "label": f"{student.first_name} {student.last_name}",
+                    "total_points": student.total_points,
+                }
+                for student in selected_class.students.order_by('-total_points')
+            ]
+
+    return render(
+        request,
+        'learning/leaderboard.html',
+        {
+            'scope': scope,
+            'entries': entries,
+            'classes': classes,
+            'selected_class': selected_class,
+            'school': school,
+        },
+    )
 
 
 # ----------------------------
@@ -1391,9 +1580,7 @@ def register_teacher(request):
     if request.method == "POST":
         form = TeacherRegistrationForm(request.POST)
         if form.is_valid():
-            user = form.save(commit=False)
-            user.school, _ = School.objects.get_or_create(name="Default School")
-            user.save()
+            user = form.save()
             user.add_credits(1)  # free Pavonicoin
             login(request, user)
             messages.success(request, "Your account has been created successfully! You have received 1 free Pavonicoin to test the Reading Lab.")
@@ -1404,6 +1591,35 @@ def register_teacher(request):
         form = TeacherRegistrationForm()
 
     return render(request, "learning/register_teacher.html", {"form": form})
+
+
+@login_required
+@user_passes_test(lambda u: u.is_teacher)
+@require_POST
+def remove_school_teacher(request, teacher_id):
+    if not request.user.is_school_lead:
+        return HttpResponseForbidden("Only school leads can remove teachers.")
+
+    teacher = get_object_or_404(
+        User,
+        id=teacher_id,
+        school=request.user.school,
+        is_teacher=True,
+    )
+
+    if teacher == request.user:
+        messages.error(request, "You cannot remove yourself as the school lead.")
+        return redirect(f"{reverse('teacher_dashboard')}?pane=school")
+
+    for class_instance in Class.objects.filter(school=request.user.school, teachers=teacher):
+        class_instance.teachers.remove(teacher)
+
+    teacher.school = None
+    teacher.is_school_lead = False
+    teacher.save(update_fields=["school", "is_school_lead"])
+
+    messages.success(request, f"{teacher.get_full_name() or teacher.username} has been removed from your school.")
+    return redirect(f"{reverse('teacher_dashboard')}?pane=school")
 
 
 def lead_teacher_login(request):
