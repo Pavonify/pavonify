@@ -7,17 +7,42 @@ from django.utils.timezone import now
 from datetime import datetime, timedelta
 from django_countries.fields import CountryField
 
-def generate_school_key():
-    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
+
+def generate_school_code(length: int = 6) -> str:
+    """Return a unique, human-friendly code for school invitations."""
+
+    alphabet = string.ascii_uppercase + string.digits
+    return "".join(random.choices(alphabet, k=length))
+
+
+def generate_school_key():  # pragma: no cover - legacy migration support
+    """Compatibility wrapper for historical migrations expecting a 10-char key."""
+
+    return generate_school_code(length=10)
+
 
 class School(models.Model):
     name = models.CharField(max_length=255)
     location = models.CharField(max_length=255, blank=True, null=True)
-    key = models.CharField(max_length=10, unique=True, default=generate_school_key)
+    school_code = models.CharField(max_length=6, unique=True, default=generate_school_code)
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    logo = models.ImageField(upload_to="school_logos/", blank=True, null=True)
 
     def __str__(self):
         return self.name
+
+    def regenerate_code(self, *, length: int = 6, save: bool = True) -> str:
+        """Generate a new, unique invitation code for the school."""
+
+        new_code = generate_school_code(length=length)
+        while School.objects.filter(school_code=new_code).exclude(pk=self.pk).exists():
+            new_code = generate_school_code(length=length)
+        self.school_code = new_code
+        if save:
+            self.save(update_fields=["school_code"])
+        return new_code
 
 from django.utils.timezone import now
 from datetime import timedelta
@@ -29,7 +54,7 @@ from django_countries.fields import CountryField
 class User(AbstractUser):
     is_student = models.BooleanField(default=False)
     is_teacher = models.BooleanField(default=False)
-    is_lead_teacher = models.BooleanField(default=False)
+    is_school_lead = models.BooleanField(default=False)
     school = models.ForeignKey("School", on_delete=models.SET_NULL, null=True, blank=True)
 
     first_name = models.CharField(max_length=50, blank=False)
@@ -71,6 +96,15 @@ class User(AbstractUser):
         """Add Pavonicoins."""
         self.ai_credits += amount
         self.save()
+
+    # Backwards compatibility for legacy code paths
+    @property
+    def is_lead_teacher(self) -> bool:
+        return self.is_school_lead
+
+    @is_lead_teacher.setter
+    def is_lead_teacher(self, value: bool) -> None:
+        self.is_school_lead = value
 
     def __str__(self):
         return self.username
@@ -291,6 +325,7 @@ class VocabularyList(models.Model):
     tags = models.ManyToManyField("Tag", related_name="vocabulary_lists", blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    shared_with_school = models.BooleanField(default=False)
 
     def __str__(self):
         return f"{self.name} ({self.source_language} → {self.target_language})"
