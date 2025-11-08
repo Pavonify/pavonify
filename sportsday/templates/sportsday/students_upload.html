@@ -1,0 +1,18 @@
+{% extends "sportsday/base.html" %}
+{% block title %}Upload Students · {{ meet.name }}{% endblock %}
+{% block header_actions %}
+<nav class="actions">
+    <a href="{% url 'sportsday:students' meet.slug %}" role="button">Back to students</a>
+</nav>
+{% endblock %}
+{% block content %}
+<section class="card">
+    <h2>Upload Student CSV</h2>
+    <p>Upload a CSV file using the template headers: <code>first_name,last_name,dob,grade,house,gender,external_id</code></p>
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Upload</button>
+    </form>
+</section>
+{% endblock %}

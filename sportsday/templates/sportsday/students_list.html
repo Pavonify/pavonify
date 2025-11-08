@@ -1,0 +1,54 @@
+{% extends "sportsday/base.html" %}
+{% block title %}Students · {{ meet.name }}{% endblock %}
+{% block header_actions %}
+<nav class="actions">
+    <a href="{% url 'sportsday:dashboard' meet.slug %}" role="button">Back to dashboard</a>
+    <a href="{% url 'sportsday:students_upload' meet.slug %}" role="button" class="secondary">Upload CSV</a>
+</nav>
+{% endblock %}
+{% block content %}
+<section class="card">
+    <h2>Students</h2>
+    <form method="get" class="actions">
+        <input type="text" name="q" placeholder="Search by name" value="{{ request.GET.q }}">
+        <input type="text" name="grade" placeholder="Grade" value="{{ request.GET.grade }}">
+        <input type="text" name="house" placeholder="House" value="{{ request.GET.house }}">
+        <input type="text" name="gender" placeholder="Gender" value="{{ request.GET.gender }}">
+        <button type="submit">Filter</button>
+    </form>
+    <p><strong>Total active students:</strong> {{ page_obj.paginator.count }} | <strong>With entries:</strong> {{ entry_count }}</p>
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Grade</th>
+                <th>House</th>
+                <th>Gender</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for student in students %}
+            <tr>
+                <td>{{ student.full_name }}</td>
+                <td>{{ student.grade }}</td>
+                <td>{{ student.house }}</td>
+                <td>{{ student.gender }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="4">No students match your search.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <nav class="actions">
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}" role="button">Previous</a>
+        {% endif %}
+        <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}" role="button">Next</a>
+        {% endif %}
+    </nav>
+</section>
+{% endblock %}

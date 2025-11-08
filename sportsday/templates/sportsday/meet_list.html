@@ -1,0 +1,20 @@
+{% extends "sportsday/base.html" %}
+{% block title %}Sports Day Meets{% endblock %}
+{% block content %}
+<section class="card">
+    <h2>Available Meets</h2>
+    <p>Select a meet to manage events, students, and leaderboards.</p>
+    <div class="card-grid">
+        {% for meet in meets %}
+        <article class="card">
+            <h3>{{ meet.name }}</h3>
+            <p><strong>Date:</strong> {{ meet.date }}</p>
+            <p><strong>Max events per student:</strong> {{ meet.max_events_per_student }}</p>
+            <a href="{% url 'sportsday:dashboard' meet.slug %}" role="button">Open dashboard</a>
+        </article>
+        {% empty %}
+        <p>No meets created yet.</p>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}
