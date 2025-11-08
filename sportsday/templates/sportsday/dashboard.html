@@ -1,0 +1,54 @@
+{% extends "sportsday/base.html" %}
+{% block title %}{{ meet.name }} Dashboard{% endblock %}
+{% block header_actions %}
+<nav class="actions">
+    <a href="{% url 'sportsday:students' meet.slug %}" role="button">Students</a>
+    <a href="{% url 'sportsday:leaderboard' meet.slug %}" role="button">Leaderboards</a>
+    <a href="{% url 'sportsday:students_upload' meet.slug %}" role="button" class="secondary">Upload Students</a>
+</nav>
+{% endblock %}
+{% block content %}
+<section class="card">
+    <h2>{{ meet.name }}</h2>
+    <p><strong>Date:</strong> {{ meet.date }} | <strong>Status:</strong> {% if meet.is_locked %}Locked{% else %}Open{% endif %}</p>
+    <div class="card-grid">
+        <article class="card">
+            <h3>Students</h3>
+            <p>{{ students }} registered athletes</p>
+        </article>
+        <article class="card">
+            <h3>Events</h3>
+            <p>{{ events }} configured events</p>
+        </article>
+        <article class="card">
+            <h3>Entries</h3>
+            <p>{{ entries }} total entries</p>
+        </article>
+    </div>
+</section>
+<section class="card">
+    <h2>Scoring Rules</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Scope</th>
+                <th>Points</th>
+                <th>Tie Method</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for rule in rules %}
+            <tr>
+                <td>{{ rule.get_scope_display }}</td>
+                <td>{{ rule.points_csv }}</td>
+                <td>{{ rule.get_tie_method_display }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="3">No rules configured yet.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+{% endblock %}

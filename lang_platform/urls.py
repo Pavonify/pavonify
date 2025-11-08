@@ -130,6 +130,7 @@ urlpatterns = [
     path('api/srs/', include('srs.urls')),
     path('api/achievements/', include('achievements.urls')),
     path('api/live-games/', include('live.urls')),
+    path('sports-day/', include('sportsday.urls')),
     path("api/vocab/enrichment/preview", EnrichmentPreviewAPI.as_view(), name="vocab-enrichment-preview"),
     path("api/vocab/enrichment/confirm", EnrichmentConfirmAPI.as_view(), name="vocab-enrichment-confirm"),
     path("api/schools/create", school_api.create_school, name="api_school_create"),

@@ -1,0 +1,42 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>{% block title %}Sports Day{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1.5.10/css/pico.min.css">
+    <style>
+        body { background: #0d1b2a; color: #e0e1dd; }
+        header, main, footer { max-width: 960px; margin: 0 auto; padding: 1rem; }
+        a { color: #98c1d9; }
+        .card-grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+        .card { background: #1b263b; padding: 1rem; border-radius: 12px; box-shadow: 0 6px 16px rgba(0,0,0,0.3); }
+        .card h2 { margin-top: 0; }
+        .badge { display: inline-block; background: #415a77; color: #e0e1dd; padding: 0.25rem 0.75rem; border-radius: 999px; font-size: 0.85rem; }
+        table { width: 100%; border-collapse: collapse; background: #1b263b; }
+        th, td { padding: 0.75rem; border-bottom: 1px solid rgba(255,255,255,0.08); }
+        th { text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.75rem; }
+        .actions { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 1rem; }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+<header>
+    <h1>Harrow Sports Day</h1>
+    <p class="badge">Sports Coordination Console</p>
+    {% block header_actions %}{% endblock %}
+</header>
+<main>
+    {% for message in messages %}
+        <article class="card" style="border-left: 4px solid #e0e1dd;">
+            {{ message }}
+        </article>
+    {% endfor %}
+    {% block content %}{% endblock %}
+</main>
+<footer>
+    <small>&copy; {{ now|date:"Y" }} Pavonify Sports Day Module</small>
+</footer>
+</body>
+</html>

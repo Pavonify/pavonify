@@ -1,0 +1,13 @@
+{% extends "sportsday/base.html" %}
+{% block title %}Access Sports Day{% endblock %}
+{% block content %}
+<section class="card">
+    <h2>Enter Access Code</h2>
+    <p>This area is for Harrow Sports Day staff. Please enter the shared access code provided by the PE office.</p>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="contrast">Unlock Sports Day</button>
+    </form>
+</section>
+{% endblock %}

@@ -58,6 +58,7 @@ INSTALLED_APPS = [
     'achievements',
     'channels',
     'live',
+    'sportsday',
 ]
 
 
