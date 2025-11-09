@@ -12,9 +12,20 @@ class StudentAdmin(admin.ModelAdmin):
 
 @admin.register(models.Meet)
 class MeetAdmin(admin.ModelAdmin):
-    list_display = ("name", "date", "slug", "max_events_per_student", "is_locked")
+    list_display = (
+        "name",
+        "date",
+        "slug",
+        "max_events_per_student",
+        "is_locked",
+        "allowed_grades_display",
+    )
     search_fields = ("name", "slug")
     prepopulated_fields = {"slug": ("name",)}
+
+    @admin.display(description="Allowed grades")
+    def allowed_grades_display(self, obj):
+        return obj.allowed_grades_display
 
 
 @admin.register(models.Event)

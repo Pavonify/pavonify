@@ -39,6 +39,19 @@
                 {% if form.max_events_per_student.errors %}<small>{{ form.max_events_per_student.errors|join:", " }}</small>{% endif %}
             </label>
         </div>
+        <fieldset>
+            <legend>{{ form.allowed_grades.label }}</legend>
+            {% if form.allowed_grades.help_text %}<small>{{ form.allowed_grades.help_text }}</small>{% endif %}
+            <div class="grade-grid">
+                {% for checkbox in form.allowed_grades %}
+                <label class="grade-option" for="{{ checkbox.id_for_label }}">
+                    {{ checkbox.tag }}
+                    <span>{{ checkbox.choice_label }}</span>
+                </label>
+                {% endfor %}
+            </div>
+            {% if form.allowed_grades.errors %}<small>{{ form.allowed_grades.errors|join:", " }}</small>{% endif %}
+        </fieldset>
         <label class="checkbox" for="{{ form.is_locked.id_for_label }}">
             {{ form.is_locked }} {{ form.is_locked.label }}
             {% if form.is_locked.errors %}<small>{{ form.is_locked.errors|join:", " }}</small>{% endif %}

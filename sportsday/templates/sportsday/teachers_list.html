@@ -1,0 +1,47 @@
+{% extends "sportsday/base.html" %}
+{% block title %}Teachers · {{ meet.name }}{% endblock %}
+{% block header_actions %}
+<nav class="actions">
+    <a href="{% url 'sportsday:dashboard' meet.slug %}" role="button">Back to dashboard</a>
+</nav>
+{% endblock %}
+{% block content %}
+<section class="card">
+    <h2>Teachers</h2>
+    <form method="get" class="actions">
+        <input type="text" name="q" placeholder="Search by name or username" value="{{ request.GET.q }}">
+        <button type="submit">Filter</button>
+    </form>
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Username</th>
+                <th>Email</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for teacher in teachers %}
+            <tr>
+                <td>{{ teacher.get_full_name|default:teacher.username }}</td>
+                <td>{{ teacher.username }}</td>
+                <td>{% if teacher.email %}{{ teacher.email }}{% else %}<em>Not provided</em>{% endif %}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="3">No teachers found.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <nav class="actions">
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}" role="button">Previous</a>
+        {% endif %}
+        <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}" role="button">Next</a>
+        {% endif %}
+    </nav>
+</section>
+{% endblock %}

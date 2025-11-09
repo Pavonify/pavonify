@@ -4,6 +4,7 @@ from __future__ import annotations
 import io
 
 from django.contrib import messages
+from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Q
 from django.http import HttpRequest, HttpResponse, JsonResponse
@@ -143,7 +144,11 @@ class StudentListView(AccessRequiredMixin, MeetMixin, ListView):
     paginate_by = 50
 
     def get_queryset(self):
+        meet = self.get_meet()
         qs = super().get_queryset().filter(is_active=True)
+        allowed = meet.allowed_grades
+        if allowed:
+            qs = qs.filter(grade__in=allowed)
         grade = self.request.GET.get("grade")
         house = self.request.GET.get("house")
         gender = self.request.GET.get("gender")
@@ -166,6 +171,29 @@ class StudentListView(AccessRequiredMixin, MeetMixin, ListView):
                 "entry_count": counts,
             }
         )
+        return context
+
+
+class TeacherListView(AccessRequiredMixin, MeetMixin, ListView):
+    template_name = "sportsday/teachers_list.html"
+    context_object_name = "teachers"
+    paginate_by = 50
+
+    def get_queryset(self):
+        User = get_user_model()
+        qs = User.objects.filter(is_teacher=True).order_by("last_name", "first_name")
+        query = self.request.GET.get("q")
+        if query:
+            qs = qs.filter(
+                Q(first_name__icontains=query)
+                | Q(last_name__icontains=query)
+                | Q(username__icontains=query)
+            )
+        return qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["meet"] = self.get_meet()
         return context
 
 
