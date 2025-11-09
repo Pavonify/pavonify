@@ -18,10 +18,9 @@ class AccessRequiredMixin(LoginRequiredMixin):
     """Mixin that checks for the sports day access cookie."""
 
     def dispatch(self, request: HttpRequest, *args, **kwargs):
-        config = models.SportsdayAccessConfig.get_solo()
-        if not config.is_enabled or config.cookie_valid(request):
-            return super().dispatch(request, *args, **kwargs)
-        return redirect("sportsday:access")
+        # Temporarily disable the access code requirement so anyone can
+        # access the module without being redirected.
+        return super().dispatch(request, *args, **kwargs)
 
 
 class MeetMixin:
