@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from django import forms
 from django.core.exceptions import ValidationError
+from django.utils.text import slugify
 
 from . import models
 
@@ -29,6 +30,69 @@ class StudentUploadForm(forms.Form):
         if uploaded.size > 5 * 1024 * 1024:
             raise ValidationError("The uploaded file is too large.")
         return uploaded
+
+
+class MeetForm(forms.ModelForm):
+    """Form used for creating and editing meets."""
+
+    access_code = forms.CharField(
+        label="Access code",
+        required=False,
+        help_text="Optional code required for coordinators to access the meet dashboard.",
+        widget=forms.PasswordInput(render_value=True),
+    )
+    clear_access_code = forms.BooleanField(
+        label="Remove existing access code",
+        required=False,
+    )
+
+    class Meta:
+        model = models.Meet
+        fields = (
+            "name",
+            "slug",
+            "date",
+            "max_events_per_student",
+            "is_locked",
+        )
+        help_texts = {
+            "slug": "Unique identifier used in URLs. Letters, numbers, hyphens only.",
+        }
+        widgets = {
+            "date": forms.DateInput(attrs={"type": "date"}),
+            "max_events_per_student": forms.NumberInput(attrs={"min": 1}),
+            "slug": forms.TextInput(attrs={"placeholder": "e.g. harrow-sports-day"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk and self.instance.access_code_hash:
+            self.fields["access_code"].help_text = (
+                "Leave blank to keep the existing code or enter a new one."
+            )
+        else:
+            self.fields["clear_access_code"].widget = forms.HiddenInput()
+
+    def clean_slug(self) -> str:
+        slug = self.cleaned_data.get("slug", "")
+        if not slug:
+            name = self.cleaned_data.get("name", "")
+            slug = name
+        slug = slugify(slug)
+        slug = forms.fields.SlugField().clean(slug)
+        return slug
+
+    def save(self, commit: bool = True):
+        instance: models.Meet = super().save(commit=False)
+        access_code = self.cleaned_data.get("access_code")
+        if access_code:
+            instance.set_access_code(access_code)
+        elif self.cleaned_data.get("clear_access_code"):
+            instance.access_code_hash = ""
+        if commit:
+            instance.save()
+            self.save_m2m()
+        return instance
 
 
 class EventForm(forms.ModelForm):

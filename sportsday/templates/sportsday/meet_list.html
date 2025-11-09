@@ -1,5 +1,10 @@
 {% extends "sportsday/base.html" %}
 {% block title %}Sports Day Meets{% endblock %}
+{% block header_actions %}
+<nav class="actions">
+    <a href="{% url 'sportsday:meet_create' %}" role="button">Create meet</a>
+</nav>
+{% endblock %}
 {% block content %}
 <section class="card">
     <h2>Available Meets</h2>
@@ -10,10 +15,17 @@
             <h3>{{ meet.name }}</h3>
             <p><strong>Date:</strong> {{ meet.date }}</p>
             <p><strong>Max events per student:</strong> {{ meet.max_events_per_student }}</p>
-            <a href="{% url 'sportsday:dashboard' meet.slug %}" role="button">Open dashboard</a>
+            <div class="actions">
+                <a href="{% url 'sportsday:dashboard' meet.slug %}" role="button">Dashboard</a>
+                <a href="{% url 'sportsday:students' meet.slug %}" role="button" class="secondary">Students</a>
+            </div>
+            <div class="actions">
+                <a href="{% url 'sportsday:students_upload' meet.slug %}" role="button" class="secondary">Upload roster</a>
+                <a href="{% url 'sportsday:meet_edit' meet.slug %}" role="button" class="contrast">Edit</a>
+            </div>
         </article>
         {% empty %}
-        <p>No meets created yet.</p>
+        <p>No meets created yet. Start by <a href="{% url 'sportsday:meet_create' %}">creating your first meet</a>.</p>
         {% endfor %}
     </div>
 </section>

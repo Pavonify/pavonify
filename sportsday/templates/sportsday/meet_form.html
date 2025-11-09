@@ -1,0 +1,62 @@
+{% extends "sportsday/base.html" %}
+{% block title %}{% if is_create %}Create Meet{% else %}Edit Meet · {{ meet.name }}{% endif %}{% endblock %}
+{% block header_actions %}
+<nav class="actions">
+    <a href="{% url 'sportsday:meet_list' %}" role="button">Back to meet list</a>
+    {% if not is_create %}
+    <a href="{% url 'sportsday:dashboard' meet.slug %}" role="button" class="secondary">View dashboard</a>
+    {% endif %}
+</nav>
+{% endblock %}
+{% block content %}
+<section class="card">
+    <h2>{% if is_create %}Create a new meet{% else %}Edit meet{% endif %}</h2>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+        <div class="grid">
+            <label for="{{ form.name.id_for_label }}">
+                {{ form.name.label }}
+                {{ form.name }}
+                {% if form.name.errors %}<small>{{ form.name.errors|join:", " }}</small>{% endif %}
+            </label>
+            <label for="{{ form.slug.id_for_label }}">
+                {{ form.slug.label }}
+                {{ form.slug }}
+                {% if form.slug.help_text %}<small>{{ form.slug.help_text }}</small>{% endif %}
+                {% if form.slug.errors %}<small>{{ form.slug.errors|join:", " }}</small>{% endif %}
+            </label>
+        </div>
+        <div class="grid">
+            <label for="{{ form.date.id_for_label }}">
+                {{ form.date.label }}
+                {{ form.date }}
+                {% if form.date.errors %}<small>{{ form.date.errors|join:", " }}</small>{% endif %}
+            </label>
+            <label for="{{ form.max_events_per_student.id_for_label }}">
+                {{ form.max_events_per_student.label }}
+                {{ form.max_events_per_student }}
+                {% if form.max_events_per_student.errors %}<small>{{ form.max_events_per_student.errors|join:", " }}</small>{% endif %}
+            </label>
+        </div>
+        <label class="checkbox" for="{{ form.is_locked.id_for_label }}">
+            {{ form.is_locked }} {{ form.is_locked.label }}
+            {% if form.is_locked.errors %}<small>{{ form.is_locked.errors|join:", " }}</small>{% endif %}
+        </label>
+        <label for="{{ form.access_code.id_for_label }}">
+            {{ form.access_code.label }}
+            {{ form.access_code }}
+            {% if form.access_code.help_text %}<small>{{ form.access_code.help_text }}</small>{% endif %}
+            {% if form.access_code.errors %}<small>{{ form.access_code.errors|join:", " }}</small>{% endif %}
+        </label>
+        {% if form.clear_access_code.is_hidden %}
+            {{ form.clear_access_code }}
+        {% else %}
+        <label class="checkbox" for="{{ form.clear_access_code.id_for_label }}">
+            {{ form.clear_access_code }} {{ form.clear_access_code.label }}
+        </label>
+        {% endif %}
+        <button type="submit">{% if is_create %}Create meet{% else %}Save changes{% endif %}</button>
+    </form>
+</section>
+{% endblock %}

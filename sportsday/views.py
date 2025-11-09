@@ -79,6 +79,46 @@ class MeetListView(AccessRequiredMixin, TemplateView):
         return context
 
 
+class MeetCreateView(AccessRequiredMixin, View):
+    template_name = "sportsday/meet_form.html"
+
+    def get(self, request: HttpRequest) -> HttpResponse:
+        form = forms.MeetForm()
+        return render(request, self.template_name, {"form": form, "is_create": True})
+
+    def post(self, request: HttpRequest) -> HttpResponse:
+        form = forms.MeetForm(request.POST)
+        if not form.is_valid():
+            return render(request, self.template_name, {"form": form, "is_create": True})
+        meet = form.save()
+        messages.success(request, "Meet created successfully.")
+        return redirect("sportsday:dashboard", slug=meet.slug)
+
+
+class MeetUpdateView(AccessRequiredMixin, MeetMixin, View):
+    template_name = "sportsday/meet_form.html"
+
+    def get(self, request: HttpRequest, slug: str) -> HttpResponse:
+        meet = self.get_meet()
+        form = forms.MeetForm(instance=meet)
+        context = {
+            "form": form,
+            "meet": meet,
+            "is_create": False,
+        }
+        return render(request, self.template_name, context)
+
+    def post(self, request: HttpRequest, slug: str) -> HttpResponse:
+        meet = self.get_meet()
+        form = forms.MeetForm(request.POST, instance=meet)
+        if not form.is_valid():
+            context = {"form": form, "meet": meet, "is_create": False}
+            return render(request, self.template_name, context)
+        meet = form.save()
+        messages.success(request, "Meet details updated.")
+        return redirect("sportsday:dashboard", slug=meet.slug)
+
+
 class DashboardView(AccessRequiredMixin, MeetMixin, TemplateView):
     template_name = "sportsday/dashboard.html"
 
