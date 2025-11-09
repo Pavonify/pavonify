@@ -15,6 +15,7 @@
             <h3>{{ meet.name }}</h3>
             <p><strong>Date:</strong> {{ meet.date }}</p>
             <p><strong>Max events per student:</strong> {{ meet.max_events_per_student }}</p>
+            <p><strong>Eligible grades:</strong> {{ meet.allowed_grades_display }}</p>
             <div class="actions">
                 <a href="{% url 'sportsday:dashboard' meet.slug %}" role="button">Dashboard</a>
                 <a href="{% url 'sportsday:students' meet.slug %}" role="button" class="secondary">Students</a>

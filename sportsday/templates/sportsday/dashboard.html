@@ -10,7 +10,11 @@
 {% block content %}
 <section class="card">
     <h2>{{ meet.name }}</h2>
-    <p><strong>Date:</strong> {{ meet.date }} | <strong>Status:</strong> {% if meet.is_locked %}Locked{% else %}Open{% endif %}</p>
+    <p>
+        <strong>Date:</strong> {{ meet.date }} |
+        <strong>Status:</strong> {% if meet.is_locked %}Locked{% else %}Open{% endif %} |
+        <strong>Eligible grades:</strong> {{ meet.allowed_grades_display }}
+    </p>
     <div class="card-grid">
         <article class="card">
             <h3>Students</h3>

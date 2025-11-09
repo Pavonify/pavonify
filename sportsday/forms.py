@@ -35,6 +35,13 @@ class StudentUploadForm(forms.Form):
 class MeetForm(forms.ModelForm):
     """Form used for creating and editing meets."""
 
+    allowed_grades = forms.MultipleChoiceField(
+        label="Eligible grades",
+        choices=models.GRADE_LEVELS,
+        required=False,
+        widget=forms.CheckboxSelectMultiple,
+        help_text="Tick the grade levels that are allowed to participate in this meet.",
+    )
     access_code = forms.CharField(
         label="Access code",
         required=False,
@@ -52,6 +59,7 @@ class MeetForm(forms.ModelForm):
             "name",
             "slug",
             "date",
+            "allowed_grades",
             "max_events_per_student",
             "is_locked",
         )
@@ -66,12 +74,21 @@ class MeetForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        if not self.is_bound:
+            if self.instance and self.instance.pk and self.instance.allowed_grades:
+                self.fields["allowed_grades"].initial = self.instance.allowed_grades
+            else:
+                self.fields["allowed_grades"].initial = [choice[0] for choice in models.GRADE_LEVELS]
         if self.instance and self.instance.pk and self.instance.access_code_hash:
             self.fields["access_code"].help_text = (
                 "Leave blank to keep the existing code or enter a new one."
             )
         else:
             self.fields["clear_access_code"].widget = forms.HiddenInput()
+
+    def clean_allowed_grades(self) -> list[str]:
+        selected = self.cleaned_data.get("allowed_grades") or []
+        return list(dict.fromkeys(selected))
 
     def clean_slug(self) -> str:
         slug = self.cleaned_data.get("slug", "")
@@ -84,6 +101,7 @@ class MeetForm(forms.ModelForm):
 
     def save(self, commit: bool = True):
         instance: models.Meet = super().save(commit=False)
+        instance.allowed_grades = self.cleaned_data.get("allowed_grades", [])
         access_code = self.cleaned_data.get("access_code")
         if access_code:
             instance.set_access_code(access_code)

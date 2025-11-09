@@ -9,6 +9,7 @@
 {% block content %}
 <section class="card">
     <h2>Students</h2>
+    <p><strong>Eligible grades:</strong> {{ meet.allowed_grades_display }}</p>
     <form method="get" class="actions">
         <input type="text" name="q" placeholder="Search by name" value="{{ request.GET.q }}">
         <input type="text" name="grade" placeholder="Grade" value="{{ request.GET.grade }}">

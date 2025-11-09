@@ -58,6 +58,24 @@ class Student(TimestampedModel):
         return self.full_name
 
 
+GRADE_LEVELS: list[tuple[str, str]] = [
+    ("NURSERY", "Nursery"),
+    ("KG", "KG"),
+    ("G1", "G1"),
+    ("G2", "G2"),
+    ("G3", "G3"),
+    ("G4", "G4"),
+    ("G5", "G5"),
+    ("G6", "G6"),
+    ("G7", "G7"),
+    ("G8", "G8"),
+    ("G9", "G9"),
+    ("G10", "G10"),
+    ("G11", "G11"),
+    ("G12", "G12"),
+]
+
+
 class Meet(TimestampedModel):
     name = models.CharField(max_length=120)
     slug = models.SlugField(unique=True)
@@ -65,6 +83,7 @@ class Meet(TimestampedModel):
     access_code_hash = models.CharField(max_length=128, blank=True)
     max_events_per_student = models.PositiveIntegerField(default=3)
     is_locked = models.BooleanField(default=False)
+    allowed_grades = models.JSONField(default=list, blank=True)
 
     class Meta:
         ordering = ("-date", "name")
@@ -79,6 +98,15 @@ class Meet(TimestampedModel):
         if not self.access_code_hash:
             return False
         return SportsdayAccessConfig.verify_code(candidate, self.access_code_hash)
+
+    @property
+    def allowed_grades_display(self) -> str:
+        """Return a human-readable representation of the allowed grade list."""
+
+        if not self.allowed_grades:
+            return "All grades"
+        labels = dict(GRADE_LEVELS)
+        return ", ".join(labels.get(code, code) for code in self.allowed_grades)
 
 
 class Event(TimestampedModel):
