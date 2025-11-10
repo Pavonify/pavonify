@@ -1,37 +1,50 @@
-# -------- Base runtime (Debian slim) --------
-FROM python:3.12-slim AS runtime
+# -------- Base builder stage --------
+FROM python:3.12-slim AS builder
 
-# Don't write .pyc files, flush stdout/stderr
+# Prevent .pyc and force stdout
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
-# Install the C++ runtime that grpc / google-generativeai needs
+# Install build deps (for compiling wheels only)
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+      build-essential \
+      gcc \
+ && rm -rf /var/lib/apt/lists/*
+
+# Create venv
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+WORKDIR /app
+
+# Install Python deps into venv
+COPY requirements.txt .
+RUN pip install --upgrade pip \
+ && pip install --no-cache-dir -r requirements.txt
+
+# -------- Runtime stage --------
+FROM python:3.12-slim AS runtime
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+# Install only the runtime libs you need
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
       libstdc++6 \
       libgcc-s1 \
-      build-essential \
  && rm -rf /var/lib/apt/lists/*
 
-# Create a virtualenv
-RUN python -m venv /opt/venv
+# Copy venv from builder
+COPY --from=builder /opt/venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-# Working directory
 WORKDIR /app
 
-# Copy only requirements first
-COPY requirements.txt /app/
+# Copy only app source (not venv, git, etc. — handled by .dockerignore)
+COPY . .
 
-# Install Python dependencies
-RUN pip install --upgrade pip \
- && pip install --no-cache-dir -r requirements.txt
-
-# Copy the rest of your app
-COPY . /app
-
-# Expose the port Gunicorn will bind to
 EXPOSE 8080
 
-# Start Gunicorn (change module path if your project isn’t lang_platform)
-CMD ["/opt/venv/bin/gunicorn", "lang_platform.wsgi:application", "--bind", "0.0.0.0:8080", "--workers", "3"]
+CMD ["gunicorn", "lang_platform.wsgi:application", "--bind", "0.0.0.0:8080", "--workers", "3"]
