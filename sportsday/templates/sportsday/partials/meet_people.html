@@ -1,0 +1,19 @@
+<section class="space-y-4" id="meet-staff" hx-target="this" hx-swap="outerHTML">
+    <header>
+        <h2 class="text-lg font-semibold">People</h2>
+        <p class="text-sm text-slate-400">{{ teacher_assignments|length }} teachers · {{ volunteer_count }} volunteers</p>
+    </header>
+    <ul class="space-y-3 text-sm text-slate-300">
+        {% for teacher in teacher_assignments %}
+            <li class="rounded-xl border border-slate-800 bg-slate-950/60 p-3">
+                <div class="flex items-center justify-between gap-3">
+                    <span class="font-medium text-slate-100">{{ teacher.name }}</span>
+                    <span class="rounded-full bg-sky-500/10 px-3 py-1 text-xs uppercase tracking-widest text-sky-300">{{ teacher.events }} events</span>
+                </div>
+                <p class="mt-1 text-xs text-slate-400">{{ teacher.events_label }}</p>
+            </li>
+        {% empty %}
+            <li class="rounded-xl border border-dashed border-slate-700 bg-slate-900/40 p-6 text-center text-slate-400">Assign teachers to bring this list to life.</li>
+        {% endfor %}
+    </ul>
+</section>

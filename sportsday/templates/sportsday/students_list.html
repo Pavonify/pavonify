@@ -1,55 +1,67 @@
 {% extends "sportsday/base.html" %}
-{% block title %}Students · {{ meet.name }}{% endblock %}
-{% block header_actions %}
-<nav class="actions">
-    <a href="{% url 'sportsday:dashboard' meet.slug %}" role="button">Back to dashboard</a>
-    <a href="{% url 'sportsday:students_upload' meet.slug %}" role="button" class="secondary">Upload CSV</a>
-</nav>
-{% endblock %}
+{% block title %}Sports Day · Students{% endblock %}
 {% block content %}
-<section class="card">
-    <h2>Students</h2>
-    <p><strong>Eligible grades:</strong> {{ meet.allowed_grades_display }}</p>
-    <form method="get" class="actions">
-        <input type="text" name="q" placeholder="Search by name" value="{{ request.GET.q }}">
-        <input type="text" name="grade" placeholder="Grade" value="{{ request.GET.grade }}">
-        <input type="text" name="house" placeholder="House" value="{{ request.GET.house }}">
-        <input type="text" name="gender" placeholder="Gender" value="{{ request.GET.gender }}">
-        <button type="submit">Filter</button>
+<section class="space-y-6">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+            <p class="text-sm uppercase tracking-widest text-slate-400">Athletes</p>
+            <h1 class="text-2xl font-semibold">Students</h1>
+            {% if active_meet %}
+                <p class="text-sm text-slate-400">Meet scope: {{ active_meet.name }}</p>
+            {% else %}
+                <p class="text-sm text-slate-400">Select a meet to view event tallies.</p>
+            {% endif %}
+        </div>
+        <div class="flex flex-wrap gap-2">
+            {% if active_meet %}
+                <a href="{% url 'sportsday:export-students-csv' %}?meet={{ active_meet.slug }}" class="inline-flex items-center gap-2 rounded-full border border-slate-700 px-4 py-2 text-sm text-slate-300 hover:border-sky-500/40 hover:text-sky-200">Export CSV</a>
+            {% endif %}
+            <a href="{% url 'sportsday:meet-wizard-template' 'students' %}" class="inline-flex items-center gap-2 rounded-full bg-sky-500 px-4 py-2 text-sm font-medium text-slate-900 shadow-lg shadow-sky-500/40 hover:bg-sky-400">Download template</a>
+        </div>
+    </div>
+
+    <form method="get" class="grid gap-4 md:grid-cols-[minmax(0,320px),minmax(0,240px),auto] md:items-end">
+        <label class="block text-xs uppercase tracking-widest text-slate-500">
+            Meet
+            <select name="meet" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-200">
+                <option value="">All meets</option>
+                {% for meet in meet_options %}
+                    <option value="{{ meet.slug }}" {% if meet.slug == request.GET.meet %}selected{% endif %}>{{ meet.name }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label class="block text-xs uppercase tracking-widest text-slate-500">
+            House
+            <select name="house" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-200">
+                <option value="">All houses</option>
+                {% for house in houses %}
+                    <option value="{{ house }}" {% if house == request.GET.house %}selected{% endif %}>{{ house }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label class="block text-xs uppercase tracking-widest text-slate-500">
+            Search
+            <input type="search" name="q" value="{{ request.GET.q }}" placeholder="Search name or grade" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-200" hx-get="{% url 'sportsday:students-table-fragment' %}" hx-target="#students-table" hx-trigger="keyup changed delay:300ms" hx-include="closest form">
+        </label>
     </form>
-    <p><strong>Total active students:</strong> {{ page_obj.paginator.count }} | <strong>With entries:</strong> {{ entry_count }}</p>
-    <table>
-        <thead>
-            <tr>
-                <th>Name</th>
-                <th>Grade</th>
-                <th>House</th>
-                <th>Gender</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for student in students %}
-            <tr>
-                <td>{{ student.full_name }}</td>
-                <td>{{ student.grade }}</td>
-                <td>{{ student.house }}</td>
-                <td>{{ student.gender }}</td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="4">No students match your search.</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    <nav class="actions">
-        {% if page_obj.has_previous %}
-        <a href="?page={{ page_obj.previous_page_number }}" role="button">Previous</a>
-        {% endif %}
-        <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
-        {% if page_obj.has_next %}
-        <a href="?page={{ page_obj.next_page_number }}" role="button">Next</a>
-        {% endif %}
-    </nav>
+
+    <div id="students-table" hx-get="{% url 'sportsday:students-table-fragment' %}{% if query_params %}?{{ query_params }}{% endif %}" hx-trigger="load" hx-target="this" hx-swap="outerHTML">
+        <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-6 text-sm text-slate-400">Loading students…</div>
+    </div>
 </section>
+{% endblock %}
+{% block mobile_nav %}
+    {% if mobile_nav %}
+        <nav class="fixed bottom-0 inset-x-0 z-40 border-t border-slate-800 bg-dusk/95 backdrop-blur md:hidden">
+            <ul class="grid grid-cols-4 text-xs font-medium text-slate-300">
+                {% for item in mobile_nav %}
+                    <li>
+                        <a href="{{ item.url }}" class="flex flex-col items-center justify-center gap-1 py-3 {% if item.label|lower == mobile_nav_active %}text-sky-300{% else %}hover:text-sky-200{% endif %}">
+                            <span>{{ item.label }}</span>
+                        </a>
+                    </li>
+                {% endfor %}
+            </ul>
+        </nav>
+    {% endif %}
 {% endblock %}

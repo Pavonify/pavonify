@@ -1,0 +1,32 @@
+<section class="space-y-4" id="event-printables" hx-target="this" hx-swap="innerHTML">
+    <header class="flex items-center justify-between gap-3">
+        <div>
+            <h2 class="text-lg font-semibold text-ink">Printables</h2>
+            <p class="text-sm text-slate-600">Generate ready-to-print packs for marshals, officials, and presentation teams.</p>
+        </div>
+        <div class="flex flex-wrap gap-2 text-sm text-slate-700">
+            <span class="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-3 py-1">A4 friendly</span>
+            <span class="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-3 py-1">High contrast</span>
+        </div>
+    </header>
+    <div class="grid gap-4 md:grid-cols-3">
+        <article class="space-y-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <h3 class="text-sm font-semibold text-ink">Start list packets</h3>
+            <p class="text-sm text-slate-600">Landscape option with large lanes and QR fallback links.</p>
+            <div class="flex flex-wrap gap-2">
+                <a href="{% url 'sportsday:event-start-list-printable' event.pk %}?round={{ active_round }}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 rounded-full border border-slate-300 px-4 py-2 text-xs font-medium text-slate-700 hover:border-sky-500 hover:text-sky-700">Portrait</a>
+                <a href="{% url 'sportsday:event-start-list-printable' event.pk %}?round={{ active_round }}&orientation=landscape" target="_blank" rel="noopener" class="inline-flex items-center gap-2 rounded-full border border-slate-300 px-4 py-2 text-xs font-medium text-slate-700 hover:border-sky-500 hover:text-sky-700">Landscape</a>
+            </div>
+        </article>
+        <article class="space-y-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <h3 class="text-sm font-semibold text-ink">Marshal cards</h3>
+            <p class="text-sm text-slate-600">Individual athlete cards with heat, lane, and house colour tags.</p>
+            <a href="{% url 'sportsday:event-marshal-cards-printable' event.pk %}?round={{ active_round }}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 rounded-full border border-slate-300 px-4 py-2 text-xs font-medium text-slate-700 hover:border-sky-500 hover:text-sky-700">Open marshal cards</a>
+        </article>
+        <article class="space-y-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <h3 class="text-sm font-semibold text-ink">Medal labels</h3>
+            <p class="text-sm text-slate-600">Top finishers with ranking, house, and best mark for podium stickers.</p>
+            <a href="{% url 'sportsday:event-medal-labels-printable' event.pk %}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 rounded-full border border-slate-300 px-4 py-2 text-xs font-medium text-slate-700 hover:border-sky-500 hover:text-sky-700">Open medal labels</a>
+        </article>
+    </div>
+</section>

@@ -1,0 +1,51 @@
+{% extends "sportsday/base.html" %}
+{% block title %}Sports Day · Events{% endblock %}
+{% block content %}
+<section class="space-y-6">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+            <p class="text-sm uppercase tracking-widest text-slate-400">Schedule</p>
+            <h1 class="text-2xl font-semibold">Events</h1>
+            {% if active_meet %}
+                <p class="text-sm text-slate-400">Meet scope: {{ active_meet.name }}</p>
+            {% else %}
+                <p class="text-sm text-slate-400">Select a meet to filter the running order.</p>
+            {% endif %}
+        </div>
+        <form method="get" class="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <label class="flex items-center gap-2 text-sm text-slate-300">
+                <span class="text-xs uppercase tracking-widest text-slate-500">Meet</span>
+                <select name="meet" class="rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-200">
+                    <option value="">All meets</option>
+                    {% for meet in meet_options %}
+                        <option value="{{ meet.slug }}" {% if meet.slug == request.GET.meet %}selected{% endif %}>{{ meet.name }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <div class="relative">
+                <label class="sr-only" for="event-search">Search events</label>
+                <input id="event-search" name="q" type="search" placeholder="Search events" class="w-full rounded-full border border-slate-700 bg-slate-900/60 px-4 py-2 text-sm focus:border-sky-500 focus:outline-none" value="{{ request.GET.q }}" hx-get="{% url 'sportsday:events' %}" hx-target="#events-schedule" hx-trigger="keyup changed delay:300ms" hx-include="closest form">
+            </div>
+        </form>
+    </div>
+
+    <div id="events-schedule" class="space-y-4" hx-target="this" hx-swap="outerHTML">
+        {% include "sportsday/partials/events_schedule.html" %}
+    </div>
+</section>
+{% endblock %}
+{% block mobile_nav %}
+    {% if mobile_nav %}
+        <nav class="fixed bottom-0 inset-x-0 z-40 border-t border-slate-800 bg-dusk/95 backdrop-blur md:hidden">
+            <ul class="grid grid-cols-4 text-xs font-medium text-slate-300">
+                {% for item in mobile_nav %}
+                    <li>
+                        <a href="{{ item.url }}" class="flex flex-col items-center justify-center gap-1 py-3 {% if item.label|lower == mobile_nav_active %}text-sky-300{% else %}hover:text-sky-200{% endif %}">
+                            <span>{{ item.label }}</span>
+                        </a>
+                    </li>
+                {% endfor %}
+            </ul>
+        </nav>
+    {% endif %}
+{% endblock %}

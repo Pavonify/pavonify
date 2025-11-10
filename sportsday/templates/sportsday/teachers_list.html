@@ -1,47 +1,23 @@
 {% extends "sportsday/base.html" %}
-{% block title %}Teachers · {{ meet.name }}{% endblock %}
-{% block header_actions %}
-<nav class="actions">
-    <a href="{% url 'sportsday:dashboard' meet.slug %}" role="button">Back to dashboard</a>
-</nav>
-{% endblock %}
+{% block title %}Sports Day · Teachers{% endblock %}
 {% block content %}
-<section class="card">
-    <h2>Teachers</h2>
-    <form method="get" class="actions">
-        <input type="text" name="q" placeholder="Search by name or username" value="{{ request.GET.q }}">
-        <button type="submit">Filter</button>
-    </form>
-    <table>
-        <thead>
-            <tr>
-                <th>Name</th>
-                <th>Username</th>
-                <th>Email</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for teacher in teachers %}
-            <tr>
-                <td>{{ teacher.get_full_name|default:teacher.username }}</td>
-                <td>{{ teacher.username }}</td>
-                <td>{% if teacher.email %}{{ teacher.email }}{% else %}<em>Not provided</em>{% endif %}</td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="3">No teachers found.</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    <nav class="actions">
-        {% if page_obj.has_previous %}
-        <a href="?page={{ page_obj.previous_page_number }}" role="button">Previous</a>
-        {% endif %}
-        <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
-        {% if page_obj.has_next %}
-        <a href="?page={{ page_obj.next_page_number }}" role="button">Next</a>
-        {% endif %}
-    </nav>
+<section class="space-y-6">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+            <p class="text-sm uppercase tracking-widest text-slate-400">Officials</p>
+            <h1 class="text-2xl font-semibold">Teachers</h1>
+            <p class="text-sm text-slate-400">Import your staff list and assign duties with a tap.</p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+            <a href="{% url 'sportsday:export-teachers-csv' %}" class="inline-flex items-center gap-2 rounded-full border border-slate-700 px-4 py-2 text-sm text-slate-300 hover:border-sky-500/40 hover:text-sky-200">Export CSV</a>
+            <a href="{% url 'sportsday:meet-wizard-template' 'teachers' %}" class="inline-flex items-center gap-2 rounded-full bg-sky-500 px-4 py-2 text-sm font-medium text-slate-900 shadow-lg shadow-sky-500/40 hover:bg-sky-400">Download template</a>
+        </div>
+    </div>
+
+    <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-6">
+        <div id="teachers-table" hx-get="{% url 'sportsday:teachers-table-fragment' %}" hx-trigger="load" hx-target="this" hx-swap="outerHTML">
+            <div class="rounded-xl border border-slate-800/80 bg-slate-900/50 p-4 text-sm text-slate-400">Loading teachers…</div>
+        </div>
+    </div>
 </section>
 {% endblock %}

@@ -1,254 +1,359 @@
-"""Domain services for the Sports Day module."""
+"""Domain helpers and result processing logic for the Sports Day app."""
+
 from __future__ import annotations
 
-import csv
-import datetime as dt
-import io
-import math
-import re
+from collections import defaultdict
 from dataclasses import dataclass
-from decimal import Decimal, ROUND_HALF_UP
-from typing import Iterable, List, Optional, Sequence
+from decimal import Decimal, InvalidOperation
+from typing import Iterable
 
 from django.db import transaction
+from django.db.models import F
+
+from types import SimpleNamespace
 
 from . import models
 
-TIME_PATTERN = re.compile(r"^(?:(?P<h>\d+):)?(?P<m>\d{1,2}):(?P<s>\d{1,2})(?:[\.,](?P<ms>\d{1,3}))?$")
-DISTANCE_PATTERN = re.compile(r"^(?P<meters>\d+)(?:m(?P<cm>\d{1,2}))?(?:[\.,](?P<dec>\d{1,3}))?$")
-DATE_FORMATS = ("%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y")
+__all__ = [
+    "parse_time_to_seconds",
+    "normalize_distance",
+    "rank_track",
+    "rank_field",
+    "apply_qualifiers",
+    "scoring_rule_for_meet",
+    "compute_scoring_records",
+]
 
 
-class CSVImportError(Exception):
-    """Raised when a CSV import cannot be processed."""
+@dataclass(frozen=True)
+class ScoringRecord:
+    """Container describing the scoring outcome for an entry."""
+
+    entry: models.Entry
+    event: models.Event
+    student: models.Student
+    rank: int | None
+    best_value: Decimal | None
+    points: Decimal
+    participation: Decimal
+
+    @property
+    def house(self) -> str:
+        return self.student.house or "Unaffiliated"
+
+    @property
+    def grade(self) -> str:
+        return self.student.grade or "—"
+
+    @property
+    def total(self) -> Decimal:
+        return (self.points or Decimal("0")) + (self.participation or Decimal("0"))
 
 
-@dataclass
-class ParsedStudentRow:
-    raw: dict
-    student: Optional[models.Student]
-    is_update: bool
+def parse_time_to_seconds(value: str | float | Decimal | None) -> Decimal | None:
+    """Parse a human-friendly time string (mm:ss.mmm or ss.mmm) into seconds."""
 
-
-GENDER_ALIASES = {
-    "m": "Male",
-    "male": "Male",
-    "f": "Female",
-    "female": "Female",
-    "mixed": "Mixed",
-    "x": "Mixed",
-    "other": "Other",
-}
-
-
-def parse_time_to_seconds(value: str) -> Decimal:
-    """Parse a flexible time string into seconds with millisecond precision."""
-
-    if value is None:
-        raise ValueError("Time value cannot be None")
-    value = value.strip()
-    if not value:
-        raise ValueError("Time value cannot be blank")
-    value = value.replace(" ", "")
-    if value.isdigit():
-        return Decimal(value)
-    match = TIME_PATTERN.match(value.replace(".", ".").replace(",", "."))
-    if not match:
-        raise ValueError(f"Unsupported time format: {value}")
-    hours = int(match.group("h") or 0)
-    minutes = int(match.group("m") or 0)
-    seconds = int(match.group("s") or 0)
-    milliseconds = match.group("ms")
-    ms = Decimal(f"0.{milliseconds}") if milliseconds else Decimal("0")
-    total_seconds = Decimal(hours * 3600 + minutes * 60 + seconds) + ms
-    return total_seconds.quantize(Decimal("0.001"), rounding=ROUND_HALF_UP)
-
-
-def normalize_distance(value: str) -> Decimal:
-    """Convert a distance string to meters with centimeter support."""
-
-    if value is None:
-        raise ValueError("Distance value cannot be None")
-    clean = value.strip().lower().replace(" ", "")
-    clean = clean.replace(",", ".")
-    match = DISTANCE_PATTERN.match(clean)
-    if match:
-        meters = Decimal(match.group("meters"))
-        cm = match.group("cm")
-        dec = match.group("dec")
-        if cm and not dec:
-            dec = cm
-        fraction = Decimal(f"0.{dec}") if dec else Decimal("0")
-        result = meters + fraction
-        return result.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-    try:
-        return Decimal(clean).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-    except Exception as exc:  # pragma: no cover - fallback path
-        raise ValueError(f"Unsupported distance format: {value}") from exc
-
-
-def parse_date(value: str) -> dt.date:
-    for fmt in DATE_FORMATS:
-        try:
-            return dt.datetime.strptime(value, fmt).date()
-        except ValueError:
-            continue
-    raise ValueError(f"Unsupported date format: {value}")
-
-
-def normalise_gender(value: str) -> str:
-    key = value.strip().lower()
-    if key not in GENDER_ALIASES:
-        raise ValueError(f"Unsupported gender: {value}")
-    return GENDER_ALIASES[key]
-
-
-def rank_results(values: Sequence[Optional[Decimal]], event_type: str) -> List[Optional[int]]:
-    """Return ranks for the given value list according to event type ordering."""
-
-    ordering = []
-    for idx, val in enumerate(values):
-        if val is None or (isinstance(val, float) and math.isnan(val)):
-            continue
-        multiplier = 1
-        if event_type == models.Event.EVENT_TIME:
-            multiplier = 1
-        elif event_type in {models.Event.EVENT_DISTANCE, models.Event.EVENT_COUNT}:
-            multiplier = -1
-        ordering.append((val * multiplier, idx))
-    ordering.sort()
-    ranks: List[Optional[int]] = [None] * len(values)
-    if not ordering:
-        return ranks
-    current_rank = 1
-    previous_value = None
-    tied_indices: List[int] = []
-    for position, (value, original_idx) in enumerate(ordering, start=1):
-        if previous_value is None or value != previous_value:
-            if tied_indices:
-                _assign_ties(ranks, tied_indices, current_rank, position - 1)
-                current_rank = position
-                tied_indices = []
-            previous_value = value
-        tied_indices.append(original_idx)
-    if tied_indices:
-        _assign_ties(ranks, tied_indices, current_rank, len(ordering))
-    return ranks
-
-
-def _assign_ties(ranks: List[Optional[int]], indices: List[int], start_rank: int, end_position: int) -> None:
-    average_rank = (start_rank + end_position) // 2 if len(indices) > 1 else start_rank
-    for idx in indices:
-        ranks[idx] = average_rank
-
-
-def allocate_points(event: models.Event, scoring_rule: models.ScoringRule, ranks: Sequence[Optional[int]]) -> List[int]:
-    points = scoring_rule.point_map()
-    allocations: List[int] = [0] * len(ranks)
-    if not any(ranks):
-        return allocations
-
-    rank_groups: dict[int, List[int]] = {}
-    for idx, rank in enumerate(ranks):
-        if rank is None or rank <= 0:
-            continue
-        rank_groups.setdefault(rank, []).append(idx)
-
-    for rank, indices in rank_groups.items():
-        point_index = rank - 1
-        if point_index >= len(points):
-            continue
-        if scoring_rule.tie_method == models.ScoringRule.TIE_SKIP:
-            for idx in indices:
-                allocations[idx] = points[point_index]
-            continue
-        if len(indices) == 1:
-            allocations[indices[0]] = points[point_index]
-            continue
-        # SHARE: average points for the tied places
-        share_points = points[point_index : point_index + len(indices)]
-        if not share_points:
-            continue
-        average = sum(share_points) / len(share_points)
-        for idx in indices:
-            allocations[idx] = int(Decimal(average).quantize(Decimal("0"), rounding=ROUND_HALF_UP))
-    return allocations
-
-
-def load_students_from_csv(meet: models.Meet, csv_file: io.TextIOBase, *, user=None) -> List[ParsedStudentRow]:
-    """Parse and upsert students from a CSV file-like object."""
-
-    reader = csv.DictReader(csv_file)
-    required_headers = {"first_name", "last_name", "dob", "grade", "house", "gender", "external_id"}
-    missing = required_headers - set(reader.fieldnames or [])
-    if missing:
-        raise CSVImportError(f"Missing required columns: {', '.join(sorted(missing))}")
-
-    parsed_rows: List[ParsedStudentRow] = []
-    for row in reader:
-        if not any(row.values()):
-            continue
-        try:
-            dob = parse_date(row["dob"].strip())
-            grade = row["grade"].strip().upper()
-            if grade not in {f"G{i}" for i in range(6, 13)}:
-                raise ValueError("Grade must be within G6-G12")
-            gender = normalise_gender(row["gender"])
-        except ValueError as exc:
-            raise CSVImportError(str(exc)) from exc
-        defaults = {
-            "first_name": row["first_name"].strip(),
-            "last_name": row["last_name"].strip(),
-            "dob": dob,
-            "grade": grade,
-            "house": row["house"].strip(),
-            "gender": gender,
-            "is_active": True,
-        }
-        external_id = row.get("external_id", "").strip()
-        student: Optional[models.Student] = None
-        is_update = False
-        if external_id:
-            student, created = models.Student.objects.update_or_create(
-                external_id=external_id,
-                defaults=defaults,
-            )
-            is_update = not created
+    if value in (None, ""):
+        return None
+    if isinstance(value, Decimal):
+        candidate = value
+    elif isinstance(value, (int, float)):
+        candidate = Decimal(str(value))
+    else:
+        text = value.strip()
+        if not text:
+            return None
+        if ":" in text:
+            parts = text.split(":")
+            if len(parts) != 2:
+                raise ValueError("Use mm:ss.mmm or ss.mmm format for times.")
+            minutes, seconds = parts
+            try:
+                candidate = Decimal(minutes) * Decimal(60) + Decimal(seconds)
+            except InvalidOperation as exc:  # pragma: no cover - defensive
+                raise ValueError("Invalid time value supplied.") from exc
         else:
-            matches = models.Student.objects.filter(
-                first_name__iexact=defaults["first_name"],
-                last_name__iexact=defaults["last_name"],
-                dob__range=(dob - dt.timedelta(days=3), dob + dt.timedelta(days=3)),
+            try:
+                candidate = Decimal(text)
+            except InvalidOperation as exc:
+                raise ValueError("Invalid time value supplied.") from exc
+    if candidate < 0:
+        raise ValueError("Time cannot be negative.")
+    return candidate.quantize(Decimal("0.001"))
+
+
+def normalize_distance(value: str | float | Decimal | None) -> Decimal | None:
+    """Normalise a distance/count entry into metres or integer counts."""
+
+    if value in (None, ""):
+        return None
+    if isinstance(value, Decimal):
+        candidate = value
+    elif isinstance(value, (int, float)):
+        candidate = Decimal(str(value))
+    else:
+        text = value.strip().lower()
+        if not text:
+            return None
+        if text.endswith("cm"):
+            text = text[:-2].strip()
+            try:
+                candidate = Decimal(text) / Decimal(100)
+            except InvalidOperation as exc:
+                raise ValueError("Invalid distance supplied.") from exc
+        elif text.endswith("m"):
+            text = text[:-1].strip()
+            try:
+                candidate = Decimal(text)
+            except InvalidOperation as exc:
+                raise ValueError("Invalid distance supplied.") from exc
+        else:
+            try:
+                candidate = Decimal(text)
+            except InvalidOperation as exc:
+                raise ValueError("Invalid distance supplied.") from exc
+    if candidate < 0:
+        raise ValueError("Distance/count cannot be negative.")
+    return candidate.quantize(Decimal("0.001"))
+
+
+def rank_track(entries: list[dict]) -> None:
+    """Assign ranks on track events using ascending times."""
+
+    for payload in entries:
+        payload["rank"] = None
+    confirmed = [
+        payload
+        for payload in entries
+        if payload.get("status") == models.Entry.Status.CONFIRMED and payload.get("best_value") is not None
+    ]
+    missing_times = [
+        payload
+        for payload in entries
+        if payload.get("status") == models.Entry.Status.CONFIRMED and payload.get("best_value") is None
+    ]
+    if missing_times and not confirmed:
+        raise ValueError("First place requires a recorded time.")
+    if not confirmed:
+        return
+    confirmed.sort(key=lambda item: item["best_value"])
+    if confirmed[0]["best_value"] is None:
+        raise ValueError("First place requires a recorded time.")
+    running_rank = 0
+    last_time: Decimal | None = None
+    for idx, payload in enumerate(confirmed, start=1):
+        time_value: Decimal | None = payload.get("best_value")
+        if time_value is None:
+            continue
+        if last_time is None or time_value != last_time:
+            running_rank = idx
+            last_time = time_value
+        payload["rank"] = running_rank
+
+
+def rank_field(entries: list[dict]) -> None:
+    """Assign ranks on field events using best attempts then tiebreak attempts."""
+
+    for payload in entries:
+        payload["rank"] = None
+        series = payload.get("series") or []
+        payload["_sort_key"] = tuple(
+            Decimal("0") if attempt is None else -attempt for attempt in series
+        )
+
+    contenders = [
+        payload
+        for payload in entries
+        if payload.get("status") == models.Entry.Status.CONFIRMED and payload.get("best_value") is not None
+    ]
+    contenders.sort(key=lambda item: item["_sort_key"])
+    index = 1
+    grouped: dict[tuple, list[dict]] = defaultdict(list)
+    for payload in contenders:
+        grouped[payload["_sort_key"]].append(payload)
+    for key in sorted(grouped.keys()):
+        cohort = grouped[key]
+        for payload in cohort:
+            payload["rank"] = index
+        index += len(cohort)
+    for payload in entries:
+        payload.pop("_sort_key", None)
+
+
+def apply_qualifiers(round_entries: Iterable[dict], pattern: str | None) -> list[models.Entry]:
+    """Create entries for finalists based on knockout qualifier pattern."""
+
+    if not pattern:
+        return []
+    segments = [segment.strip() for segment in pattern.split(";") if segment.strip()]
+    if not segments:
+        return []
+
+    by_heat: dict[int, list[dict]] = defaultdict(list)
+    ordered: list[dict] = []
+    for payload in round_entries:
+        entry: models.Entry = payload["entry"]
+        if payload.get("rank") is None:
+            continue
+        by_heat[entry.heat].append(payload)
+        ordered.append(payload)
+
+    per_heat = 0
+    extra_slots = 0
+    for segment in segments:
+        if segment.startswith("Q:"):
+            try:
+                per_heat = int(segment[2:])
+            except ValueError as exc:
+                raise ValueError("Invalid qualifier segment.") from exc
+        elif segment.startswith("q:"):
+            try:
+                extra_slots = int(segment[2:])
+            except ValueError as exc:
+                raise ValueError("Invalid qualifier segment.") from exc
+        else:
+            raise ValueError("Unrecognised qualifier segment.")
+
+    qualifiers: list[models.Entry] = []
+    taken: set[int] = set()
+    if per_heat:
+        for heat, payloads in by_heat.items():
+            ordered_heat = sorted(payloads, key=lambda item: item["rank"])
+            for payload in ordered_heat[:per_heat]:
+                qualifiers.append(payload["entry"])
+                taken.add(payload["entry"].pk)
+
+    ordered.sort(key=lambda item: item.get("best_value") or Decimal("999999"))
+    if extra_slots:
+        extra_added = 0
+        for payload in ordered:
+            if extra_added >= extra_slots:
+                break
+            entry = payload["entry"]
+            if entry.pk in taken:
+                continue
+            if payload.get("best_value") is None:
+                continue
+            qualifiers.append(entry)
+            taken.add(entry.pk)
+            extra_added += 1
+
+    if not qualifiers:
+        return []
+
+    created: list[models.Entry] = []
+    next_round = qualifiers[0].round_no + 1
+    with transaction.atomic():
+        for finalist in qualifiers:
+            event = finalist.event
+            if next_round > event.rounds_total:
+                continue
+            entry, was_created = models.Entry.objects.get_or_create(
+                event=event,
+                student=finalist.student,
+                round_no=next_round,
+                defaults={"heat": 1},
             )
-            if matches.exists():
-                student = matches.first()
-                for attr, value in defaults.items():
-                    setattr(student, attr, value)
-                student.save()
-                is_update = True
-            else:
-                student = models.Student.objects.create(**defaults)
-        parsed_rows.append(ParsedStudentRow(raw=row, student=student, is_update=is_update))
-    if user:
-        models.AuditLog.objects.create(user=user, action="UPLOAD_STUDENTS", payload={"count": len(parsed_rows), "meet": meet.slug})
-    return parsed_rows
+            if was_created:
+                created.append(entry)
+    return created
 
 
-@transaction.atomic
-def seed_default_meet() -> models.Meet:
-    meet, _ = models.Meet.objects.get_or_create(
-        slug="harrow-2026",
-        defaults={
-            "name": "Harrow Sports Day 2026",
-            "date": dt.date.today(),
-            "max_events_per_student": 3,
-        },
-    )
-    models.ScoringRule.objects.get_or_create(
+def scoring_rule_for_meet(meet: models.Meet) -> models.ScoringRule | SimpleNamespace:
+    """Return the scoring rule for a meet, falling back to sensible defaults."""
+
+    rule = meet.scoring_rules.order_by("id").first()
+    if rule:
+        return rule
+    return SimpleNamespace(
         meet=meet,
-        scope=models.ScoringRule.SCOPE_EVENT,
-        defaults={"points_csv": "10,8,6,5,4,3,2,1", "per_house": True},
+        points_csv="10,8,6,5,4,3,2,1",
+        participation_point=Decimal("0"),
+        tie_method=models.ScoringRule.TieMethod.SHARE,
     )
-    for house_name in ("Churchill", "Montgomery", "Nehru", "Attlee"):
-        models.House.objects.get_or_create(name=house_name, defaults={"slug": house_name.lower().replace(" ", "-")})
-    return meet
+
+
+def _parse_points_csv(points_csv: str) -> list[Decimal]:
+    values: list[Decimal] = []
+    for part in points_csv.split(","):
+        chunk = part.strip()
+        if not chunk:
+            continue
+        try:
+            values.append(Decimal(chunk))
+        except InvalidOperation:
+            values.append(Decimal("0"))
+    return values
+
+
+def _points_for_position(schedule: list[Decimal], position: int) -> Decimal:
+    if position <= 0:
+        return Decimal("0")
+    index = position - 1
+    if index >= len(schedule):
+        return Decimal("0")
+    return schedule[index]
+
+
+def compute_scoring_records(meet: models.Meet) -> list[ScoringRecord]:
+    """Return scoring records for finalized results in the meet."""
+
+    rule = scoring_rule_for_meet(meet)
+    schedule = _parse_points_csv(rule.points_csv)
+    participation_value = getattr(rule, "participation_point", Decimal("0")) or Decimal("0")
+    participation_value = Decimal(participation_value)
+
+    finalized_results = (
+        models.Result.objects.filter(
+            entry__event__meet=meet,
+            finalized=True,
+            entry__status=models.Entry.Status.CONFIRMED,
+            entry__round_no=F("entry__event__rounds_total"),
+        )
+        .select_related("entry__student", "entry__event")
+        .order_by("entry__event_id", "rank", "entry__pk")
+    )
+
+    per_event: dict[int, list[ScoringRecord]] = defaultdict(list)
+
+    for result in finalized_results:
+        entry = result.entry
+        per_event[entry.event_id].append(
+            ScoringRecord(
+                entry=entry,
+                event=entry.event,
+                student=entry.student,
+                rank=result.rank,
+                best_value=result.best_value,
+                points=Decimal("0"),
+                participation=participation_value,
+            )
+        )
+
+    records: list[ScoringRecord] = []
+    for event_id, event_records in per_event.items():
+        by_rank: dict[int, list[ScoringRecord]] = defaultdict(list)
+        for record in event_records:
+            if record.rank is None:
+                continue
+            by_rank[int(record.rank)].append(record)
+
+        for rank in sorted(by_rank.keys()):
+            cohort = by_rank[rank]
+            if not cohort:
+                continue
+            tie_count = len(cohort)
+            if getattr(rule, "tie_method", models.ScoringRule.TieMethod.SHARE) == models.ScoringRule.TieMethod.SHARE:
+                total_points = Decimal("0")
+                for offset in range(tie_count):
+                    total_points += _points_for_position(schedule, rank + offset)
+                award = total_points / tie_count if tie_count else Decimal("0")
+            else:
+                award = _points_for_position(schedule, rank)
+            award = award.quantize(Decimal("0.01")) if award % 1 else award
+            for record in cohort:
+                object.__setattr__(record, "points", award)
+
+        records.extend(event_records)
+
+    return records

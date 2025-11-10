@@ -1,0 +1,40 @@
+<section
+    class="space-y-4"
+    id="{{ panel_id }}"
+    hx-target="this"
+    hx-swap="outerHTML"
+    {% if refresh_url %}hx-get="{{ refresh_url }}"{% endif %}
+    hx-trigger="every 20s"
+>
+    <header class="flex items-center justify-between gap-3">
+        <div>
+            <h2 class="text-lg font-semibold text-ink">{{ heading }}</h2>
+            <p class="text-sm text-slate-600">{{ subheading }}</p>
+        </div>
+        <span class="rounded-full border border-slate-200 px-3 py-1 text-xs uppercase tracking-widest text-slate-600">{{ rows|length }} rows</span>
+    </header>
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-slate-200 text-left text-sm">
+            <thead class="text-xs uppercase tracking-widest text-slate-600">
+                <tr>
+                    {% for col in columns %}
+                        <th class="px-4 py-3 {{ col.align|default:'text-left' }}">{{ col.label }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200 text-slate-800">
+                {% for row in rows %}
+                    <tr>
+                        {% for cell in row %}
+                            <td class="px-4 py-3 {{ cell.align|default:'text-left' }}">{{ cell.value }}</td>
+                        {% endfor %}
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="{{ columns|length }}" class="px-4 py-6 text-center text-slate-500">No data yet. Once results are captured this table will light up.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>

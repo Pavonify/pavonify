@@ -1,0 +1,228 @@
+<section class="space-y-6" id="event-start" hx-target="this" hx-swap="innerHTML">
+    <div id="start-list-hidden" class="hidden">
+        {% csrf_token %}
+        <input type="hidden" name="round_no" value="{{ active_round }}">
+        <input type="hidden" name="q" value="{{ search_query }}">
+    </div>
+    <div id="start-list-round" class="hidden">
+        <input type="hidden" name="round" value="{{ active_round }}">
+    </div>
+    {% if locked_reason %}
+        <div class="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+            {{ locked_reason }}
+        </div>
+    {% endif %}
+    <header class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+            <h2 class="text-lg font-semibold text-ink">Start Lists</h2>
+            <p class="text-sm text-slate-600">
+                Drag to reseed heats, auto-balance lanes, and keep participation limits in check.
+            </p>
+        </div>
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div class="flex items-center gap-2">
+                <label for="start-list-round-select" class="text-xs uppercase tracking-wide text-slate-600">Round</label>
+                <select
+                    id="start-list-round-select"
+                    name="round"
+                    class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-ink focus:border-sky-500 focus:ring-sky-500"
+                    hx-get="{% url 'sportsday:event-start-list-fragment' event.pk %}"
+                    hx-target="#event-start"
+                    hx-trigger="change"
+                    hx-include="#start-list-hidden"
+                    {% if locked_reason %}disabled{% endif %}
+                >
+                    {% for option in round_options %}
+                        <option value="{{ option }}" {% if option == active_round %}selected{% endif %}>Round {{ option }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="flex items-center gap-2">
+                <div class="relative">
+                    <input
+                        type="search"
+                        name="q"
+                        value="{{ search_query }}"
+                        placeholder="Search roster…"
+                        class="w-48 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-ink focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                        hx-get="{% url 'sportsday:event-start-list-fragment' event.pk %}"
+                        hx-target="#event-start"
+                        hx-trigger="keyup changed delay:400ms"
+                        hx-include="#start-list-round"
+                        {% if locked_reason %}disabled{% endif %}
+                    >
+                </div>
+                <a
+                    href="{% url 'sportsday:export-startlists-csv' %}?event={{ event.pk }}&round={{ active_round }}"
+                    class="inline-flex items-center gap-2 rounded-full border border-slate-300 px-4 py-2 text-sm text-slate-700 hover:border-sky-500 hover:text-sky-700"
+                >
+                    Download CSV
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <div class="grid gap-4 lg:grid-cols-[2fr,3fr]">
+        <div class="space-y-4">
+            <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                <h3 class="mb-3 text-sm font-semibold text-ink">Add to start list</h3>
+                <form
+                    hx-post="{% url 'sportsday:event-start-list-add' event.pk %}"
+                    hx-target="#event-start"
+                    hx-swap="outerHTML"
+                    hx-include="#start-list-hidden"
+                    class="space-y-3"
+                    {% if locked_reason %}aria-disabled="true"{% endif %}
+                >
+                    {% if form.non_field_errors %}
+                        <div class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">
+                            {% for error in form.non_field_errors %}
+                                <div>{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    <div class="space-y-2">
+                        <label class="text-xs uppercase tracking-wide text-slate-600">Student</label>
+                        {{ form.student }}
+                        {% if form.errors.student %}
+                            <p class="text-xs text-red-600">{{ form.errors.student|join:', ' }}</p>
+                        {% endif %}
+                    </div>
+                    {% if form.fields.round_no.widget.is_hidden %}
+                        {{ form.round_no }}
+                    {% else %}
+                        <div class="space-y-2">
+                            <label class="text-xs uppercase tracking-wide text-slate-600">Round</label>
+                            {{ form.round_no }}
+                            {% if form.errors.round_no %}
+                                <p class="text-xs text-red-600">{{ form.errors.round_no|join:', ' }}</p>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                    <button
+                        type="submit"
+                        class="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-sky-500 {% if locked_reason %}opacity-60 cursor-not-allowed{% endif %}"
+                        {% if locked_reason %}disabled{% endif %}
+                    >
+                        Add athlete
+                    </button>
+                </form>
+            </div>
+            <div class="rounded-xl border border-slate-200 bg-white p-4 space-y-2 shadow-sm">
+                <h3 class="text-sm font-semibold text-ink">Quick tools</h3>
+                <p class="text-xs text-slate-600">Use these helpers to tidy lane assignments.</p>
+                <div class="flex flex-wrap gap-2">
+                    <button
+                        type="button"
+                        class="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-xs font-medium text-slate-700 hover:border-sky-500 hover:text-sky-700 {% if locked_reason %}opacity-60 cursor-not-allowed{% endif %}"
+                        hx-post="{% url 'sportsday:event-start-list-autobalance' event.pk %}"
+                        hx-target="#event-start"
+                        hx-swap="outerHTML"
+                        hx-include="#start-list-hidden"
+                        {% if locked_reason %}disabled{% endif %}
+                    >
+                        Auto-balance lanes
+                    </button>
+                    <button
+                        type="button"
+                        class="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-xs font-medium text-slate-700 hover:border-sky-500 hover:text-sky-700 {% if locked_reason %}opacity-60 cursor-not-allowed{% endif %}"
+                        hx-post="{% url 'sportsday:event-start-list-autoseed' event.pk %}"
+                        hx-target="#event-start"
+                        hx-swap="outerHTML"
+                        hx-include="#start-list-hidden"
+                        {% if locked_reason %}disabled{% endif %}
+                    >
+                        Auto-seed heats
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+            <table class="min-w-full divide-y divide-slate-200 text-left text-sm" hx-target="#event-start">
+                <thead class="text-xs uppercase tracking-widest text-slate-600">
+                    <tr>
+                        <th class="px-4 py-3">Lane / Order</th>
+                        <th class="px-4 py-3">Athlete</th>
+                        <th class="px-4 py-3">Heat</th>
+                        <th class="px-4 py-3">Round</th>
+                        <th class="px-4 py-3">Status</th>
+                        <th class="px-4 py-3 text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody
+                    class="divide-y divide-slate-200 text-slate-800"
+                    {% if not locked_reason %}
+                        hx-ext="sortable"
+                        hx-sortable="entry"
+                        hx-trigger="end"
+                        hx-post="{% url 'sportsday:event-start-list-reorder' event.pk %}"
+                        hx-target="#event-start"
+                        hx-swap="outerHTML"
+                        hx-include="#start-list-hidden"
+                    {% endif %}
+                >
+                    {% for entry in entries %}
+                        <tr hx-sortable-item hx-sortable-id="{{ entry.id }}">
+                            <td class="px-4 py-3 font-semibold">{{ entry.lane_or_order|default:entry.heat }}</td>
+                            <td class="px-4 py-3">
+                                <div class="font-medium text-ink">{{ entry.student.first_name }} {{ entry.student.last_name }}</div>
+                                <div class="text-xs text-slate-600">{{ entry.student.house }} · Grade {{ entry.student.grade }}</div>
+                            </td>
+                            <td class="px-4 py-3">Heat {{ entry.heat }}</td>
+                            <td class="px-4 py-3">Round {{ entry.round_no }}</td>
+                            <td class="px-4 py-3">
+                                <span class="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-3 py-1 text-xs font-medium text-emerald-700">{{ entry.get_status_display }}</span>
+                            </td>
+                            <td class="px-4 py-3 text-right">
+                                <button
+                                    type="button"
+                                    class="text-xs font-medium text-rose-600 hover:text-rose-700 {% if locked_reason %}opacity-60 cursor-not-allowed{% endif %}"
+                                    hx-post="{% url 'sportsday:event-start-list-remove' event.pk entry.id %}"
+                                    hx-target="#event-start"
+                                    hx-swap="outerHTML"
+                                    hx-include="#start-list-hidden"
+                                    {% if locked_reason %}disabled{% endif %}
+                                >
+                                    Remove
+                                </button>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="6" class="px-4 py-6 text-center text-slate-500">No athletes assigned yet. Use the roster to add participants.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% if not locked_reason %}
+        <div class="md:hidden fixed bottom-24 inset-x-4 z-30">
+            <div class="rounded-full border border-slate-200 bg-white px-4 py-3 shadow-lg">
+                <div class="flex items-center justify-around text-xs font-medium text-slate-700">
+                    <button
+                        type="button"
+                        class="flex-1 px-2"
+                        hx-post="{% url 'sportsday:event-start-list-autobalance' event.pk %}"
+                        hx-target="#event-start"
+                        hx-swap="outerHTML"
+                        hx-include="#start-list-hidden"
+                    >
+                        Balance
+                    </button>
+                    <span class="mx-2 h-5 w-px bg-slate-200"></span>
+                    <button
+                        type="button"
+                        class="flex-1 px-2"
+                        hx-post="{% url 'sportsday:event-start-list-autoseed' event.pk %}"
+                        hx-target="#event-start"
+                        hx-swap="outerHTML"
+                        hx-include="#start-list-hidden"
+                    >
+                        Auto-seed
+                    </button>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</section>

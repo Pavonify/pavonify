@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>{{ event.name }} · Start List</title>
+    <style>
+        @page {
+            size: A4 {% if orientation == 'landscape' %}landscape{% else %}portrait{% endif %};
+            margin: 15mm;
+        }
+        body {
+            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            color: #0f172a;
+            background: #ffffff;
+        }
+        h1, h2 {
+            margin: 0;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 8mm;
+        }
+        th, td {
+            border: 1px solid #cbd5f5;
+            padding: 6px 8px;
+            font-size: 12px;
+            text-align: left;
+        }
+        th {
+            background: #e0f2fe;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-size: 11px;
+        }
+        .heat-block {
+            margin-top: 12mm;
+            page-break-inside: avoid;
+        }
+        .meta {
+            font-size: 12px;
+            color: #475569;
+            margin-top: 2mm;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>{{ event.name }}</h1>
+        <div class="meta">
+            {{ event.meet.name }} · Round {{ round_no }}{% if supports_heats %} · {{ grouped_entries|length }} heat{{ grouped_entries|length|pluralize }}{% endif %}
+        </div>
+    </header>
+
+    {% for heat_number, items in grouped_entries %}
+        <section class="heat-block">
+            {% if supports_heats %}
+                <h2>Heat {{ heat_number }}</h2>
+            {% endif %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Lane / Order</th>
+                        <th>Athlete</th>
+                        <th>House</th>
+                        <th>Grade</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for entry in items %}
+                        <tr>
+                            <td>{{ entry.lane_or_order|default:entry.heat }}</td>
+                            <td>{{ entry.student.first_name }} {{ entry.student.last_name }}</td>
+                            <td>{{ entry.student.house }}</td>
+                            <td>{{ entry.student.grade }}</td>
+                            <td></td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+    {% empty %}
+        <p>No athletes assigned to this round yet.</p>
+    {% endfor %}
+</body>
+</html>
