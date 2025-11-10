@@ -1,55 +1,99 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="h-full">
 <head>
     <meta charset="utf-8">
     <title>{% block title %}Sports Day{% endblock %}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1.5.10/css/pico.min.css">
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script src="https://unpkg.com/htmx.org/dist/ext/sortable.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        midnight: '#0f172a',
+                        dusk: '#1e293b',
+                        dawn: '#f8fafc',
+                        ink: '#0f172a',
+                        sky: '#0369a1',
+                    }
+                }
+            }
+        }
+    </script>
     <style>
-        body { background: #0d1b2a; color: #e0e1dd; }
-        header, main, footer { max-width: 960px; margin: 0 auto; padding: 1rem; }
-        a { color: #98c1d9; }
-        .card-grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
-        .card { background: #1b263b; padding: 1rem; border-radius: 12px; box-shadow: 0 6px 16px rgba(0,0,0,0.3); }
-        .card h2 { margin-top: 0; }
-        .badge { display: inline-block; background: #415a77; color: #e0e1dd; padding: 0.25rem 0.75rem; border-radius: 999px; font-size: 0.85rem; }
-        table { width: 100%; border-collapse: collapse; background: #1b263b; }
-        th, td { padding: 0.75rem; border-bottom: 1px solid rgba(255,255,255,0.08); }
-        th { text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.75rem; }
-        .actions { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 1rem; }
-        .header-nav { margin: 1rem 0 0.5rem; }
-        .header-nav a { flex: 1 1 auto; text-align: center; }
-        .grade-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 0.5rem; margin: 0.5rem 0 1rem; }
-        .grade-option { display: flex; align-items: center; gap: 0.5rem; background: #1b263b; border-radius: 8px; padding: 0.5rem 0.75rem; box-shadow: inset 0 0 0 1px rgba(152, 193, 217, 0.2); }
-        .grade-option input[type="checkbox"] { margin: 0; }
+        body.sunlight-theme {
+            background: #f8fafc;
+            color: #0f172a;
+        }
+        .sunlight-theme .bg-slate-900,
+        .sunlight-theme .bg-slate-900\/60,
+        .sunlight-theme .bg-slate-900\/70,
+        .sunlight-theme .bg-slate-900\/40,
+        .sunlight-theme .bg-slate-950\/60,
+        .sunlight-theme .bg-slate-950\/70,
+        .sunlight-theme .bg-slate-950\/40 {
+            background-color: rgba(255, 255, 255, 0.95) !important;
+        }
+        .sunlight-theme .border-slate-800,
+        .sunlight-theme .border-slate-700 {
+            border-color: rgba(15, 23, 42, 0.25) !important;
+        }
+        .sunlight-theme .text-slate-400,
+        .sunlight-theme .text-slate-300 {
+            color: #0f172a !important;
+        }
+        .sunlight-theme .bg-dusk\/80,
+        .sunlight-theme .bg-dusk\/95 {
+            background-color: rgba(255, 255, 255, 0.88) !important;
+        }
+        .sunlight-theme .shadow-slate-900\/40 {
+            box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12) !important;
+        }
     </style>
     {% block extra_head %}{% endblock %}
 </head>
-<body>
-<header>
-    <h1>Harrow Sports Day</h1>
-    <p class="badge">Sports Coordination Console</p>
-    <nav class="actions header-nav">
-        <a href="{% url 'sportsday:meet_list' %}" role="button" class="secondary">Meets</a>
-        {% if meet %}
-        <a href="{% url 'sportsday:students' meet.slug %}" role="button" class="secondary">Students</a>
-        <a href="{% url 'sportsday:teachers' meet.slug %}" role="button" class="secondary">Teachers</a>
-        <a href="{% url 'sportsday:leaderboard' meet.slug %}" role="button" class="secondary">Results</a>
-        {% endif %}
-    </nav>
-    {% block header_actions %}{% endblock %}
-</header>
-<main>
-    {% for message in messages %}
-        <article class="card" style="border-left: 4px solid #e0e1dd;">
-            {{ message }}
-        </article>
-    {% endfor %}
-    {% block content %}{% endblock %}
-</main>
-<footer>
-    <small>&copy; {{ now|date:"Y" }} Pavonify Sports Day Module</small>
-</footer>
+<body class="sunlight-theme bg-dawn text-ink min-h-full flex flex-col">
+    <header class="bg-white/90 backdrop-blur border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+                <span class="inline-flex h-10 w-10 items-center justify-center rounded-full bg-sky/10 text-sky-700 font-semibold">SD</span>
+                <div>
+                    <a href="{% url 'sportsday:dashboard' %}" class="text-lg font-semibold tracking-wide text-ink">Sports Day Console</a>
+                    {% if active_meet %}
+                        <p class="text-xs text-slate-600">Active meet: {{ active_meet.name }}</p>
+                    {% endif %}
+                </div>
+            </div>
+            {% with url_name=request.resolver_match.url_name %}
+                <nav class="hidden md:flex items-center gap-2 text-sm">
+                    <a href="{% url 'sportsday:dashboard' %}" class="px-3 py-2 rounded-md transition {% if url_name == 'dashboard' %}bg-sky/10 text-sky-700 font-semibold{% else %}hover:bg-slate-200{% endif %}">Dashboard</a>
+                    <a href="{% url 'sportsday:meet-list' %}" class="px-3 py-2 rounded-md transition {% if url_name == 'meet-list' or url_name == 'meet-detail' or url_name == 'meet-create' %}bg-sky/10 text-sky-700 font-semibold{% else %}hover:bg-slate-200{% endif %}">Meets</a>
+                    <a href="{% url 'sportsday:students' %}{% if active_meet %}?meet={{ active_meet.slug }}{% endif %}" class="px-3 py-2 rounded-md transition {% if url_name == 'students' %}bg-sky/10 text-sky-700 font-semibold{% else %}hover:bg-slate-200{% endif %}">Students</a>
+                    <a href="{% url 'sportsday:teachers' %}" class="px-3 py-2 rounded-md transition {% if url_name == 'teachers' %}bg-sky/10 text-sky-700 font-semibold{% else %}hover:bg-slate-200{% endif %}">Teachers</a>
+                    <a href="{% url 'sportsday:events' %}{% if active_meet %}?meet={{ active_meet.slug }}{% endif %}" class="px-3 py-2 rounded-md transition {% if url_name == 'events' or url_name == 'event-detail' %}bg-sky/10 text-sky-700 font-semibold{% else %}hover:bg-slate-200{% endif %}">Events</a>
+                    <a href="{% url 'sportsday:leaderboards' %}{% if active_meet %}?meet={{ active_meet.slug }}{% endif %}" class="px-3 py-2 rounded-md transition {% if url_name == 'leaderboards' %}bg-sky/10 text-sky-700 font-semibold{% else %}hover:bg-slate-200{% endif %}">Leaderboards</a>
+                </nav>
+            {% endwith %}
+        </div>
+    </header>
+    <main class="flex-1 w-full">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+            {% if messages %}
+                <div class="space-y-3">
+                    {% for message in messages %}
+                        <div class="rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm text-ink shadow">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+    {% block mobile_nav %}{% endblock %}
+    <footer class="bg-white border-t border-slate-200">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 py-4 text-xs text-slate-600">&copy; {% now "Y" %} Pavonify Sports Day</div>
+    </footer>
 </body>
 </html>

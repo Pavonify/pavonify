@@ -1,0 +1,85 @@
+{% extends "sportsday/base.html" %}
+{% block title %}Sports Day · {{ meet.name }}{% endblock %}
+{% block content %}
+<section class="space-y-6">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+            <p class="text-sm uppercase tracking-widest text-slate-600">Meet hub</p>
+            <h1 class="text-2xl font-semibold text-ink">{{ meet.name }}</h1>
+            <p class="text-sm text-slate-600">{{ meet.date|date:"l, j F Y" }} · {{ meet.location|default:"Venue TBC" }}</p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+            <a href="{% url 'sportsday:events' %}?meet={{ meet.slug }}" class="inline-flex items-center gap-2 rounded-full bg-sky-100 px-4 py-2 text-sm text-sky-700 hover:bg-sky-200">View schedule</a>
+            <a href="{% url 'sportsday:students' %}?meet={{ meet.slug }}" class="inline-flex items-center gap-2 rounded-full border border-slate-300 px-4 py-2 text-sm text-slate-700 hover:border-sky-500 hover:text-sky-700">Manage roster</a>
+            <form method="post" action="{% url 'sportsday:meet-toggle-lock' meet.slug %}" hx-post="{% url 'sportsday:meet-toggle-lock' meet.slug %}" hx-target="closest section" hx-swap="outerHTML">
+                {% csrf_token %}
+                {% if meet.is_locked %}
+                    <input type="hidden" name="action" value="unlock">
+                    <button type="submit" class="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-4 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-200">Unlock meet</button>
+                {% else %}
+                    <input type="hidden" name="action" value="lock">
+                    <button type="submit" class="inline-flex items-center gap-2 rounded-full bg-rose-100 px-4 py-2 text-sm font-medium text-rose-700 hover:bg-rose-200">Lock meet</button>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+
+    <div class="grid gap-4 md:grid-cols-3">
+        <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:col-span-2" id="meet-overview" hx-get="{% url 'sportsday:meet-schedule-fragment' meet.slug %}" hx-trigger="load">
+            <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">Loading overview…</div>
+        </article>
+        <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm" id="meet-staff" hx-get="{% url 'sportsday:meet-people-fragment' meet.slug %}" hx-trigger="load">
+            <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">Fetching allocations…</div>
+        </article>
+    </div>
+
+    <div class="grid gap-4 md:grid-cols-2">
+        <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h2 class="text-lg font-semibold text-ink">Quick links</h2>
+            <div class="mt-4 grid gap-3 sm:grid-cols-2 text-sm text-slate-700">
+                <a href="{% url 'sportsday:events' %}?meet={{ meet.slug }}" class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 hover:border-sky-500 hover:text-sky-700">
+                    <span class="block text-sm font-semibold text-ink">Events &amp; heats</span>
+                    <span class="block text-xs text-slate-600">Assign lanes, manage attempts, and print start lists.</span>
+                </a>
+                {% if highlight_event %}
+                    <a href="{% url 'sportsday:event-detail' highlight_event %}#event-results" class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 hover:border-sky-500 hover:text-sky-700">
+                        <span class="block text-sm font-semibold text-ink">Results room</span>
+                        <span class="block text-xs text-slate-600">HTMX forms streamline timing and measurement entry.</span>
+                    </a>
+                {% else %}
+                    <span class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-4 text-xs text-slate-600">
+                        <span class="block text-sm font-semibold text-ink">Results room</span>
+                        <span class="block">Add events to unlock the results workspace.</span>
+                    </span>
+                {% endif %}
+                <a href="{% url 'sportsday:leaderboards' %}?meet={{ meet.slug }}" class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 hover:border-sky-500 hover:text-sky-700">
+                    <span class="block text-sm font-semibold text-ink">Leaderboards</span>
+                    <span class="block text-xs text-slate-600">Track house points, grade champions, and participation.</span>
+                </a>
+                <a href="{% url 'sportsday:students' %}?meet={{ meet.slug }}" class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 hover:border-sky-500 hover:text-sky-700">
+                    <span class="block text-sm font-semibold text-ink">Students directory</span>
+                    <span class="block text-xs text-slate-600">See tallies, quickly swap heats, and share printables.</span>
+                </a>
+            </div>
+        </section>
+        <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm" id="meet-activity" hx-get="{% url 'sportsday:leaderboards-panel-fragment' %}?meet={{ meet.slug }}" hx-trigger="load">
+            <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">Collating leaderboards…</div>
+        </section>
+    </div>
+</section>
+{% endblock %}
+{% block mobile_nav %}
+    {% if mobile_nav %}
+        <nav class="fixed bottom-0 inset-x-0 z-40 border-t border-slate-800 bg-dusk/95 backdrop-blur md:hidden">
+            <ul class="grid grid-cols-4 text-xs font-medium text-slate-300">
+                {% for item in mobile_nav %}
+                    <li>
+                        <a href="{{ item.url }}" class="flex flex-col items-center justify-center gap-1 py-3 {% if item.label|lower == mobile_nav_active %}text-sky-300{% else %}hover:text-sky-200{% endif %}">
+                            <span>{{ item.label }}</span>
+                        </a>
+                    </li>
+                {% endfor %}
+            </ul>
+        </nav>
+    {% endif %}
+{% endblock %}

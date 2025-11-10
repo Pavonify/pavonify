@@ -1,58 +1,63 @@
 {% extends "sportsday/base.html" %}
-{% block title %}{{ meet.name }} Dashboard{% endblock %}
-{% block header_actions %}
-<nav class="actions">
-    <a href="{% url 'sportsday:students' meet.slug %}" role="button">Students</a>
-    <a href="{% url 'sportsday:leaderboard' meet.slug %}" role="button">Leaderboards</a>
-    <a href="{% url 'sportsday:students_upload' meet.slug %}" role="button" class="secondary">Upload Students</a>
-</nav>
-{% endblock %}
+{% block title %}Sports Day · Dashboard{% endblock %}
 {% block content %}
-<section class="card">
-    <h2>{{ meet.name }}</h2>
-    <p>
-        <strong>Date:</strong> {{ meet.date }} |
-        <strong>Status:</strong> {% if meet.is_locked %}Locked{% else %}Open{% endif %} |
-        <strong>Eligible grades:</strong> {{ meet.allowed_grades_display }}
-    </p>
-    <div class="card-grid">
-        <article class="card">
-            <h3>Students</h3>
-            <p>{{ students }} registered athletes</p>
-        </article>
-        <article class="card">
-            <h3>Events</h3>
-            <p>{{ events }} configured events</p>
-        </article>
-        <article class="card">
-            <h3>Entries</h3>
-            <p>{{ entries }} total entries</p>
-        </article>
+<section class="space-y-6">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <p class="text-sm uppercase tracking-widest text-slate-400">Overview</p>
+            <h1 class="text-2xl font-semibold">Command Center</h1>
+        </div>
+        <div class="flex flex-wrap gap-2 text-xs text-slate-400">
+            <span class="inline-flex items-center gap-2 rounded-full bg-slate-800/70 px-3 py-1">
+                <span class="h-2 w-2 rounded-full bg-emerald-400"></span> Always on access
+            </span>
+            <span class="inline-flex items-center gap-2 rounded-full bg-slate-800/70 px-3 py-1">
+                <span class="h-2 w-2 rounded-full bg-sky-400"></span> HTMX ready
+            </span>
+        </div>
     </div>
-</section>
-<section class="card">
-    <h2>Scoring Rules</h2>
-    <table>
-        <thead>
-            <tr>
-                <th>Scope</th>
-                <th>Points</th>
-                <th>Tie Method</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for rule in rules %}
-            <tr>
-                <td>{{ rule.get_scope_display }}</td>
-                <td>{{ rule.points_csv }}</td>
-                <td>{{ rule.get_tie_method_display }}</td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="3">No rules configured yet.</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+
+    <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        {% for tile in tiles %}
+            <a href="{{ tile.url }}" class="rounded-2xl border border-slate-800 bg-slate-900/60 p-6 shadow-lg shadow-slate-900/30 transition hover:border-sky-400/40 hover:shadow-sky-900/40">
+                <div class="flex items-start justify-between gap-3">
+                    <div>
+                        <p class="text-xs uppercase tracking-widest text-slate-400">{{ tile.overline }}</p>
+                        <h2 class="mt-2 text-xl font-semibold">{{ tile.title }}</h2>
+                    </div>
+                    <span class="inline-flex h-12 w-12 items-center justify-center rounded-full bg-sky/15 text-lg text-sky-300">{{ tile.badge }}</span>
+                </div>
+                <p class="mt-4 text-sm text-slate-300">{{ tile.description }}</p>
+                <dl class="mt-6 grid gap-3 text-sm text-slate-400">
+                    {% for stat in tile.stats %}
+                        <div class="flex items-center justify-between">
+                            <dt>{{ stat.label }}</dt>
+                            <dd class="text-slate-100 font-medium">{{ stat.value }}</dd>
+                        </div>
+                    {% endfor %}
+                </dl>
+            </a>
+        {% endfor %}
+    </div>
+
+    <div class="rounded-2xl border border-slate-800 bg-slate-900/40 p-6">
+        <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+                <h2 class="text-lg font-semibold">Live Meet Feed</h2>
+                <p class="text-sm text-slate-400">Next up information will stream in here once HTMX endpoints are wired.</p>
+            </div>
+            <a href="{% url 'sportsday:meet-list' %}" class="inline-flex items-center gap-2 rounded-full bg-sky-500/10 px-4 py-2 text-sky-300 hover:bg-sky-500/20">
+                Manage meets
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+            </a>
+        </div>
+        <div class="mt-6 grid gap-4 md:grid-cols-3" id="dashboard-feed" hx-get="{% url 'sportsday:leaderboards-panel-fragment' %}?preview=1&panel_id=dashboard-feed" hx-trigger="load">
+            <div class="rounded-xl border border-slate-800/80 bg-slate-900/50 p-4 text-sm text-slate-400">
+                Loading live summaries…
+            </div>
+        </div>
+    </div>
 </section>
 {% endblock %}

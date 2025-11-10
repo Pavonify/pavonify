@@ -1,0 +1,192 @@
+<div id="wizard-events" hx-target="this" hx-swap="outerHTML" class="space-y-6">
+    {% if not meet %}
+        <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4 text-sm text-slate-300">
+            Complete the basics step to create a meet before adding events.
+        </div>
+    {% else %}
+        <form hx-post="{% url 'sportsday:meet-wizard-stage' %}?step=events" hx-target="#wizard-events" hx-swap="outerHTML" class="space-y-6">
+            {% csrf_token %}
+            {% if saved %}
+                <div class="rounded-xl border border-emerald-500/50 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+                    Event saved. Keep building the programme or adjust fields below.
+                </div>
+            {% endif %}
+            {% if form.non_field_errors %}
+                <div class="rounded-xl border border-rose-500/60 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+                    {% for error in form.non_field_errors %}
+                        <div>{{ error }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            <div class="grid gap-4 lg:grid-cols-[2fr,1fr]">
+                <div class="space-y-4">
+                    <div class="grid gap-4 md:grid-cols-2">
+                        <div class="space-y-2 md:col-span-2">
+                            <label class="text-sm font-medium text-slate-200" for="id_sport_type">Sport</label>
+                            <select name="sport_type" id="id_sport_type" class="w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-100 focus:border-sky-500 focus:outline-none" hx-get="{% url 'sportsday:meet-wizard-stage' %}?step=events" hx-trigger="change" hx-target="#wizard-events">
+                                <option value="">Select sport type…</option>
+                                {% for sport in sport_types %}
+                                    <option value="{{ sport.pk }}" {% if form.sport_type.value == sport.pk or selected_sport and selected_sport.pk == sport.pk %}selected{% endif %}>{{ sport.label }}</option>
+                                {% endfor %}
+                            </select>
+                            {% if form.sport_type.errors %}
+                                <p class="text-xs text-rose-300">{{ form.sport_type.errors|join:', ' }}</p>
+                            {% endif %}
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-sm font-medium text-slate-200" for="id_name">Event name</label>
+                            <input type="text" name="name" id="id_name" value="{{ form.name.value|default:'' }}" placeholder="100m Dash" class="w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-100 focus:border-sky-500 focus:outline-none" />
+                            {% if form.name.errors %}
+                                <p class="text-xs text-rose-300">{{ form.name.errors|join:', ' }}</p>
+                            {% endif %}
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-sm font-medium text-slate-200" for="id_grade_min">Grade min</label>
+                            <input type="text" name="grade_min" id="id_grade_min" value="{{ form.grade_min.value|default:'' }}" placeholder="7" class="w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-100 focus:border-sky-500 focus:outline-none" />
+                            {% if form.grade_min.errors %}
+                                <p class="text-xs text-rose-300">{{ form.grade_min.errors|join:', ' }}</p>
+                            {% endif %}
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-sm font-medium text-slate-200" for="id_grade_max">Grade max</label>
+                            <input type="text" name="grade_max" id="id_grade_max" value="{{ form.grade_max.value|default:'' }}" placeholder="12" class="w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-100 focus:border-sky-500 focus:outline-none" />
+                            {% if form.grade_max.errors %}
+                                <p class="text-xs text-rose-300">{{ form.grade_max.errors|join:', ' }}</p>
+                            {% endif %}
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-sm font-medium text-slate-200" for="id_gender_limit">Gender limit</label>
+                            <select name="gender_limit" id="id_gender_limit" class="w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-100 focus:border-sky-500 focus:outline-none">
+                                {% for value, label in form.fields.gender_limit.choices %}
+                                    <option value="{{ value }}" {% if form.gender_limit.value == value %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                            {% if form.gender_limit.errors %}
+                                <p class="text-xs text-rose-300">{{ form.gender_limit.errors|join:', ' }}</p>
+                            {% endif %}
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-sm font-medium text-slate-200" for="id_measure_unit">Unit</label>
+                            <select name="measure_unit" id="id_measure_unit" class="w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-100 focus:border-sky-500 focus:outline-none">
+                                {% for value, label in unit_choices %}
+                                    <option value="{{ value }}" {% if form.measure_unit.value == value %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                            {% if form.measure_unit.errors %}
+                                <p class="text-xs text-rose-300">{{ form.measure_unit.errors|join:', ' }}</p>
+                            {% endif %}
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-sm font-medium text-slate-200" for="id_capacity">Capacity</label>
+                            <input type="number" name="capacity" id="id_capacity" min="1" value="{{ form.capacity.value|default:'' }}" class="w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-100 focus:border-sky-500 focus:outline-none" />
+                            {% if form.capacity.errors %}
+                                <p class="text-xs text-rose-300">{{ form.capacity.errors|join:', ' }}</p>
+                            {% endif %}
+                        </div>
+                        {% if not selected_sport or selected_sport.archetype != 'TRACK_TIME' %}
+                            <div class="space-y-2">
+                                <label class="text-sm font-medium text-slate-200" for="id_attempts">Attempts</label>
+                                {% with attempt_value=form.attempts.value %}
+                                    <input type="number" name="attempts" id="id_attempts" min="1" value="{% if attempt_value %}{{ attempt_value }}{% elif selected_sport %}{{ selected_sport.default_attempts }}{% endif %}" class="w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-100 focus:border-sky-500 focus:outline-none" />
+                                {% endwith %}
+                                {% if form.attempts.errors %}
+                                    <p class="text-xs text-rose-300">{{ form.attempts.errors|join:', ' }}</p>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                        <div class="space-y-2">
+                            <label class="text-sm font-medium text-slate-200" for="id_rounds_total">Rounds total</label>
+                            <input type="number" name="rounds_total" id="id_rounds_total" min="1" value="{{ form.rounds_total.value|default:1 }}" class="w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-100 focus:border-sky-500 focus:outline-none" />
+                            {% if form.rounds_total.errors %}
+                                <p class="text-xs text-rose-300">{{ form.rounds_total.errors|join:', ' }}</p>
+                            {% endif %}
+                        </div>
+                        <div class="space-y-2 md:col-span-2">
+                            <label class="text-sm font-medium text-slate-200" for="id_knockout">Knockout / qualifiers</label>
+                            <input type="text" name="knockout_qualifiers" id="id_knockout" value="{{ form.knockout_qualifiers.value|default:'' }}" placeholder="Q:2;q:2" class="w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-100 focus:border-sky-500 focus:outline-none" />
+                            <p class="text-xs text-slate-500">Format helpers: use Q for finals qualification, q for consolation (e.g. Q:2;q:2).</p>
+                            {% if form.knockout_qualifiers.errors %}
+                                <p class="text-xs text-rose-300">{{ form.knockout_qualifiers.errors|join:', ' }}</p>
+                            {% endif %}
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-sm font-medium text-slate-200" for="id_schedule_dt">Schedule</label>
+                            <input type="datetime-local" name="schedule_dt" id="id_schedule_dt" value="{{ form.schedule_dt.value|default:'' }}" class="w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-100 focus:border-sky-500 focus:outline-none" />
+                            {% if form.schedule_dt.errors %}
+                                <p class="text-xs text-rose-300">{{ form.schedule_dt.errors|join:', ' }}</p>
+                            {% endif %}
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-sm font-medium text-slate-200" for="id_location">Location</label>
+                            <input type="text" name="location" id="id_location" value="{{ form.location.value|default:'' }}" placeholder="Back Oval" class="w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-100 focus:border-sky-500 focus:outline-none" />
+                            {% if form.location.errors %}
+                                <p class="text-xs text-rose-300">{{ form.location.errors|join:', ' }}</p>
+                            {% endif %}
+                        </div>
+                        <div class="space-y-2 md:col-span-2">
+                            <label class="text-sm font-medium text-slate-200" for="id_assigned_teachers">Assigned teachers</label>
+                            {% with selected_teachers=form.assigned_teachers.value %}
+                                <select name="assigned_teachers" id="id_assigned_teachers" multiple class="h-32 w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-100 focus:border-sky-500 focus:outline-none">
+                                    {% for teacher in form.fields.assigned_teachers.queryset %}
+                                        <option value="{{ teacher.pk }}" {% if selected_teachers and teacher.pk|stringformat:'s' in selected_teachers %}selected{% endif %}>{{ teacher.first_name }} {{ teacher.last_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            {% endwith %}
+                            <p class="text-xs text-slate-500">Hold CMD/CTRL to select multiple teachers for this event.</p>
+                            {% if form.assigned_teachers.errors %}
+                                <p class="text-xs text-rose-300">{{ form.assigned_teachers.errors|join:', ' }}</p>
+                            {% endif %}
+                        </div>
+                        <div class="space-y-2 md:col-span-2">
+                            <label class="text-sm font-medium text-slate-200" for="id_notes">Notes</label>
+                            <textarea name="notes" id="id_notes" rows="2" class="w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-100 focus:border-sky-500 focus:outline-none">{{ form.notes.value|default:'' }}</textarea>
+                            {% if form.notes.errors %}
+                                <p class="text-xs text-rose-300">{{ form.notes.errors|join:', ' }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <button type="button" class="inline-flex items-center gap-2 rounded-full border border-slate-700 px-4 py-2 text-sm text-slate-200 hover:border-sky-500/40 hover:text-sky-200" hx-post="{% url 'sportsday:meet-wizard-event-preview' %}" hx-target="#wizard-event-preview" hx-include="closest form">
+                            Preview Marshal UI
+                        </button>
+                        <button type="submit" class="inline-flex items-center gap-2 rounded-full bg-sky-500 px-5 py-2 text-sm font-medium text-slate-900 shadow-lg shadow-sky-500/40 hover:bg-sky-400">Add event</button>
+                    </div>
+                </div>
+                <div class="space-y-4">
+                    <div id="wizard-event-preview" class="rounded-xl border border-slate-800 bg-slate-900/60 p-4 text-sm text-slate-300">
+                        <p class="text-xs uppercase tracking-widest text-slate-500">Marshal preview</p>
+                        <p class="mt-2 text-slate-400">Use the button to preview result entry for this configuration.</p>
+                    </div>
+                    <div class="space-y-2">
+                        <h3 class="text-sm font-semibold text-slate-200">Current schedule</h3>
+                        <div class="space-y-3">
+                            {% for event in events %}
+                                <div class="rounded-lg border border-slate-800 bg-slate-950/60 p-3 text-sm text-slate-200">
+                                    <div class="flex items-center justify-between gap-2">
+                                        <div>
+                                            <p class="font-medium text-slate-100">{{ event.name }}</p>
+                                            <p class="text-xs text-slate-400">{{ event.sport_type.label }} · Grades {{ event.grade_min }}-{{ event.grade_max }} · {{ event.get_gender_limit_display }}</p>
+                                        </div>
+                                        <button type="button" class="inline-flex items-center gap-1 rounded-full border border-slate-700 px-2 py-1 text-xs text-rose-300 hover:border-rose-400/40" hx-confirm="Remove this event?" hx-post="{% url 'sportsday:meet-wizard-stage' %}?step=events" hx-target="#wizard-events" hx-include="closest form" hx-vals='{"action":"delete","event_id":"{{ event.pk }}"}'>
+                                            Remove
+                                        </button>
+                                    </div>
+                                    {% if event.schedule_dt %}
+                                        <p class="mt-1 text-xs text-slate-400">{{ event.schedule_dt|date:"M j, H:i" }}{% if event.location %} · {{ event.location }}{% endif %}</p>
+                                    {% endif %}
+                                    {% if event.assigned_teachers.all %}
+                                        <p class="mt-1 text-xs text-slate-500">Crew: {{ event.assigned_teachers.all|join:", " }}</p>
+                                    {% endif %}
+                                </div>
+                            {% empty %}
+                                <div class="rounded-lg border border-dashed border-slate-700 bg-slate-900/50 p-4 text-sm text-slate-400">
+                                    No events yet. Configure your first event to populate the schedule.
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    {% endif %}
+</div>

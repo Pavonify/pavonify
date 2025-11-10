@@ -1,0 +1,54 @@
+{% if event_groups %}
+    {% for group in event_groups %}
+        <section class="rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
+            <header class="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                    <h2 class="text-lg font-semibold">{{ group.label }}</h2>
+                    <p class="text-sm text-slate-400">{{ group.subtitle }}</p>
+                </div>
+                <span class="rounded-full border border-slate-700 px-3 py-1 text-xs uppercase tracking-widest text-slate-400">{{ group.events|length }} events</span>
+            </header>
+            <div class="mt-4 overflow-x-auto">
+                <table class="min-w-full divide-y divide-slate-800 text-left text-sm">
+                    <thead class="text-xs uppercase tracking-widest text-slate-400">
+                        <tr>
+                            <th class="px-3 py-2">Event</th>
+                            <th class="px-3 py-2">Grades</th>
+                            <th class="px-3 py-2">Gender</th>
+                            <th class="px-3 py-2">Capacity</th>
+                            <th class="px-3 py-2">Status</th>
+                            <th class="px-3 py-2 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-800 text-slate-200">
+                        {% for event in group.events %}
+                            <tr>
+                                <td class="px-3 py-3">
+                                    <div class="font-medium text-slate-100">{{ event.name }}</div>
+                                    <div class="text-xs text-slate-400">{{ event.sport_type.label }}</div>
+                                </td>
+                                <td class="px-3 py-3">{{ event.grade_min }} – {{ event.grade_max }}</td>
+                                <td class="px-3 py-3">{{ event.get_gender_limit_display }}</td>
+                                <td class="px-3 py-3">{{ event.capacity }}</td>
+                                <td class="px-3 py-3">
+                                    {% if event.is_locked %}
+                                        <span class="inline-flex items-center gap-1 rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-medium text-emerald-300">Locked</span>
+                                    {% else %}
+                                        <span class="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-3 py-1 text-xs font-medium text-amber-300">Draft</span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-3 py-3 text-right">
+                                    <a href="{% url 'sportsday:event-detail' event.pk %}" class="text-sky-300 hover:text-sky-200">Open</a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    {% endfor %}
+{% else %}
+    <div class="rounded-2xl border border-dashed border-slate-700 bg-slate-900/40 p-10 text-center text-slate-400">
+        No events scheduled yet. Add them from the meet wizard or create manually.
+    </div>
+{% endif %}

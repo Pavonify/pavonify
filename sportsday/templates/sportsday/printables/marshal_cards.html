@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>{{ event.name }} · Marshal Cards</title>
+    <style>
+        @page {
+            size: A4 portrait;
+            margin: 12mm;
+        }
+        body {
+            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            color: #0f172a;
+            background: #ffffff;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8mm;
+        }
+        .card {
+            border: 1px solid #cbd5f5;
+            border-radius: 6px;
+            padding: 10mm;
+            page-break-inside: avoid;
+        }
+        .card h2 {
+            margin: 0 0 4mm 0;
+            font-size: 16px;
+        }
+        .meta {
+            font-size: 12px;
+            color: #475569;
+            margin-bottom: 4mm;
+        }
+        .label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #64748b;
+        }
+        .value {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 2mm;
+        }
+    </style>
+</head>
+<body>
+    <header style="margin-bottom:12mm;">
+        <h1 style="margin:0;">{{ event.name }} · Round {{ round_no }}</h1>
+        <div class="meta">{{ event.meet.name }}</div>
+    </header>
+    <section class="grid">
+        {% for card in cards %}
+            <article class="card">
+                <h2>{{ card.student.first_name }} {{ card.student.last_name }}</h2>
+                <div class="meta">{{ card.house }} House</div>
+                {% if supports_heats %}
+                    <div class="label">Heat</div>
+                    <div class="value">{{ card.heat }}</div>
+                {% endif %}
+                <div class="label">Lane / Order</div>
+                <div class="value">{{ card.lane|default:"—" }}</div>
+                <div class="label">Notes</div>
+                <div class="value" style="min-height:18mm;border-top:1px dashed #cbd5f5; margin-top:3mm;"></div>
+            </article>
+        {% empty %}
+            <p>No marshal cards available yet.</p>
+        {% endfor %}
+    </section>
+</body>
+</html>

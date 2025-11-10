@@ -1,0 +1,39 @@
+<div id="students-table" hx-target="this" hx-swap="outerHTML">
+    <div class="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-900/60">
+        <table class="min-w-full divide-y divide-slate-800 text-left text-sm">
+            <thead class="text-xs uppercase tracking-widest text-slate-400">
+                <tr>
+                    <th class="px-4 py-3">Student</th>
+                    <th class="px-4 py-3">Grade</th>
+                    <th class="px-4 py-3">House</th>
+                    <th class="px-4 py-3">Status</th>
+                    <th class="px-4 py-3 text-right">Events tally</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800 text-slate-200">
+                {% for student in students %}
+                    <tr>
+                        <td class="px-4 py-3">
+                            <div class="font-medium text-slate-100">{{ student.first_name }} {{ student.last_name }}</div>
+                            <div class="text-xs text-slate-400">DOB {{ student.dob|date:"M j, Y" }}</div>
+                        </td>
+                        <td class="px-4 py-3">{{ student.grade }}</td>
+                        <td class="px-4 py-3">{{ student.house }}</td>
+                        <td class="px-4 py-3">
+                            {% if student.is_active %}
+                                <span class="inline-flex items-center gap-1 rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-medium text-emerald-300">Active</span>
+                            {% else %}
+                                <span class="inline-flex items-center gap-1 rounded-full bg-slate-700/60 px-3 py-1 text-xs font-medium text-slate-300">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 text-right text-lg font-semibold text-sky-300">{{ student.events_tally }}</td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="5" class="px-4 py-6 text-center text-slate-400">No students found for this view yet.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>

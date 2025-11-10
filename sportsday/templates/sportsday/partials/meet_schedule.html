@@ -1,0 +1,27 @@
+<section class="space-y-4" id="meet-overview" hx-target="this" hx-swap="outerHTML">
+    <header class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+            <h2 class="text-lg font-semibold">Schedule overview</h2>
+            <p class="text-sm text-slate-400">{{ meet.events.count }} events · {{ teachers_assigned }} staff assigned</p>
+        </div>
+        <a href="{% url 'sportsday:events' %}?meet={{ meet.slug }}" class="inline-flex items-center gap-2 rounded-full bg-sky-500/10 px-4 py-2 text-sm text-sky-300 hover:bg-sky-500/20">Go to events</a>
+    </header>
+    <div class="grid gap-4 md:grid-cols-2">
+        {% for block in schedule_blocks %}
+            <article class="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
+                <h3 class="text-sm font-semibold text-slate-100">{{ block.title }}</h3>
+                <p class="text-xs text-slate-400">{{ block.window }}</p>
+                <ul class="mt-3 space-y-2 text-sm text-slate-300">
+                    {% for item in block.events %}
+                        <li class="flex items-center justify-between gap-3">
+                            <span>{{ item.name }}</span>
+                            <span class="text-xs text-slate-500">{{ item.time }}</span>
+                        </li>
+                    {% empty %}
+                        <li class="text-xs text-slate-500">No events scheduled in this window yet.</li>
+                    {% endfor %}
+                </ul>
+            </article>
+        {% endfor %}
+    </div>
+</section>

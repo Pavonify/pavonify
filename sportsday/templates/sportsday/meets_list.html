@@ -1,0 +1,65 @@
+{% extends "sportsday/base.html" %}
+{% block title %}Sports Day · Meets{% endblock %}
+{% block content %}
+<section class="space-y-6">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+            <p class="text-sm uppercase tracking-widest text-slate-400">Operational</p>
+            <h1 class="text-2xl font-semibold">Meets</h1>
+            <p class="text-sm text-slate-400">View schedules, status, and launch the setup wizard.</p>
+        </div>
+        <div class="flex gap-2">
+            <a href="{% url 'sportsday:meet-create' %}" class="inline-flex items-center gap-2 rounded-full bg-sky-500 px-4 py-2 text-sm font-medium text-slate-900 shadow-lg shadow-sky-500/40 transition hover:bg-sky-400">
+                <span class="text-lg">+</span> Create Meet
+            </a>
+        </div>
+    </div>
+
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div class="relative flex-1">
+            <label for="meet-search" class="sr-only">Search meets</label>
+            <input id="meet-search" name="q" type="search" placeholder="Search meets" class="w-full rounded-full border border-slate-700 bg-slate-900/60 px-4 py-2 text-sm focus:border-sky-500 focus:outline-none" hx-get="{% url 'sportsday:meet-list' %}" hx-target="#meets-board" hx-trigger="keyup changed delay:300ms" value="{{ request.GET.q }}">
+        </div>
+        <div class="flex gap-2 text-xs text-slate-400">
+            <span class="inline-flex items-center gap-2 rounded-full bg-slate-900/60 px-3 py-1"><span class="h-2 w-2 rounded-full bg-emerald-400"></span> Active</span>
+            <span class="inline-flex items-center gap-2 rounded-full bg-slate-900/60 px-3 py-1"><span class="h-2 w-2 rounded-full bg-amber-400"></span> Upcoming</span>
+        </div>
+    </div>
+
+    <div id="meets-board" class="grid gap-4 md:grid-cols-2" hx-target="this" hx-swap="outerHTML">
+        {% if meets %}
+            {% for meet in meets %}
+                <article class="rounded-2xl border border-slate-800 bg-slate-900/60 p-6 shadow-lg shadow-slate-900/20">
+                    <div class="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                            <p class="text-xs uppercase tracking-widest text-slate-400">{{ meet.date|date:"M j, Y" }}</p>
+                            <h2 class="text-xl font-semibold">{{ meet.name }}</h2>
+                            <p class="text-sm text-slate-400">{{ meet.location|default:"Location TBC" }}</p>
+                        </div>
+                        <span class="inline-flex items-center gap-2 rounded-full border border-slate-700 px-3 py-1 text-xs uppercase tracking-widest text-slate-300">{{ meet.events_count }} events</span>
+                    </div>
+                    <dl class="mt-4 grid gap-3 text-sm text-slate-300">
+                        <div class="flex items-center justify-between">
+                            <dt>Max events per student</dt>
+                            <dd class="font-medium">{{ meet.max_events_per_student }}</dd>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <dt>Teachers assigned</dt>
+                            <dd class="font-medium">{{ meet.teacher_count }}</dd>
+                        </div>
+                    </dl>
+                    <div class="mt-6 flex flex-wrap gap-2 text-sm">
+                        <a href="{% url 'sportsday:meet-detail' meet.slug %}" class="inline-flex items-center gap-2 rounded-full bg-sky-500/10 px-4 py-2 text-sky-300 hover:bg-sky-500/20">Open hub</a>
+                        <a href="{% url 'sportsday:events' %}?meet={{ meet.slug }}" class="inline-flex items-center gap-2 rounded-full border border-slate-700 px-4 py-2 text-slate-300 hover:border-sky-500/40 hover:text-sky-200">Events</a>
+                        <a href="{% url 'sportsday:students' %}?meet={{ meet.slug }}" class="inline-flex items-center gap-2 rounded-full border border-slate-700 px-4 py-2 text-slate-300 hover:border-sky-500/40 hover:text-sky-200">Roster</a>
+                    </div>
+                </article>
+            {% endfor %}
+        {% else %}
+            <div class="rounded-2xl border border-dashed border-slate-700 bg-slate-900/40 p-10 text-center text-slate-400">
+                No meets yet. Kick things off by <a href="{% url 'sportsday:meet-create' %}" class="text-sky-300">creating your first meet</a>.
+            </div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

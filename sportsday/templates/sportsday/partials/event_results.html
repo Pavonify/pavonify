@@ -1,0 +1,239 @@
+<section class="space-y-5" id="event-results" hx-target="this" hx-swap="outerHTML">
+    <header class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+            <h2 class="text-lg font-semibold text-ink">Enter Results</h2>
+            <p class="text-sm text-slate-600">Capture live performances and keep lanes in sync.</p>
+        </div>
+        {% if event.is_locked %}
+            <span class="inline-flex items-center gap-2 rounded-full border border-emerald-300 bg-emerald-50 px-3 py-1 text-xs uppercase tracking-widest text-emerald-700">Event locked</span>
+        {% endif %}
+    </header>
+
+    <div class="flex flex-wrap gap-3">
+        <label class="flex flex-col text-xs uppercase tracking-widest text-slate-600">
+            Round
+            <select
+                name="round"
+                class="mt-1 w-36 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-ink focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                hx-get="{% url 'sportsday:event-results-fragment' event.pk %}"
+                hx-target="#event-results"
+                hx-trigger="change"
+                {% if has_heats %}hx-include="[name='heat']"{% endif %}
+                {% if locked_reason %}disabled{% endif %}
+            >
+                {% for number in round_options %}
+                    <option value="{{ number }}" {% if number == round_no %}selected{% endif %}>Round {{ number }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        {% if has_heats %}
+            <label class="flex flex-col text-xs uppercase tracking-widest text-slate-600">
+                Heat
+                <select
+                    name="heat"
+                    class="mt-1 w-36 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-ink focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                    hx-get="{% url 'sportsday:event-results-fragment' event.pk %}"
+                    hx-target="#event-results"
+                    hx-trigger="change"
+                    hx-include="[name='round']"
+                    {% if locked_reason %}disabled{% endif %}
+                >
+                    {% for option in heat_options %}
+                        <option value="{{ option }}" {% if option == heat %}selected{% endif %}>Heat {{ option }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+        {% endif %}
+    </div>
+
+    {% if status_message %}
+        <div class="rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-700 shadow-sm">{{ status_message }}{% if qualifiers_created %} · {{ qualifiers_created }} qualifier{{ qualifiers_created|pluralize }} added.{% endif %}</div>
+    {% elif qualifiers_created %}
+        <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 shadow-sm">{{ qualifiers_created }} qualifier{{ qualifiers_created|pluralize }} advanced to the next round.</div>
+    {% elif locked_reason %}
+        <div class="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-700">{{ locked_reason }}</div>
+    {% endif %}
+
+    <form
+        method="post"
+        class="space-y-5"
+        hx-post="{% url 'sportsday:event-results-fragment' event.pk %}"
+        hx-target="#event-results"
+        hx-swap="outerHTML"
+        data-cache-key="{{ cache_key }}"
+        data-clear-cache="{{ clear_cache|yesno:'true,false' }}"
+    >
+        {% csrf_token %}
+        <input type="hidden" name="round_no" value="{{ round_no }}">
+        {% if has_heats %}
+            <input type="hidden" name="heat" value="{{ heat }}">
+        {% endif %}
+
+        <div class="space-y-4">
+            {% if forms %}
+                {% for form in forms %}
+                    <article class="space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                        {{ form.entry_id }}
+                        {% if form.non_field_errors %}
+                            <div class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
+                                {% for error in form.non_field_errors %}{{ error }}{% if not forloop.last %}<br>{% endif %}{% endfor %}
+                            </div>
+                        {% endif %}
+                        <div class="flex flex-wrap items-center justify-between gap-3">
+                            <div>
+                                <p class="text-base font-semibold text-ink">{{ form.entry.student.first_name }} {{ form.entry.student.last_name }}</p>
+                                <p class="text-xs uppercase tracking-widest text-slate-600">
+                                    {% if has_heats %}Heat {{ form.entry.heat }} · {% endif %}
+                                    Lane/Order {{ form.entry.lane_or_order|default:"—" }} · {{ form.entry.student.house }} House
+                                </p>
+                            </div>
+                            <div class="flex flex-wrap items-center gap-4 text-xs uppercase tracking-widest text-slate-600">
+                                <label class="inline-flex items-center gap-2">
+                                    {{ form.dns }}<span>DNS</span>
+                                </label>
+                                <label class="inline-flex items-center gap-2">
+                                    {{ form.dq }}<span>DQ</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        {% if event.sport_type.archetype == 'TRACK_TIME' %}
+                            <div>
+                                <label class="flex flex-col text-xs uppercase tracking-widest text-slate-600">
+                                    Time · {{ event.measure_unit|default:"sec" }}
+                                    {{ form.time_display }}
+                                </label>
+                                {% if form.time_display.errors %}
+                                    <p class="mt-2 text-xs text-rose-600">{% for error in form.time_display.errors %}{{ error }}{% if not forloop.last %}<br>{% endif %}{% endfor %}</p>
+                                {% endif %}
+                            </div>
+                        {% elif event.sport_type.archetype == 'FIELD_DISTANCE' %}
+                            <div class="space-y-3">
+                                {% for distance_bound, valid_bound, idx in form.attempt_bound_fields %}
+                                    <div class="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-center">
+                                        <label class="flex flex-col text-xs uppercase tracking-widest text-slate-600">
+                                            Attempt {{ idx }} · {{ event.measure_unit|default:"m" }}
+                                            {{ distance_bound }}
+                                        </label>
+                                        <label class="flex items-center gap-2 text-xs uppercase tracking-widest text-slate-600">
+                                            {{ valid_bound }}<span>Valid</span>
+                                        </label>
+                                        {% if distance_bound.errors %}
+                                            <p class="text-xs text-rose-600 sm:col-span-2">{% for error in distance_bound.errors %}{{ error }}{% if not forloop.last %}<br>{% endif %}{% endfor %}</p>
+                                        {% endif %}
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% elif event.sport_type.archetype == 'FIELD_COUNT' %}
+                            <div>
+                                <label class="flex flex-col text-xs uppercase tracking-widest text-slate-600">
+                                    Count · {{ event.measure_unit|default:"count" }}
+                                    {{ form.count }}
+                                </label>
+                                {% if form.count.errors %}
+                                    <p class="mt-2 text-xs text-rose-600">{% for error in form.count.errors %}{{ error }}{% if not forloop.last %}<br>{% endif %}{% endfor %}</p>
+                                {% endif %}
+                            </div>
+                        {% else %}
+                            <div class="grid gap-3 sm:grid-cols-2">
+                                <label class="flex flex-col text-xs uppercase tracking-widest text-slate-600">
+                                    Placing
+                                    {{ form.rank }}
+                                </label>
+                                <label class="flex flex-col text-xs uppercase tracking-widest text-slate-600">
+                                    Time (optional)
+                                    {{ form.time_display }}
+                                </label>
+                                {% if form.rank.errors %}
+                                    <p class="text-xs text-rose-600 sm:col-span-2">{% for error in form.rank.errors %}{{ error }}{% if not forloop.last %}<br>{% endif %}{% endfor %}</p>
+                                {% endif %}
+                                {% if form.time_display.errors %}
+                                    <p class="text-xs text-rose-600 sm:col-span-2">{% for error in form.time_display.errors %}{{ error }}{% if not forloop.last %}<br>{% endif %}{% endfor %}</p>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                    </article>
+                {% endfor %}
+            {% else %}
+                <div class="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center text-sm text-slate-600">Start lists will appear here once athletes are assigned.</div>
+            {% endif %}
+        </div>
+
+        <div class="flex flex-wrap gap-3">
+            <button type="submit" name="action" value="save" class="inline-flex items-center justify-center gap-2 rounded-full bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-sky-500 {% if locked_reason %}opacity-60 cursor-not-allowed{% endif %}" {% if locked_reason %}disabled{% endif %}>Save Draft</button>
+            <button type="submit" name="action" value="validate" class="inline-flex items-center justify-center gap-2 rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:border-sky-500 hover:text-sky-700 {% if locked_reason %}opacity-60 cursor-not-allowed{% endif %}" {% if locked_reason %}disabled{% endif %}>Validate &amp; Rank</button>
+            <button type="submit" name="action" value="submit" class="inline-flex items-center justify-center gap-2 rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-500 {% if locked_reason %}opacity-60 cursor-not-allowed{% endif %}" {% if locked_reason %}disabled{% endif %}>Submit Round</button>
+            <button type="submit" name="action" value="lock" class="inline-flex items-center justify-center gap-2 rounded-full bg-rose-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-rose-500 {% if locked_reason %}opacity-60 cursor-not-allowed{% endif %}" {% if locked_reason %}disabled{% endif %}>Lock Event</button>
+        </div>
+    </form>
+
+    {% if not locked_reason %}
+        <div class="md:hidden fixed bottom-24 inset-x-4 z-30">
+            <div class="rounded-full border border-slate-200 bg-white px-4 py-3 shadow-lg">
+                <div class="flex items-center justify-around text-xs font-medium text-slate-700">
+                    <button type="button" class="flex-1 px-2" onclick="document.querySelector('#event-results [name=action][value=\'save\']').click();">Save</button>
+                    <span class="mx-2 h-5 w-px bg-slate-200"></span>
+                    <button type="button" class="flex-1 px-2" onclick="document.querySelector('#event-results [name=action][value=\'submit\']').click();">Submit</button>
+                    <span class="mx-2 h-5 w-px bg-slate-200"></span>
+                    <button type="button" class="flex-1 px-2" onclick="document.querySelector('#event-results [name=action][value=\'lock\']').click();">Lock</button>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+    <script>
+        (function () {
+            const section = document.getElementById('event-results');
+            if (!section) return;
+            const form = section.querySelector('form[data-cache-key]');
+            if (!form) return;
+            const cacheKey = form.dataset.cacheKey;
+            const shouldClear = form.dataset.clearCache === 'true';
+            const locked = {{ locked_reason|yesno:'true,false' }} === 'true';
+            if (shouldClear) {
+                localStorage.removeItem(cacheKey);
+            } else if (!locked) {
+                const stored = localStorage.getItem(cacheKey);
+                if (stored) {
+                    try {
+                        const values = JSON.parse(stored);
+                        Object.entries(values).forEach(([name, value]) => {
+                            form.querySelectorAll(`[name="${CSS.escape(name)}"]`).forEach((input) => {
+                                if (input.type === 'checkbox') {
+                                    input.checked = Boolean(value);
+                                } else {
+                                    input.value = value;
+                                }
+                            });
+                        });
+                    } catch (error) {
+                        console.warn('Unable to load cached event results', error);
+                    }
+                }
+            }
+
+            const persist = () => {
+                if (locked) return;
+                const data = {};
+                form.querySelectorAll('input, select, textarea').forEach((input) => {
+                    if (!input.name) return;
+                    if (input.type === 'checkbox') {
+                        data[input.name] = input.checked;
+                    } else if (input.type !== 'hidden' || !['csrfmiddlewaretoken', 'round_no', 'heat'].includes(input.name)) {
+                        data[input.name] = input.value;
+                    }
+                });
+                try {
+                    localStorage.setItem(cacheKey, JSON.stringify(data));
+                } catch (error) {
+                    console.warn('Unable to persist event results draft', error);
+                }
+            };
+
+            if (!shouldClear && !locked) {
+                form.addEventListener('input', persist, true);
+                form.addEventListener('change', persist, true);
+            }
+        })();
+    </script>
+</section>
