@@ -161,6 +161,34 @@ class MeetBasicsForm(forms.ModelForm):
         return "custom"
 
 
+class SportTypeForm(forms.ModelForm):
+    """Create or update a sport type exposed to event builders."""
+
+    class Meta:
+        model = models.SportType
+        fields = (
+            "key",
+            "label",
+            "archetype",
+            "default_unit",
+            "default_capacity",
+            "default_attempts",
+            "supports_heats",
+            "supports_finals",
+            "requires_time_for_first_place",
+            "notes",
+        )
+        widgets = {
+            "notes": forms.Textarea(attrs={"rows": 3}),
+        }
+
+    def clean_key(self) -> str:
+        key = slugify(self.cleaned_data.get("key", ""))
+        if not key:
+            raise ValidationError("Enter a short unique key for this sport.")
+        return key
+
+
 class EventConfigForm(forms.ModelForm):
     """Form used in the wizard to configure a single event."""
 

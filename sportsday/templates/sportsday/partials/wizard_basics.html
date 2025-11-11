@@ -1,6 +1,19 @@
 <div id="wizard-basics" hx-target="this" hx-swap="outerHTML" class="space-y-6">
+    {% if wizard_progress %}
+        <template hx-swap-oob="outerHTML" id="wizard-steps">
+            {% include "sportsday/partials/wizard_steps.html" with steps=wizard_progress.steps active_step=wizard_progress.current.key %}
+        </template>
+        <template hx-swap-oob="outerHTML" id="wizard-controls">
+            {% include "sportsday/partials/wizard_controls.html" with previous_step=wizard_progress.previous_step next_step=wizard_progress.next_step next_step_enabled=wizard_progress.next_step_enabled %}
+        </template>
+    {% endif %}
     <form hx-post="{% url 'sportsday:meet-wizard-stage' %}?step=basics" hx-target="#wizard-basics" hx-swap="outerHTML" class="space-y-6">
         {% csrf_token %}
+        {% if deleted %}
+            <div class="rounded-xl border border-rose-500/60 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+                Meet deleted. Start fresh to configure a new programme.
+            </div>
+        {% endif %}
         {% if saved %}
             <div class="rounded-xl border border-emerald-500/50 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
                 Meet details saved. Continue to build events or refine the basics at any time.
@@ -114,8 +127,13 @@
                 {% include "sportsday/partials/wizard_scoring_preview.html" with points_csv=scoring_preview.points_csv participation_point=scoring_preview.participation_point %}
             </div>
         </div>
-        <div class="flex justify-end">
-            <button type="submit" class="inline-flex items-center gap-2 rounded-full bg-sky-500 px-5 py-2 text-sm font-medium text-slate-900 shadow-lg shadow-sky-500/40 hover:bg-sky-400">Save basics</button>
+        <div class="flex flex-wrap justify-between gap-2">
+            {% if meet %}
+                <button type="submit" name="action" value="delete" hx-confirm="Delete this meet and all events?" class="inline-flex items-center gap-2 rounded-full border border-rose-300 px-4 py-2 text-sm text-rose-500 hover:border-rose-400 hover:text-rose-600">Delete meet</button>
+            {% else %}
+                <span class="flex-1"></span>
+            {% endif %}
+            <button type="submit" name="action" value="save" class="inline-flex items-center gap-2 rounded-full bg-sky-500 px-5 py-2 text-sm font-medium text-slate-900 shadow-lg shadow-sky-500/40 hover:bg-sky-400">Save basics</button>
         </div>
     </form>
 </div>

@@ -9,6 +9,8 @@
             <p class="text-sm text-slate-400">{{ meet.date|date:"l, j F Y" }} · {{ meet.location|default:"Venue TBC" }}</p>
         </div>
         <div class="flex flex-wrap gap-2">
+            <a href="{% url 'sportsday:meet-create' %}?meet={{ meet.slug }}&step=basics" class="inline-flex items-center gap-2 rounded-full border border-slate-700 px-4 py-2 text-sm text-slate-300 hover:border-sky-500/40 hover:text-sky-200">Edit basics</a>
+            <a href="{% url 'sportsday:meet-create' %}?meet={{ meet.slug }}&step=events" class="inline-flex items-center gap-2 rounded-full border border-slate-700 px-4 py-2 text-sm text-slate-300 hover:border-sky-500/40 hover:text-sky-200">Add event</a>
             <a href="{% url 'sportsday:events' %}?meet={{ meet.slug }}" class="inline-flex items-center gap-2 rounded-full border border-slate-700 px-4 py-2 text-sm text-slate-300 hover:border-sky-500/40 hover:text-sky-200">View events</a>
             <a href="{% url 'sportsday:students' %}?meet={{ meet.slug }}" class="inline-flex items-center gap-2 rounded-full border border-slate-700 px-4 py-2 text-sm text-slate-300 hover:border-sky-500/40 hover:text-sky-200">Students</a>
             <form method="post" action="{% url 'sportsday:meet-toggle-lock' meet.slug %}" hx-post="{% url 'sportsday:meet-toggle-lock' meet.slug %}" hx-target="closest section" hx-swap="outerHTML">
@@ -20,6 +22,10 @@
                     <input type="hidden" name="action" value="lock">
                     <button type="submit" class="inline-flex items-center gap-2 rounded-full bg-rose-500 px-4 py-2 text-sm font-medium text-rose-950 shadow-lg shadow-rose-500/40 hover:bg-rose-400">Lock meet</button>
                 {% endif %}
+            </form>
+            <form method="post" action="{% url 'sportsday:meet-delete' meet.slug %}" onsubmit="return confirm('Delete this meet and all associated data?');">
+                {% csrf_token %}
+                <button type="submit" class="inline-flex items-center gap-2 rounded-full border border-rose-500/60 px-4 py-2 text-sm text-rose-500 hover:border-rose-500 hover:text-rose-600">Delete</button>
             </form>
         </div>
     </div>
