@@ -110,12 +110,9 @@
             <button type="submit" class="inline-flex items-center gap-2 rounded-full bg-sky-500 px-5 py-2 text-sm font-semibold text-slate-900 shadow-lg shadow-sky-500/40 transition hover:bg-sky-400 disabled:cursor-not-allowed disabled:opacity-60" {% if lock_reason %}disabled{% endif %}>Save participants</button>
         </div>
     </form>
-</section>
-{% endblock %}
-{% block extra_scripts %}
-{% if not lock_reason %}
-<script>
-(function () {
+    {% if not lock_reason %}
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
     const form = document.querySelector('form');
     if (!form) {
         return;
@@ -212,7 +209,8 @@
     }
 
     updateState();
-})();
-</script>
-{% endif %}
+    });
+    </script>
+    {% endif %}
+</section>
 {% endblock %}
