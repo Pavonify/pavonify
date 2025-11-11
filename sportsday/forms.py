@@ -300,6 +300,118 @@ class TeacherForm(forms.ModelForm):
             widget.attrs["class"] = f"{existing} {text_input_classes}".strip()
 
 
+class EventGenerationForm(forms.Form):
+    """Bulk create events for a meet using division presets."""
+
+    sport_types = forms.ModelMultipleChoiceField(
+        queryset=models.SportType.objects.none(),
+        label="Sport types",
+        required=True,
+    )
+    grades = forms.MultipleChoiceField(
+        label="Grades",
+        required=True,
+        choices=(),
+    )
+    genders = forms.MultipleChoiceField(
+        label="Genders",
+        required=True,
+        choices=models.Event.GenderLimit.choices,
+    )
+    name_pattern = forms.CharField(
+        label="Naming pattern",
+        initial="{grade} {gender_label} {sport}",
+        help_text="Use placeholders {grade}, {gender}, {gender_label}, and {sport}.",
+    )
+    capacity_override = forms.IntegerField(
+        label="Capacity override",
+        min_value=1,
+        required=False,
+    )
+    attempts_override = forms.IntegerField(
+        label="Attempts override",
+        min_value=1,
+        required=False,
+    )
+    rounds_total = forms.IntegerField(
+        label="Rounds",
+        min_value=1,
+        required=False,
+    )
+
+    def __init__(self, *args, grades: list[str] | None = None, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.fields["sport_types"].queryset = models.SportType.objects.order_by("label")
+        grade_options = grades or list(
+            models.Student.objects.values_list("grade", flat=True).distinct().order_by("grade")
+        )
+        if not grade_options:
+            grade_options = [f"G{i}" for i in range(3, 13)]
+        self.fields["grades"].choices = [(grade, grade) for grade in grade_options]
+        self.fields["genders"].choices = models.Event.GenderLimit.choices
+        select_class = (
+            "mt-1 w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-200"
+        )
+        for key in ("sport_types", "grades", "genders"):
+            self.fields[key].widget.attrs.update({"class": select_class, "size": "6"})
+        text_class = (
+            "mt-1 w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-200"
+        )
+        for key in ("name_pattern", "capacity_override", "attempts_override", "rounds_total"):
+            self.fields[key].widget.attrs.update({"class": text_class})
+
+    def clean_name_pattern(self):
+        pattern = self.cleaned_data["name_pattern"].strip()
+        if not pattern:
+            raise ValidationError("Provide a naming pattern for generated events.")
+        return pattern
+
+
+class BulkEntryAssignmentForm(forms.Form):
+    """Bulk add entries to a meet via CSV or automated rules."""
+
+    MODE_CSV = "csv"
+    MODE_RULES = "rules"
+
+    mode = forms.ChoiceField(
+        label="Assignment mode",
+        choices=((MODE_CSV, "CSV upload"), (MODE_RULES, "Rule-based")),
+        initial=MODE_CSV,
+    )
+    csv_file = forms.FileField(label="Entries CSV", required=False)
+    events = forms.ModelMultipleChoiceField(
+        queryset=models.Event.objects.none(),
+        label="Target events",
+        required=False,
+        help_text="Select the events/divisions to populate when using rule-based assignment.",
+    )
+
+    def __init__(self, *args, meet: models.Meet, **kwargs) -> None:
+        self.meet = meet
+        super().__init__(*args, **kwargs)
+        self.fields["events"].queryset = meet.events.order_by("name")
+        control_class = (
+            "mt-1 w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-200"
+        )
+        self.fields["mode"].widget.attrs.update({"class": control_class})
+        self.fields["csv_file"].widget.attrs.update({"class": control_class})
+        self.fields["events"].widget.attrs.update({"class": control_class, "size": "8"})
+
+    def clean(self):
+        cleaned = super().clean()
+        mode = cleaned.get("mode")
+        if mode == self.MODE_CSV:
+            uploaded = cleaned.get("csv_file")
+            if not uploaded:
+                self.add_error("csv_file", "Upload a CSV file containing entries.")
+            elif not uploaded.name.lower().endswith(".csv"):
+                self.add_error("csv_file", "Only CSV uploads are supported.")
+        elif mode == self.MODE_RULES:
+            events = cleaned.get("events")
+            if not events:
+                self.add_error("events", "Select at least one event to populate.")
+        return cleaned
+
 class StartListAddForm(forms.Form):
     """Allow coordinators to add a student to an event start list."""
 

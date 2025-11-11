@@ -2,9 +2,21 @@
 from __future__ import annotations
 
 from decimal import Decimal
+from typing import Iterable
 
+from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
+
+
+def _grade_key(value: str) -> tuple[int, str]:
+    """Return a sortable key for grade strings such as G6 or Year 7."""
+
+    text = (value or "").strip()
+    digits = "".join(ch for ch in text if ch.isdigit())
+    if digits:
+        return (int(digits), text.lower())
+    return (0, text.lower())
 
 
 class Student(models.Model):
@@ -24,6 +36,14 @@ class Student(models.Model):
 
     def __str__(self) -> str:
         return f"{self.first_name} {self.last_name}".strip()
+
+    def entries_for_meet(self, meet_id: int | str | models.Meet) -> models.QuerySet["Entry"]:
+        """Return entries for this student filtered to a meet."""
+
+        lookup = meet_id
+        if isinstance(meet_id, models.Model):
+            lookup = meet_id.pk
+        return self.entries.filter(event__meet_id=lookup).select_related("event", "event__meet")
 
 
 class Teacher(models.Model):
@@ -59,6 +79,15 @@ class Meet(models.Model):
 
     def __str__(self) -> str:
         return self.name
+
+    def participating_students(self) -> models.QuerySet[Student]:
+        """Return distinct students that have entries for this meet."""
+
+        return (
+            Student.objects.filter(entries__event__meet=self)
+            .distinct()
+            .order_by("last_name", "first_name")
+        )
 
 
 class SportType(models.Model):
@@ -125,6 +154,34 @@ class Event(models.Model):
     def __str__(self) -> str:
         return f"{self.meet.name}: {self.name}"
 
+    @property
+    def entries_count(self) -> int:
+        """Return the number of entries currently attached."""
+
+        return self.entries.count()
+
+    def grade_allows(self, grade: str) -> bool:
+        """Return True when the provided grade is within the event division."""
+
+        minimum = _grade_key(self.grade_min)
+        maximum = _grade_key(self.grade_max)
+        candidate = _grade_key(grade)
+        if minimum > maximum:
+            minimum, maximum = maximum, minimum
+        return minimum <= candidate <= maximum
+
+    def gender_allows(self, gender: str) -> bool:
+        if self.gender_limit == self.GenderLimit.MIXED:
+            return True
+        return (gender or "").upper() == self.gender_limit
+
+    def division_label(self) -> str:
+        """Human readable string for grade/gender division."""
+
+        gender_map = dict(self.GenderLimit.choices)
+        grades = self.grade_min if self.grade_min == self.grade_max else f"{self.grade_min}–{self.grade_max}"
+        return f"{grades} {gender_map.get(self.gender_limit, self.gender_limit)}"
+
 
 class Entry(models.Model):
     """Represents a student's entry into an event for a specific round."""
@@ -149,6 +206,69 @@ class Entry(models.Model):
 
     def __str__(self) -> str:
         return f"{self.student} - {self.event} (Round {self.round_no})"
+
+    def clean(self) -> None:  # pragma: no cover - exercised via save()
+        super().clean()
+        event = self.event
+        student = self.student
+        if not event or not student:
+            return
+
+        if not event.grade_allows(student.grade):
+            raise ValidationError(
+                {
+                    "student": (
+                        "Student is outside the allowed grade range for this event."
+                    )
+                }
+            )
+        if not event.gender_allows(student.gender):
+            raise ValidationError(
+                {
+                    "student": "Student does not match the gender limit for this event.",
+                }
+            )
+
+        meet = event.meet
+        if meet and meet.max_events_per_student:
+            existing = Entry.objects.filter(event__meet=meet, student=student)
+            if self.pk:
+                existing = existing.exclude(pk=self.pk)
+            if existing.count() >= meet.max_events_per_student:
+                raise ValidationError(
+                    {
+                        "student": (
+                            "Student has reached the maximum number of events for this meet."
+                        )
+                    }
+                )
+
+        if event.schedule_dt and not (event.is_locked or event.meet.is_locked):
+            from . import services
+
+            clashes = services.compute_timetable_clashes(
+                student=student,
+                event=event,
+                exclude_entry_id=self.pk,
+            )
+            if clashes:
+                conflicting = clashes[0].event
+                when = (
+                    conflicting.schedule_dt.strftime("%H:%M")
+                    if conflicting.schedule_dt
+                    else "the same session"
+                )
+                raise ValidationError(
+                    {
+                        "student": (
+                            f"Student already has an entry in {conflicting.name} at {when}."
+                        )
+                    }
+                )
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)
 
 
 class Attempt(models.Model):

@@ -1,7 +1,7 @@
 from decimal import Decimal
 from types import SimpleNamespace
 
-from django.db import IntegrityError
+from django.core.exceptions import ValidationError
 from django.test import TestCase
 
 from sportsday import models, services
@@ -37,7 +37,7 @@ class SportsdayModelTests(TestCase):
             attempts=3,
         )
         models.Entry.objects.create(event=event, student=self.student, round_no=1)
-        with self.assertRaises(IntegrityError):
+        with self.assertRaises(ValidationError):
             models.Entry.objects.create(event=event, student=self.student, round_no=1)
 
     def test_result_defaults(self):

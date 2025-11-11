@@ -1,20 +1,16 @@
 {% extends "sportsday/base.html" %}
-{% block title %}Upload Students{% if meet %} · {{ meet.name }}{% endif %}{% endblock %}
+{% block title %}Upload Students{% endblock %}
 {% block content %}
 <section class="space-y-6">
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
             <p class="text-sm uppercase tracking-widest text-slate-400">Athletes</p>
             <h1 class="text-2xl font-semibold">Upload students</h1>
-            {% if meet %}
-                <p class="text-sm text-slate-400">Meet scope: {{ meet.name }}</p>
-            {% else %}
-                <p class="text-sm text-slate-400">Choose a meet before importing a CSV roster.</p>
-            {% endif %}
+            <p class="text-sm text-slate-400">Upload a CSV once and reuse students across every meet.</p>
         </div>
         <div class="flex flex-wrap gap-2">
             {% url 'sportsday:students' as students_url %}
-            <a href="{{ students_url }}{% if meet %}?meet={{ meet.slug }}{% endif %}"
+            <a href="{{ students_url }}"
                 class="inline-flex items-center gap-2 rounded-full border border-slate-700 px-4 py-2 text-sm text-slate-300 hover:border-sky-500/40 hover:text-sky-200">
                 Back to students
             </a>
@@ -32,16 +28,6 @@
             <form method="post" enctype="multipart/form-data" class="mt-4 space-y-4">
                 {% csrf_token %}
                 <input type="hidden" name="form_type" value="upload" />
-                <label class="block text-xs uppercase tracking-widest text-slate-500">
-                    Meet
-                    <select name="meet"
-                        class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-200">
-                        <option value="">Select a meet</option>
-                        {% for option in meet_options %}
-                            <option value="{{ option.slug }}" {% if option.slug == selected_meet_slug %}selected{% endif %}>{{ option.name }}</option>
-                        {% endfor %}
-                    </select>
-                </label>
                 <label class="block text-xs uppercase tracking-widest text-slate-500">
                     CSV file
                     <input type="file" name="file" accept=".csv"
