@@ -133,13 +133,8 @@
         </div>
 
         <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-6 space-y-6">
-            <h2 class="text-lg font-semibold text-slate-100">Format & capacity</h2>
-            <div class="grid gap-4 md:grid-cols-4">
-                <label class="space-y-1 text-sm font-medium text-slate-200 md:col-span-2">
-                    <span class="text-xs uppercase tracking-widest text-slate-400">{{ form.measure_unit.label }}</span>
-                    {{ form.measure_unit }}
-                    {% if form.measure_unit.errors %}<span class="block text-xs text-rose-300">{{ form.measure_unit.errors|join:", " }}</span>{% endif %}
-                </label>
+            <h2 class="text-lg font-semibold text-slate-100">Capacity & attempts</h2>
+            <div class="grid gap-4 md:grid-cols-2">
                 <label class="space-y-1 text-sm font-medium text-slate-200">
                     <span class="text-xs uppercase tracking-widest text-slate-400">{{ form.capacity.label }}</span>
                     {{ form.capacity }}
@@ -149,19 +144,7 @@
                     <span class="text-xs uppercase tracking-widest text-slate-400">{{ form.attempts.label }}</span>
                     {{ form.attempts }}
                     {% if form.attempts.errors %}<span class="block text-xs text-rose-300">{{ form.attempts.errors|join:", " }}</span>{% endif %}
-                </label>
-            </div>
-            <div class="grid gap-4 md:grid-cols-3">
-                <label class="space-y-1 text-sm font-medium text-slate-200">
-                    <span class="text-xs uppercase tracking-widest text-slate-400">{{ form.rounds_total.label }}</span>
-                    {{ form.rounds_total }}
-                    {% if form.rounds_total.errors %}<span class="block text-xs text-rose-300">{{ form.rounds_total.errors|join:", " }}</span>{% endif %}
-                </label>
-                <label class="space-y-1 text-sm font-medium text-slate-200 md:col-span-2">
-                    <span class="text-xs uppercase tracking-widest text-slate-400">{{ form.knockout_qualifiers.label }}</span>
-                    {{ form.knockout_qualifiers }}
-                    <span class="block text-xs text-slate-500">Optional pattern such as <code class="font-mono">Q:2;q:2</code> for automatic qualifiers.</span>
-                    {% if form.knockout_qualifiers.errors %}<span class="block text-xs text-rose-300">{{ form.knockout_qualifiers.errors|join:", " }}</span>{% endif %}
+                    <span class="block text-xs text-slate-500">Field events can allow multiple attempts.</span>
                 </label>
             </div>
         </div>
