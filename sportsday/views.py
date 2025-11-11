@@ -9,6 +9,8 @@ from decimal import Decimal
 from types import SimpleNamespace
 from typing import Iterable
 
+from django.contrib.admin.views.decorators import staff_member_required
+from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import Count, Max, Min, Prefetch, Q
 from django.http import (
@@ -57,6 +59,24 @@ def _grade_sort_key(grade: str) -> tuple[int, str]:
     if stripped.isdigit():
         return int(stripped), stripped
     return (999, stripped or "—")
+
+
+def _gender_label(code: str) -> str:
+    mapping = {
+        models.Event.GenderLimit.MALE: "Boys",
+        models.Event.GenderLimit.FEMALE: "Girls",
+        models.Event.GenderLimit.MIXED: "Mixed",
+    }
+    return mapping.get(code, code)
+
+
+def _teacher_for_user(user) -> models.Teacher | None:
+    if not getattr(user, "is_authenticated", False):
+        return None
+    email = getattr(user, "email", "") or ""
+    if not email:
+        return None
+    return models.Teacher.objects.filter(email__iexact=email).first()
 
 
 def _build_leaderboard_summaries(records: list[services.ScoringRecord]):
@@ -289,17 +309,48 @@ def dashboard(request: HttpRequest) -> HttpResponse:
 def meet_list(request: HttpRequest) -> HttpResponse:
     """List available meets with quick actions."""
 
-    meets = models.Meet.objects.annotate(
-        events_count=Count("events", distinct=True),
-        teacher_count=Count("events__assigned_teachers", distinct=True),
-    ).order_by("date", "name")
+    meets_qs = (
+        models.Meet.objects.annotate(
+            events_count=Count("events", distinct=True),
+            entries_count=Count("events__entries", distinct=True),
+            student_count=Count("events__entries__student", distinct=True),
+            scheduled_events=Count(
+                "events",
+                filter=Q(events__schedule_dt__isnull=False),
+                distinct=True,
+            ),
+        )
+        .order_by("date", "name")
+        .prefetch_related("events")
+    )
 
     query = request.GET.get("q")
     if query:
-        meets = meets.filter(Q(name__icontains=query) | Q(location__icontains=query))
+        meets_qs = meets_qs.filter(Q(name__icontains=query) | Q(location__icontains=query))
+
+    cards: list[dict[str, object]] = []
+    for meet in meets_qs:
+        events_total = meet.events_count or 0
+        scheduled = getattr(meet, "scheduled_events", 0) or 0
+        completion = round((scheduled / events_total) * 100) if events_total else 0
+        if meet.is_locked:
+            status = "Locked"
+        elif events_total == 0:
+            status = "Draft"
+        elif meet.entries_count:
+            status = "Active"
+        else:
+            status = "Scheduling"
+        cards.append(
+            {
+                "meet": meet,
+                "completion": min(completion, 100),
+                "status": status,
+            }
+        )
 
     template = "sportsday/partials/meets_board.html" if request.headers.get("HX-Request") else "sportsday/meets_list.html"
-    return render(request, template, {"meets": meets, "active_meet": None})
+    return render(request, template, {"cards": cards, "active_meet": None})
 
 
 def meet_create(request: HttpRequest) -> HttpResponse:
@@ -614,7 +665,7 @@ def _wizard_people_post(request: HttpRequest) -> HttpResponse:
     if upload_type == "students":
         student_form = forms.StudentUploadForm(request.POST, request.FILES)
         if student_form.is_valid():
-            result = _import_students(meet, student_form.cleaned_data["file"])
+            result = _import_students(student_form.cleaned_data["file"])
             summary["students"] = result
             if result["created"] or result["updated"]:
                 state.update({"meet_id": meet.pk, "people_uploaded": True})
@@ -719,7 +770,7 @@ def meet_wizard_download_template(request: HttpRequest, kind: str) -> HttpRespon
     return response
 
 
-def _import_students(meet: models.Meet, upload) -> dict[str, object]:
+def _import_students(upload) -> dict[str, object]:
     created = updated = 0
     errors: list[str] = []
     try:
@@ -782,7 +833,7 @@ def _import_students(meet: models.Meet, upload) -> dict[str, object]:
             )
             created += 1
     upload.close()
-    return {"created": created, "updated": updated, "errors": errors}
+    return {"created": created, "updated": updated, "errors": errors, "details": []}
 
 
 def _import_teachers(upload) -> dict[str, object]:
@@ -854,6 +905,9 @@ def meet_detail(request: HttpRequest, slug: str) -> HttpResponse:
     meet = get_object_or_404(models.Meet.objects.prefetch_related("events", "events__assigned_teachers"), slug=slug)
     highlight_event = meet.events.order_by("schedule_dt", "name").first()
     mobile_nav, mobile_nav_active = _build_meet_mobile_nav(meet, active="start")
+    entries_total = models.Entry.objects.filter(event__meet=meet).count()
+    students_total = meet.participating_students().count()
+    scoring_rule = meet.scoring_rules.first()
 
     context = {
         "meet": meet,
@@ -861,6 +915,10 @@ def meet_detail(request: HttpRequest, slug: str) -> HttpResponse:
         "mobile_nav": mobile_nav,
         "mobile_nav_active": mobile_nav_active,
         "active_meet": meet,
+        "events_count": meet.events.count(),
+        "entries_total": entries_total,
+        "students_total": students_total,
+        "scoring_rule": scoring_rule,
     }
     return render(request, "sportsday/meet_detail.html", context)
 
@@ -973,11 +1031,234 @@ def meet_toggle_lock(request: HttpRequest, slug: str) -> HttpResponse:
     return redirect(redirect_url)
 
 
+@staff_member_required
+def events_generate(request: HttpRequest, slug: str) -> HttpResponse:
+    """Bulk generate events for a meet using grade/gender divisions."""
+
+    meet = get_object_or_404(models.Meet, slug=slug)
+    grade_options = list(
+        models.Student.objects.values_list("grade", flat=True).distinct().order_by("grade")
+    )
+    form = forms.EventGenerationForm(request.POST or None, grades=grade_options)
+    summary: dict[str, object] | None = None
+    generated: list[models.Event] = []
+
+    if request.method == "POST" and form.is_valid():
+        cleaned = form.cleaned_data
+        summary = services.generate_events(
+            meet=meet,
+            sport_types=list(cleaned["sport_types"]),
+            grades=cleaned["grades"],
+            genders=cleaned["genders"],
+            name_pattern=cleaned["name_pattern"],
+            capacity_override=cleaned.get("capacity_override"),
+            attempts_override=cleaned.get("attempts_override"),
+            rounds_total=cleaned.get("rounds_total") or 1,
+        )
+        generated = summary.get("events", [])
+        form = forms.EventGenerationForm(grades=grade_options)
+
+    context = {
+        "meet": meet,
+        "form": form,
+        "summary": summary,
+        "generated_events": generated,
+        "active_meet": meet,
+    }
+    return render(request, "sportsday/events_generate.html", context)
+
+
+@staff_member_required
+def entries_bulk(request: HttpRequest, slug: str) -> HttpResponse:
+    """Bulk assign entries to events within a meet."""
+
+    meet = get_object_or_404(models.Meet, slug=slug)
+    form = forms.BulkEntryAssignmentForm(
+        request.POST or None, request.FILES or None, meet=meet
+    )
+    summary: dict[str, object] | None = None
+
+    if request.method == "POST" and form.is_valid():
+        mode = form.cleaned_data["mode"]
+        if mode == forms.BulkEntryAssignmentForm.MODE_CSV:
+            summary = _bulk_assign_entries_from_csv(meet, form.cleaned_data["csv_file"])
+        else:
+            summary = _bulk_assign_entries_from_rules(meet, form.cleaned_data["events"])
+        form = forms.BulkEntryAssignmentForm(meet=meet)
+
+    context = {
+        "meet": meet,
+        "form": form,
+        "summary": summary,
+        "active_meet": meet,
+    }
+    return render(request, "sportsday/entries_bulk.html", context)
+
+
+def _bulk_assign_entries_from_csv(meet: models.Meet, upload) -> dict[str, object]:
+    created = updated = 0
+    errors: list[str] = []
+    try:
+        data = upload.read().decode("utf-8-sig")
+    except UnicodeDecodeError:
+        upload.seek(0)
+        data = upload.read().decode("latin-1")
+    reader = csv.DictReader(io.StringIO(data))
+    if not reader.fieldnames:
+        errors.append("CSV file has no headers.")
+        return {"created": 0, "updated": 0, "errors": errors}
+    required = {"student_external_id"}
+    missing_headers = required - set(field.strip() for field in reader.fieldnames if field)
+    if missing_headers:
+        errors.append(f"Missing columns: {', '.join(sorted(missing_headers))}")
+        return {"created": 0, "updated": 0, "errors": errors}
+    for line_number, row in enumerate(reader, start=2):
+        if not any(row.values()):
+            continue
+        external_id = (row.get("student_external_id") or "").strip()
+        if not external_id:
+            errors.append(f"Row {line_number}: student_external_id is required")
+            continue
+        student = models.Student.objects.filter(external_id=external_id).first()
+        if not student:
+            errors.append(f"Row {line_number}: no student with external_id '{external_id}'")
+            continue
+        event = _resolve_event_for_csv(meet, row)
+        if not event:
+            errors.append(f"Row {line_number}: event could not be found")
+            continue
+        round_value = (row.get("round_no") or "1").strip() or "1"
+        heat_value = (row.get("heat") or "1").strip() or "1"
+        try:
+            round_no = int(round_value)
+            heat = int(heat_value)
+        except ValueError:
+            errors.append(f"Row {line_number}: invalid round or heat value")
+            continue
+        lane_value = row.get("lane_or_order")
+        lane: int | None
+        if lane_value in (None, ""):
+            lane = None
+        else:
+            try:
+                lane = int(lane_value)
+            except ValueError:
+                errors.append(f"Row {line_number}: invalid lane_or_order '{lane_value}'")
+                continue
+        entry = models.Entry.objects.filter(event=event, student=student, round_no=round_no).first()
+        created_flag = False
+        if entry is None:
+            entry = models.Entry(event=event, student=student, round_no=round_no)
+            created_flag = True
+        entry.heat = heat
+        entry.lane_or_order = lane
+        try:
+            entry.save()
+        except ValidationError as exc:
+            errors.append(f"Row {line_number}: {'; '.join(exc.messages)}")
+            continue
+        if created_flag:
+            created += 1
+        else:
+            updated += 1
+    upload.close()
+    return {"created": created, "updated": updated, "errors": errors}
+
+
+def _resolve_event_for_csv(meet: models.Meet, row: dict[str, str]) -> models.Event | None:
+    event_id = (row.get("event_id") or "").strip()
+    event_name = (row.get("event_name") or "").strip()
+    event = None
+    if event_id:
+        try:
+            event = meet.events.get(pk=int(event_id))
+        except (ValueError, models.Event.DoesNotExist):
+            event = None
+    if event is None and event_name:
+        event = meet.events.filter(name__iexact=event_name).first()
+    return event
+
+
+def _bulk_assign_entries_from_rules(
+    meet: models.Meet, events: Iterable[models.Event]
+) -> dict[str, object]:
+    events = list(events)
+    summary = {"created": 0, "errors": [], "details": [], "updated": None}
+    if not events:
+        return summary
+
+    student_counts = defaultdict(int)
+    for row in (
+        models.Entry.objects.filter(event__meet=meet)
+        .values("student")
+        .annotate(total=Count("id"))
+    ):
+        student_counts[row["student"]] = row["total"]
+
+    students = list(
+        models.Student.objects.filter(is_active=True).order_by("house", "last_name", "first_name")
+    )
+    meet_limit = meet.max_events_per_student or 0
+
+    for event in events:
+        event = models.Event.objects.select_related("sport_type", "meet").get(pk=event.pk)
+        event_entries = list(event.entries.select_related("student"))
+        house_counts = defaultdict(int)
+        existing_student_ids = set()
+        for entry in event_entries:
+            existing_student_ids.add(entry.student_id)
+            house_counts[entry.student.house or "Unassigned"] += 1
+        capacity = event.capacity or 0
+        slots = max(capacity - len(event_entries), 0)
+        if slots <= 0:
+            summary["details"].append({"event": event, "assigned": []})
+            continue
+        candidates: list[models.Student] = []
+        for student in students:
+            if student.pk in existing_student_ids:
+                continue
+            if not event.grade_allows(student.grade):
+                continue
+            if not event.gender_allows(student.gender):
+                continue
+            if meet_limit and student_counts.get(student.pk, 0) >= meet_limit:
+                continue
+            if services.compute_timetable_clashes(student=student, event=event):
+                continue
+            candidates.append(student)
+        buckets: dict[str, list[models.Student]] = defaultdict(list)
+        for student in candidates:
+            buckets[student.house or "Unassigned"].append(student)
+        for bucket in buckets.values():
+            bucket.sort(key=lambda s: (student_counts.get(s.pk, 0), s.last_name, s.first_name))
+
+        assigned: list[models.Student] = []
+        while slots and any(buckets.values()):
+            available = [house for house, bucket in buckets.items() if bucket]
+            if not available:
+                break
+            chosen_house = min(available, key=lambda h: (house_counts.get(h, 0), h))
+            student = buckets[chosen_house].pop(0)
+            entry = models.Entry(event=event, student=student, round_no=1, heat=1)
+            try:
+                entry.save()
+            except ValidationError as exc:
+                summary["errors"].append(
+                    f"{event.name}: {student} – {'; '.join(exc.messages)}"
+                )
+                continue
+            house_counts[chosen_house] += 1
+            student_counts[student.pk] = student_counts.get(student.pk, 0) + 1
+            assigned.append(student)
+            summary["created"] += 1
+            slots -= 1
+        summary["details"].append({"event": event, "assigned": assigned})
+    return summary
+
+
 def students_upload(request: HttpRequest) -> HttpResponse:
     """Allow coordinators to re-upload student CSVs or add individuals."""
 
-    meet_slug = request.GET.get("meet") or request.POST.get("meet") or ""
-    meet = models.Meet.objects.filter(slug=meet_slug).first() if meet_slug else None
     upload_form = forms.StudentUploadForm()
     student_form = forms.StudentForm()
     upload_summary: dict[str, object] | None = None
@@ -992,20 +1273,15 @@ def students_upload(request: HttpRequest) -> HttpResponse:
                 student_form = forms.StudentForm()
         else:
             upload_form = forms.StudentUploadForm(request.POST, request.FILES)
-            if not meet:
-                upload_form.add_error(None, "Select a meet before uploading students.")
-            if upload_form.is_valid() and meet:
-                upload_summary = _import_students(meet, upload_form.cleaned_data["file"])
+            if upload_form.is_valid():
+                upload_summary = _import_students(upload_form.cleaned_data["file"])
                 upload_form = forms.StudentUploadForm()
 
     context = {
-        "meet": meet,
-        "meet_options": models.Meet.objects.order_by("name"),
         "upload_form": upload_form,
         "student_form": student_form,
         "upload_summary": upload_summary,
         "created_student": created_student,
-        "selected_meet_slug": meet.slug if meet else "",
     }
     return render(request, "sportsday/students_upload.html", context)
 
@@ -1112,58 +1388,50 @@ def teachers_table_fragment(request: HttpRequest) -> HttpResponse:
 
 
 def event_list(request: HttpRequest) -> HttpResponse:
-    """Grouped event schedule for a meet."""
-
-    meet_slug = request.GET.get("meet")
-    active_meet = models.Meet.objects.filter(slug=meet_slug).first() if meet_slug else None
-    events = models.Event.objects.select_related("meet", "sport_type")
-    if active_meet:
-        events = events.filter(meet=active_meet)
-    query = request.GET.get("q")
-    if query:
-        events = events.filter(Q(name__icontains=query) | Q(sport_type__label__icontains=query))
-    events = list(events.order_by("schedule_dt", "name"))
-
-    scheduled = [event for event in events if event.schedule_dt]
-    unscheduled = [event for event in events if not event.schedule_dt]
-
-    event_groups = []
-    current_date = None
-    bucket: list[models.Event] = []
-    for event in scheduled:
-        event_date = event.schedule_dt.date()
-        if current_date and event_date != current_date:
-            event_groups.append(_build_event_group(bucket, active_meet))
-            bucket = []
-        current_date = event_date
-        bucket.append(event)
-    if bucket:
-        event_groups.append(_build_event_group(bucket, active_meet))
-    if unscheduled:
-        event_groups.append(
-            {
-                "label": "Unscheduled",
-                "subtitle": "Assign a time slot to publish this group.",
-                "events": unscheduled,
-            }
-        )
+    """List events for a meet with management shortcuts."""
 
     meet_options = models.Meet.objects.order_by("name")
+    meet_slug = request.GET.get("meet")
+    if not meet_slug and meet_options.exists():
+        meet_slug = meet_options.first().slug
+    active_meet = models.Meet.objects.filter(slug=meet_slug).first() if meet_slug else None
+
+    events = models.Event.objects.none()
+    query = request.GET.get("q")
+    if active_meet:
+        events = (
+            models.Event.objects.filter(meet=active_meet)
+            .select_related("sport_type", "meet")
+            .prefetch_related("assigned_teachers")
+            .annotate(entries_total=Count("entries", distinct=True))
+            .order_by("schedule_dt", "name")
+        )
+        if query:
+            events = events.filter(
+                Q(name__icontains=query)
+                | Q(sport_type__label__icontains=query)
+                | Q(grade_min__icontains=query)
+                | Q(grade_max__icontains=query)
+            )
+        if not request.user.is_staff:
+            teacher = _teacher_for_user(request.user)
+            if teacher:
+                events = events.filter(assigned_teachers=teacher)
+            else:
+                events = events.none()
+
+    mobile_nav = mobile_nav_active = None
     if active_meet:
         mobile_nav, mobile_nav_active = _build_meet_mobile_nav(active_meet, active="results")
-    else:
-        mobile_nav = mobile_nav_active = None
 
     context = {
-        "event_groups": event_groups,
+        "events": events,
         "meet_options": meet_options,
         "active_meet": active_meet,
         "mobile_nav": mobile_nav,
         "mobile_nav_active": mobile_nav_active,
     }
 
-    if request.headers.get("HX-Request"):
-        return render(request, "sportsday/partials/events_schedule.html", context)
     return render(request, "sportsday/events_list.html", context)
 
 

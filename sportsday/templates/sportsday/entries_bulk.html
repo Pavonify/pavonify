@@ -1,0 +1,106 @@
+{% extends "sportsday/base.html" %}
+{% block title %}Bulk assign entries · {{ meet.name }}{% endblock %}
+{% block content %}
+<section class="space-y-6">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+            <p class="text-sm uppercase tracking-widest text-slate-400">Meet · {{ meet.date|date:"M j, Y" }}</p>
+            <h1 class="text-2xl font-semibold">Bulk assign entries</h1>
+            <p class="text-sm text-slate-400">Import lane allocations or auto-fill divisions for {{ meet.name }}.</p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+            <a href="{% url 'sportsday:events' %}?meet={{ meet.slug }}" class="inline-flex items-center gap-2 rounded-full border border-slate-700 px-4 py-2 text-sm text-slate-300 hover:border-sky-500/40 hover:text-sky-200">Back to events</a>
+        </div>
+    </div>
+
+    <div class="grid gap-6 lg:grid-cols-3">
+        <form method="post" enctype="multipart/form-data" class="space-y-5 rounded-2xl border border-slate-800 bg-slate-900/60 p-6 lg:col-span-2">
+            {% csrf_token %}
+            <div class="grid gap-4 sm:grid-cols-2">
+                <div class="space-y-2">
+                    <label class="block text-xs uppercase tracking-widest text-slate-500">Mode</label>
+                    {{ form.mode }}
+                    {% if form.mode.errors %}
+                        <p class="text-xs text-rose-300">{{ form.mode.errors|join:', ' }}</p>
+                    {% endif %}
+                </div>
+                <div class="space-y-2">
+                    <label class="block text-xs uppercase tracking-widest text-slate-500">Entries CSV</label>
+                    {{ form.csv_file }}
+                    <p class="text-xs text-slate-500">Columns: <code>student_external_id,event_id/event_name,round_no,heat,lane_or_order</code></p>
+                    {% if form.csv_file.errors %}
+                        <p class="text-xs text-rose-300">{{ form.csv_file.errors|join:', ' }}</p>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="space-y-2">
+                <label class="block text-xs uppercase tracking-widest text-slate-500">Events for rule-based assignment</label>
+                {{ form.events }}
+                <p class="text-xs text-slate-500">Select divisions to auto-fill when using the rule-based option.</p>
+                {% if form.events.errors %}
+                    <p class="text-xs text-rose-300">{{ form.events.errors|join:', ' }}</p>
+                {% endif %}
+            </div>
+            {% if form.non_field_errors %}
+                <div class="rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">
+                    {% for error in form.non_field_errors %}
+                        <p>{{ error }}</p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            <button type="submit" class="inline-flex items-center gap-2 rounded-full bg-emerald-500 px-4 py-2 text-sm font-medium text-emerald-950 shadow-lg shadow-emerald-500/40 hover:bg-emerald-400">Process entries</button>
+        </form>
+        <aside class="space-y-4 rounded-2xl border border-slate-800 bg-slate-900/60 p-6 text-sm text-slate-300">
+            <h2 class="text-lg font-semibold text-slate-100">Summary</h2>
+            {% if summary %}
+                <dl class="grid grid-cols-2 gap-3">
+                    <div>
+                        <dt class="text-xs uppercase tracking-widest text-slate-500">Created</dt>
+                        <dd class="text-lg font-semibold text-emerald-300">{{ summary.created }}</dd>
+                    </div>
+                    {% if summary.updated is not None %}
+                        <div>
+                            <dt class="text-xs uppercase tracking-widest text-slate-500">Updated</dt>
+                            <dd class="text-lg font-semibold text-sky-300">{{ summary.updated }}</dd>
+                        </div>
+                    {% endif %}
+                </dl>
+                {% if summary.details %}
+                    <div>
+                        <h3 class="mt-4 text-xs uppercase tracking-widest text-slate-500">Assignments</h3>
+                        <ul class="mt-2 space-y-2 text-slate-200">
+                            {% for detail in summary.details %}
+                                <li>
+                                    <span class="font-semibold">{{ detail.event.name }}</span>
+                                    {% if detail.assigned %}
+                                        <span class="text-xs text-slate-400">({{ detail.assigned|length }} added)</span>
+                                        <ul class="mt-1 list-disc space-y-1 pl-5 text-xs text-slate-400">
+                                            {% for student in detail.assigned %}
+                                                <li>{{ student.first_name }} {{ student.last_name }} · {{ student.house }}</li>
+                                            {% endfor %}
+                                        </ul>
+                                    {% else %}
+                                        <span class="text-xs text-slate-500">No students added.</span>
+                                    {% endif %}
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
+                {% if summary.errors %}
+                    <div>
+                        <h3 class="mt-4 text-xs uppercase tracking-widest text-rose-400">Issues</h3>
+                        <ul class="mt-2 space-y-1 text-xs text-rose-300">
+                            {% for error in summary.errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
+            {% else %}
+                <p class="text-slate-400">Upload a CSV or select events for rule-based assignment to populate start lists.</p>
+            {% endif %}
+        </aside>
+    </div>
+</section>
+{% endblock %}

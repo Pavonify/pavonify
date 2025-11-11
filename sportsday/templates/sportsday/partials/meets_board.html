@@ -1,31 +1,49 @@
 <div id="meets-board" class="grid gap-4 md:grid-cols-2" hx-target="this" hx-swap="outerHTML">
-    {% if meets %}
-        {% for meet in meets %}
-            <article class="rounded-2xl border border-slate-800 bg-slate-900/60 p-6 shadow-lg shadow-slate-900/20">
-                <div class="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                        <p class="text-xs uppercase tracking-widest text-slate-400">{{ meet.date|date:"M j, Y" }}</p>
-                        <h2 class="text-xl font-semibold">{{ meet.name }}</h2>
-                        <p class="text-sm text-slate-400">{{ meet.location|default:"Location TBC" }}</p>
+    {% if cards %}
+        {% for card in cards %}
+            {% with meet=card.meet %}
+                <article class="rounded-2xl border border-slate-800 bg-slate-900/60 p-6 shadow-lg shadow-slate-900/20">
+                    <div class="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                            <p class="text-xs uppercase tracking-widest text-slate-400">{{ meet.date|date:"M j, Y" }}</p>
+                            <h2 class="text-xl font-semibold">{{ meet.name }}</h2>
+                            <p class="text-sm text-slate-400">{{ meet.location|default:"Location TBC" }}</p>
+                        </div>
+                        <span class="inline-flex items-center gap-2 rounded-full border border-slate-700 px-3 py-1 text-xs uppercase tracking-widest text-slate-300">{{ meet.events_count }} events</span>
                     </div>
-                    <span class="inline-flex items-center gap-2 rounded-full border border-slate-700 px-3 py-1 text-xs uppercase tracking-widest text-slate-300">{{ meet.events_count }} events</span>
-                </div>
-                <dl class="mt-4 grid gap-3 text-sm text-slate-300">
-                    <div class="flex items-center justify-between">
-                        <dt>Max events per student</dt>
-                        <dd class="font-medium">{{ meet.max_events_per_student }}</dd>
+                    <div class="mt-4 space-y-3">
+                        <div>
+                            <div class="flex items-center justify-between text-xs uppercase tracking-widest text-slate-400">
+                                <span>Status · {{ card.status }}</span>
+                                <span>{{ card.completion }}%</span>
+                            </div>
+                            <div class="mt-1 h-2 w-full overflow-hidden rounded-full bg-slate-800">
+                                <div class="h-2 bg-sky-500" style="width: {{ card.completion }}%"></div>
+                            </div>
+                        </div>
+                        <dl class="grid gap-3 text-sm text-slate-300 sm:grid-cols-3">
+                            <div>
+                                <dt class="text-xs uppercase tracking-widest text-slate-400">Events</dt>
+                                <dd class="text-lg font-semibold text-slate-100">{{ meet.events_count }}</dd>
+                            </div>
+                            <div>
+                                <dt class="text-xs uppercase tracking-widest text-slate-400">Entries</dt>
+                                <dd class="text-lg font-semibold text-slate-100">{{ meet.entries_count|default:0 }}</dd>
+                            </div>
+                            <div>
+                                <dt class="text-xs uppercase tracking-widest text-slate-400">Students</dt>
+                                <dd class="text-lg font-semibold text-slate-100">{{ meet.student_count|default:0 }}</dd>
+                            </div>
+                        </dl>
                     </div>
-                    <div class="flex items-center justify-between">
-                        <dt>Teachers assigned</dt>
-                        <dd class="font-medium">{{ meet.teacher_count }}</dd>
+                    <div class="mt-6 flex flex-wrap gap-2 text-sm">
+                        <a href="{% url 'sportsday:meet-detail' meet.slug %}" class="inline-flex items-center gap-2 rounded-full bg-sky-500/10 px-4 py-2 text-sky-300 hover:bg-sky-500/20">Overview</a>
+                        <a href="{% url 'sportsday:events' %}?meet={{ meet.slug }}" class="inline-flex items-center gap-2 rounded-full border border-slate-700 px-4 py-2 text-slate-300 hover:border-sky-500/40 hover:text-sky-200">Manage events</a>
+                        <a href="{% url 'sportsday:events-generate' meet.slug %}" class="inline-flex items-center gap-2 rounded-full border border-dashed border-sky-500/40 px-4 py-2 text-sky-200 hover:border-sky-500 hover:text-sky-100">Bulk generate events</a>
+                        <a href="{% url 'sportsday:entries-bulk' meet.slug %}" class="inline-flex items-center gap-2 rounded-full border border-dashed border-emerald-500/40 px-4 py-2 text-emerald-200 hover:border-emerald-500 hover:text-emerald-100">Bulk assign entries</a>
                     </div>
-                </dl>
-                <div class="mt-6 flex flex-wrap gap-2 text-sm">
-                    <a href="{% url 'sportsday:meet-detail' meet.slug %}" class="inline-flex items-center gap-2 rounded-full bg-sky-500/10 px-4 py-2 text-sky-300 hover:bg-sky-500/20">Open hub</a>
-                    <a href="{% url 'sportsday:events' %}?meet={{ meet.slug }}" class="inline-flex items-center gap-2 rounded-full border border-slate-700 px-4 py-2 text-slate-300 hover:border-sky-500/40 hover:text-sky-200">Events</a>
-                    <a href="{% url 'sportsday:students' %}?meet={{ meet.slug }}" class="inline-flex items-center gap-2 rounded-full border border-slate-700 px-4 py-2 text-slate-300 hover:border-sky-500/40 hover:text-sky-200">Roster</a>
-                </div>
-            </article>
+                </article>
+            {% endwith %}
         {% endfor %}
     {% else %}
         <div class="rounded-2xl border border-dashed border-slate-700 bg-slate-900/40 p-10 text-center text-slate-400">

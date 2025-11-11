@@ -4,68 +4,125 @@
 <section class="space-y-6">
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-            <p class="text-sm uppercase tracking-widest text-slate-600">Meet hub</p>
-            <h1 class="text-2xl font-semibold text-ink">{{ meet.name }}</h1>
-            <p class="text-sm text-slate-600">{{ meet.date|date:"l, j F Y" }} · {{ meet.location|default:"Venue TBC" }}</p>
+            <p class="text-sm uppercase tracking-widest text-slate-400">Meet hub</p>
+            <h1 class="text-2xl font-semibold">{{ meet.name }}</h1>
+            <p class="text-sm text-slate-400">{{ meet.date|date:"l, j F Y" }} · {{ meet.location|default:"Venue TBC" }}</p>
         </div>
         <div class="flex flex-wrap gap-2">
-            <a href="{% url 'sportsday:events' %}?meet={{ meet.slug }}" class="inline-flex items-center gap-2 rounded-full bg-sky-100 px-4 py-2 text-sm text-sky-700 hover:bg-sky-200">View schedule</a>
-            <a href="{% url 'sportsday:students' %}?meet={{ meet.slug }}" class="inline-flex items-center gap-2 rounded-full border border-slate-300 px-4 py-2 text-sm text-slate-700 hover:border-sky-500 hover:text-sky-700">Manage roster</a>
+            <a href="{% url 'sportsday:events' %}?meet={{ meet.slug }}" class="inline-flex items-center gap-2 rounded-full border border-slate-700 px-4 py-2 text-sm text-slate-300 hover:border-sky-500/40 hover:text-sky-200">View events</a>
+            <a href="{% url 'sportsday:students' %}?meet={{ meet.slug }}" class="inline-flex items-center gap-2 rounded-full border border-slate-700 px-4 py-2 text-sm text-slate-300 hover:border-sky-500/40 hover:text-sky-200">Students</a>
             <form method="post" action="{% url 'sportsday:meet-toggle-lock' meet.slug %}" hx-post="{% url 'sportsday:meet-toggle-lock' meet.slug %}" hx-target="closest section" hx-swap="outerHTML">
                 {% csrf_token %}
                 {% if meet.is_locked %}
                     <input type="hidden" name="action" value="unlock">
-                    <button type="submit" class="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-4 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-200">Unlock meet</button>
+                    <button type="submit" class="inline-flex items-center gap-2 rounded-full bg-emerald-500 px-4 py-2 text-sm font-medium text-emerald-950 shadow-lg shadow-emerald-500/40 hover:bg-emerald-400">Unlock meet</button>
                 {% else %}
                     <input type="hidden" name="action" value="lock">
-                    <button type="submit" class="inline-flex items-center gap-2 rounded-full bg-rose-100 px-4 py-2 text-sm font-medium text-rose-700 hover:bg-rose-200">Lock meet</button>
+                    <button type="submit" class="inline-flex items-center gap-2 rounded-full bg-rose-500 px-4 py-2 text-sm font-medium text-rose-950 shadow-lg shadow-rose-500/40 hover:bg-rose-400">Lock meet</button>
                 {% endif %}
             </form>
         </div>
     </div>
 
-    <div class="grid gap-4 md:grid-cols-3">
-        <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:col-span-2" id="meet-overview" hx-get="{% url 'sportsday:meet-schedule-fragment' meet.slug %}" hx-trigger="load">
-            <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">Loading overview…</div>
-        </article>
-        <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm" id="meet-staff" hx-get="{% url 'sportsday:meet-people-fragment' meet.slug %}" hx-trigger="load">
-            <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">Fetching allocations…</div>
-        </article>
-    </div>
+    <nav class="overflow-x-auto">
+        <ul class="flex gap-3 rounded-full border border-slate-800 bg-slate-900/60 p-2 text-sm text-slate-300">
+            <li><a href="#tab-overview" class="inline-flex items-center gap-2 rounded-full px-4 py-2 hover:bg-slate-800">Overview</a></li>
+            <li><a href="#tab-events" class="inline-flex items-center gap-2 rounded-full px-4 py-2 hover:bg-slate-800">Events</a></li>
+            <li><a href="#tab-entries" class="inline-flex items-center gap-2 rounded-full px-4 py-2 hover:bg-slate-800">Entries</a></li>
+            <li><a href="#tab-scoring" class="inline-flex items-center gap-2 rounded-full px-4 py-2 hover:bg-slate-800">Scoring</a></li>
+            <li><a href="#tab-exports" class="inline-flex items-center gap-2 rounded-full px-4 py-2 hover:bg-slate-800">Exports</a></li>
+        </ul>
+    </nav>
 
-    <div class="grid gap-4 md:grid-cols-2">
-        <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <h2 class="text-lg font-semibold text-ink">Quick links</h2>
-            <div class="mt-4 grid gap-3 sm:grid-cols-2 text-sm text-slate-700">
-                <a href="{% url 'sportsday:events' %}?meet={{ meet.slug }}" class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 hover:border-sky-500 hover:text-sky-700">
-                    <span class="block text-sm font-semibold text-ink">Events &amp; heats</span>
-                    <span class="block text-xs text-slate-600">Assign lanes, manage attempts, and print start lists.</span>
-                </a>
-                {% if highlight_event %}
-                    <a href="{% url 'sportsday:event-detail' highlight_event %}#event-results" class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 hover:border-sky-500 hover:text-sky-700">
-                        <span class="block text-sm font-semibold text-ink">Results room</span>
-                        <span class="block text-xs text-slate-600">HTMX forms streamline timing and measurement entry.</span>
-                    </a>
-                {% else %}
-                    <span class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-4 text-xs text-slate-600">
-                        <span class="block text-sm font-semibold text-ink">Results room</span>
-                        <span class="block">Add events to unlock the results workspace.</span>
-                    </span>
-                {% endif %}
-                <a href="{% url 'sportsday:leaderboards' %}?meet={{ meet.slug }}" class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 hover:border-sky-500 hover:text-sky-700">
-                    <span class="block text-sm font-semibold text-ink">Leaderboards</span>
-                    <span class="block text-xs text-slate-600">Track house points, grade champions, and participation.</span>
-                </a>
-                <a href="{% url 'sportsday:students' %}?meet={{ meet.slug }}" class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 hover:border-sky-500 hover:text-sky-700">
-                    <span class="block text-sm font-semibold text-ink">Students directory</span>
-                    <span class="block text-xs text-slate-600">See tallies, quickly swap heats, and share printables.</span>
-                </a>
+    <section id="tab-overview" class="grid gap-4 lg:grid-cols-3">
+        <article class="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 lg:col-span-2" hx-get="{% url 'sportsday:meet-schedule-fragment' meet.slug %}" hx-trigger="load">
+            <div class="rounded-xl border border-slate-800 bg-slate-950/60 p-4 text-sm text-slate-400">Loading schedule…</div>
+        </article>
+        <article class="rounded-2xl border border-slate-800 bg-slate-900/60 p-5" hx-get="{% url 'sportsday:meet-people-fragment' meet.slug %}" hx-trigger="load">
+            <div class="rounded-xl border border-slate-800 bg-slate-950/60 p-4 text-sm text-slate-400">Fetching allocations…</div>
+        </article>
+    </section>
+
+    <section id="tab-events" class="rounded-2xl border border-slate-800 bg-slate-900/60 p-6">
+        <h2 class="text-lg font-semibold text-slate-100">Events summary</h2>
+        <div class="mt-4 grid gap-4 sm:grid-cols-3">
+            <div class="rounded-xl border border-slate-800 bg-slate-950/60 p-4 text-center">
+                <p class="text-xs uppercase tracking-widest text-slate-500">Events</p>
+                <p class="mt-1 text-2xl font-semibold text-slate-100">{{ events_count }}</p>
             </div>
-        </section>
-        <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm" id="meet-activity" hx-get="{% url 'sportsday:leaderboards-panel-fragment' %}?meet={{ meet.slug }}" hx-trigger="load">
-            <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">Collating leaderboards…</div>
-        </section>
-    </div>
+            <div class="rounded-xl border border-slate-800 bg-slate-950/60 p-4 text-center">
+                <p class="text-xs uppercase tracking-widest text-slate-500">Entries</p>
+                <p class="mt-1 text-2xl font-semibold text-slate-100">{{ entries_total }}</p>
+            </div>
+            <div class="rounded-xl border border-slate-800 bg-slate-950/60 p-4 text-center">
+                <p class="text-xs uppercase tracking-widest text-slate-500">Students participating</p>
+                <p class="mt-1 text-2xl font-semibold text-slate-100">{{ students_total }}</p>
+            </div>
+        </div>
+        <div class="mt-6 flex flex-wrap gap-2 text-sm">
+            <a href="{% url 'sportsday:events' %}?meet={{ meet.slug }}" class="inline-flex items-center gap-2 rounded-full bg-sky-500/10 px-4 py-2 text-sky-200 hover:bg-sky-500/20">Manage events</a>
+            <a href="{% url 'sportsday:events-generate' meet.slug %}" class="inline-flex items-center gap-2 rounded-full border border-dashed border-sky-500/40 px-4 py-2 text-sky-200 hover:border-sky-500 hover:text-sky-100">Bulk generate events</a>
+            <a href="{% url 'sportsday:entries-bulk' meet.slug %}" class="inline-flex items-center gap-2 rounded-full border border-dashed border-emerald-500/40 px-4 py-2 text-emerald-200 hover:border-emerald-500 hover:text-emerald-100">Bulk assign entries</a>
+        </div>
+    </section>
+
+    <section id="tab-entries" class="rounded-2xl border border-slate-800 bg-slate-900/60 p-6">
+        <h2 class="text-lg font-semibold text-slate-100">Entries &amp; clashes</h2>
+        <p class="mt-2 text-sm text-slate-400">Use the bulk tools to respect capacity, division rules, and timetable clashes. Individual start lists can be edited from each event.</p>
+        <div class="mt-4 grid gap-4 sm:grid-cols-2">
+            <a href="{% url 'sportsday:entries-bulk' meet.slug %}" class="rounded-xl border border-slate-800 bg-slate-950/60 px-4 py-4 text-sm text-slate-200 hover:border-emerald-500/40">
+                <span class="block text-sm font-semibold text-emerald-200">Bulk assignment</span>
+                <span class="block text-xs text-slate-400">Auto-fill start lists with fair house distribution.</span>
+            </a>
+            {% if highlight_event %}
+                <a href="{% url 'sportsday:export-startlists-csv' %}?event={{ highlight_event }}" class="rounded-xl border border-slate-800 bg-slate-950/60 px-4 py-4 text-sm text-slate-200 hover:border-sky-500/40">
+                    <span class="block text-sm font-semibold text-sky-200">Export start lists</span>
+                    <span class="block text-xs text-slate-400">Download CSVs for marshals and lane draws.</span>
+                </a>
+            {% else %}
+                <span class="rounded-xl border border-dashed border-slate-800 bg-slate-950/40 px-4 py-4 text-xs text-slate-400">
+                    <span class="block text-sm font-semibold text-slate-200">Export start lists</span>
+                    <span class="block">Create an event to enable exports.</span>
+                </span>
+            {% endif %}
+        </div>
+    </section>
+
+    <section id="tab-scoring" class="rounded-2xl border border-slate-800 bg-slate-900/60 p-6">
+        <h2 class="text-lg font-semibold text-slate-100">Scoring settings</h2>
+        {% if scoring_rule %}
+            <dl class="mt-3 grid gap-3 sm:grid-cols-3 text-sm text-slate-300">
+                <div>
+                    <dt class="text-xs uppercase tracking-widest text-slate-500">Points</dt>
+                    <dd class="font-medium">{{ scoring_rule.points_csv }}</dd>
+                </div>
+                <div>
+                    <dt class="text-xs uppercase tracking-widest text-slate-500">Participation</dt>
+                    <dd class="font-medium">{{ scoring_rule.participation_point }}</dd>
+                </div>
+                <div>
+                    <dt class="text-xs uppercase tracking-widest text-slate-500">Tie method</dt>
+                    <dd class="font-medium">{{ scoring_rule.get_tie_method_display }}</dd>
+                </div>
+            </dl>
+        {% else %}
+            <p class="mt-2 text-sm text-slate-400">No scoring rule configured yet. Use the meet setup wizard to define points.</p>
+        {% endif %}
+        <div class="mt-4">
+            <a href="{% url 'sportsday:leaderboards' %}?meet={{ meet.slug }}" class="inline-flex items-center gap-2 rounded-full border border-slate-700 px-4 py-2 text-sm text-slate-300 hover:border-sky-500/40 hover:text-sky-200">View leaderboards</a>
+        </div>
+    </section>
+
+    <section id="tab-exports" class="rounded-2xl border border-slate-800 bg-slate-900/60 p-6">
+        <h2 class="text-lg font-semibold text-slate-100">Exports</h2>
+        <ul class="mt-3 space-y-2 text-sm text-slate-300">
+            <li><a href="{% url 'sportsday:export-students-csv' %}" class="text-sky-300 hover:text-sky-200">Download students CSV</a></li>
+            <li><a href="{% url 'sportsday:export-teachers-csv' %}" class="text-sky-300 hover:text-sky-200">Download teachers CSV</a></li>
+            <li><a href="{% url 'sportsday:export-startlists-csv' %}" class="text-sky-300 hover:text-sky-200">Export start lists (choose event id)</a></li>
+            <li><a href="{% url 'sportsday:export-results-csv' %}" class="text-sky-300 hover:text-sky-200">Export results CSV</a></li>
+            <li><a href="{% url 'sportsday:export-leaderboard-csv' %}" class="text-sky-300 hover:text-sky-200">Export leaderboard CSV</a></li>
+        </ul>
+    </section>
 </section>
 {% endblock %}
 {% block mobile_nav %}

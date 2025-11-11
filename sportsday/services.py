@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import dataclass
+from datetime import timedelta
 from decimal import Decimal, InvalidOperation
 from typing import Iterable
 
@@ -22,6 +23,8 @@ __all__ = [
     "apply_qualifiers",
     "scoring_rule_for_meet",
     "compute_scoring_records",
+    "compute_timetable_clashes",
+    "generate_events",
 ]
 
 
@@ -115,6 +118,108 @@ def normalize_distance(value: str | float | Decimal | None) -> Decimal | None:
     if candidate < 0:
         raise ValueError("Distance/count cannot be negative.")
     return candidate.quantize(Decimal("0.001"))
+
+
+def compute_timetable_clashes(
+    *,
+    student: models.Student,
+    event: models.Event,
+    window: timedelta = timedelta(minutes=20),
+    exclude_entry_id: int | None = None,
+) -> list[models.Entry]:
+    """Return entries for the same meet that clash with the provided event schedule."""
+
+    if not event.schedule_dt:
+        return []
+    meet = event.meet
+    if not meet:
+        return []
+    span = abs(window)
+    start = event.schedule_dt - span
+    end = event.schedule_dt + span
+    entries = (
+        models.Entry.objects.filter(student=student, event__meet=meet)
+        .select_related("event", "event__meet")
+        .order_by("event__schedule_dt")
+    )
+    if exclude_entry_id:
+        entries = entries.exclude(pk=exclude_entry_id)
+    clashes: list[models.Entry] = []
+    for candidate in entries:
+        other_dt = candidate.event.schedule_dt
+        if other_dt and start <= other_dt <= end:
+            clashes.append(candidate)
+    return clashes
+
+
+def generate_events(
+    *,
+    meet: models.Meet,
+    sport_types: Iterable[models.SportType],
+    grades: Iterable[str],
+    genders: Iterable[str],
+    name_pattern: str,
+    capacity_override: int | None = None,
+    attempts_override: int | None = None,
+    rounds_total: int = 1,
+) -> dict[str, object]:
+    """Create or update events for the provided meet and divisions."""
+
+    summary = {"created": 0, "updated": 0, "skipped": 0, "events": []}
+    for sport in sport_types:
+        attempts_default = (
+            1
+            if sport.archetype == models.SportType.Archetype.TRACK_TIME
+            else sport.default_attempts
+        )
+        attempts = attempts_override or attempts_default
+        capacity = capacity_override or sport.default_capacity
+        for grade in grades:
+            for gender in genders:
+                gender_label = {
+                    models.Event.GenderLimit.FEMALE: "Girls",
+                    models.Event.GenderLimit.MALE: "Boys",
+                    models.Event.GenderLimit.MIXED: "Mixed",
+                }.get(gender, gender)
+                name = name_pattern.format(
+                    grade=grade,
+                    gender=gender,
+                    gender_label=gender_label,
+                    sport=sport.label,
+                )
+                defaults = {
+                    "measure_unit": sport.default_unit,
+                    "capacity": capacity,
+                    "attempts": attempts,
+                    "rounds_total": rounds_total or 1,
+                    "notes": "",
+                }
+                lookup = {
+                    "meet": meet,
+                    "sport_type": sport,
+                    "name": name,
+                    "grade_min": grade,
+                    "grade_max": grade,
+                    "gender_limit": gender,
+                }
+                event, created = models.Event.objects.get_or_create(
+                    defaults=defaults, **lookup
+                )
+                if created:
+                    summary["created"] += 1
+                    summary["events"].append(event)
+                    continue
+                changed = False
+                for field, value in defaults.items():
+                    if getattr(event, field) != value:
+                        setattr(event, field, value)
+                        changed = True
+                if changed:
+                    event.save()
+                    summary["updated"] += 1
+                else:
+                    summary["skipped"] += 1
+    return summary
 
 
 def rank_track(entries: list[dict]) -> None:

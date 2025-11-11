@@ -1,5 +1,5 @@
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from decimal import Decimal
 
 from django.urls import reverse
@@ -7,6 +7,7 @@ from django.urls import reverse
 from sportsday import models
 
 
+@override_settings(STATICFILES_STORAGE="django.contrib.staticfiles.storage.StaticFilesStorage")
 class SportsdayViewsTests(TestCase):
     def setUp(self):
         self.meet = models.Meet.objects.create(
@@ -188,6 +189,7 @@ class SportsdayViewsTests(TestCase):
         self.assertContains(response, self.student.last_name)
 
 
+@override_settings(STATICFILES_STORAGE="django.contrib.staticfiles.storage.StaticFilesStorage")
 class MeetWizardTests(TestCase):
     def setUp(self):
         self.client.defaults["HTTP_HX-Request"] = "true"
