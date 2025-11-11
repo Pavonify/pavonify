@@ -1,5 +1,7 @@
-from django.test import TestCase, override_settings
 from decimal import Decimal
+
+from django.contrib.auth import get_user_model
+from django.test import TestCase, override_settings
 
 from django.urls import reverse
 
@@ -16,7 +18,11 @@ class SportsdayViewsTests(TestCase):
             location="Main Oval",
         )
         sprint = models.SportType.objects.get(key="100m")
-        self.teacher = models.Teacher.objects.create(first_name="Jamie", last_name="Lee")
+        self.teacher = models.Teacher.objects.create(
+            first_name="Jamie",
+            last_name="Lee",
+            email="teacher@example.com",
+        )
         models.ScoringRule.objects.create(
             meet=self.meet,
             points_csv="10,8,6",
@@ -52,6 +58,30 @@ class SportsdayViewsTests(TestCase):
             house="Gold",
             gender="X",
         )
+
+    def test_event_list_shows_all_events_to_teachers(self):
+        teacher_user = get_user_model().objects.create_user(
+            username="teacher",
+            email="teacher@example.com",
+            password="password123",
+        )
+        self.client.force_login(teacher_user)
+
+        unassigned_event = models.Event.objects.create(
+            meet=self.meet,
+            sport_type=self.event.sport_type,
+            name="200m Dash",
+            grade_min="5",
+            grade_max="6",
+            gender_limit=models.Event.GenderLimit.MIXED,
+            measure_unit="sec",
+            capacity=8,
+        )
+
+        response = self.client.get(reverse("sportsday:events"), {"meet": self.meet.slug})
+
+        self.assertContains(response, self.event.name)
+        self.assertContains(response, unassigned_event.name)
 
     def test_dashboard_renders_tiles(self):
         response = self.client.get(reverse("sportsday:dashboard"))
