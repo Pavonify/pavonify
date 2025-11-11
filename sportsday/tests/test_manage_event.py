@@ -151,7 +151,8 @@ class ManageEventViewTests(TestCase):
         entry_three.refresh_from_db()
         self.assertEqual(entry_three.status, models.Entry.Status.DQ)
 
-    def test_permissions_only_allow_assigned_teacher(self):
+    @override_settings(STATICFILES_STORAGE="django.contrib.staticfiles.storage.StaticFilesStorage")
+    def test_permissions_allow_any_authenticated_user(self):
         event = models.Event.objects.create(
             meet=self.meet,
             sport_type=self.track_type,
@@ -191,7 +192,11 @@ class ManageEventViewTests(TestCase):
         self.client.logout()
         self.client.force_login(other_user)
         response = self.client.post(url, {f"rank[{entry.pk}]": "1"})
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 302)
+
+        get_response = self.client.get(url)
+        self.assertEqual(get_response.status_code, 200)
+        self.assertTrue(get_response.context["can_edit"])
 
     @override_settings(STATICFILES_STORAGE="django.contrib.staticfiles.storage.StaticFilesStorage")
     def test_assigned_teacher_without_email_can_edit(self):
