@@ -56,6 +56,56 @@ def _grade_sort_key(grade: str) -> tuple[int, str]:
     return (999, stripped or "—")
 
 
+def _grade_option_sort_key(grade: str) -> tuple[int, str]:
+    """Sort helper that keeps numeric grade labels ordered naturally."""
+
+    text = (grade or "").strip()
+    digits = "".join(ch for ch in text if ch.isdigit())
+    if digits:
+        return int(digits), text.lower()
+    return (999, text.lower())
+
+
+def _event_form_grade_choices(
+    form: forms.EventConfigForm,
+) -> tuple[list[str], list[str]]:
+    """Return available grade options and the selected range for a form."""
+
+    grade_values = list(
+        models.Student.objects.values_list("grade", flat=True).distinct()
+    )
+    # Include form-provided values so that editing existing events always shows them.
+    grade_min = (form["grade_min"].value() or "").strip() if "grade_min" in form.fields else ""
+    grade_max = (form["grade_max"].value() or "").strip() if "grade_max" in form.fields else ""
+    for value in (grade_min, grade_max):
+        if value and value not in grade_values:
+            grade_values.append(value)
+
+    seen: set[str] = set()
+    cleaned: list[str] = []
+    for value in grade_values:
+        normalised = (value or "").strip()
+        if not normalised or normalised in seen:
+            continue
+        seen.add(normalised)
+        cleaned.append(normalised)
+    cleaned.sort(key=_grade_option_sort_key)
+
+    selected: list[str] = []
+    if grade_min and grade_max and grade_min in cleaned and grade_max in cleaned:
+        start = cleaned.index(grade_min)
+        end = cleaned.index(grade_max)
+        if start > end:
+            start, end = end, start
+        selected = cleaned[start : end + 1]
+    else:
+        for value in (grade_min, grade_max):
+            if value and value in cleaned and value not in selected:
+                selected.append(value)
+
+    return cleaned, selected
+
+
 def _gender_label(code: str) -> str:
     mapping = {
         models.Event.GenderLimit.MALE: "Boys",
@@ -1249,10 +1299,14 @@ def event_create(request: HttpRequest) -> HttpResponse:
             messages.success(request, f"Created event {event.name}.")
             return redirect(f"{reverse('sportsday:events')}?meet={event.meet.slug}")
 
+    grade_options, selected_grade_values = _event_form_grade_choices(form)
+
     context = {
         "form": form,
         "meet_options": meet_options,
         "selected_meet": selected_meet,
+        "grade_options": grade_options,
+        "selected_grade_values": selected_grade_values,
         "is_create": True,
     }
     return render(request, "sportsday/event_form.html", context)
@@ -1283,11 +1337,15 @@ def event_update(request: HttpRequest, pk: int) -> HttpResponse:
             messages.success(request, f"Updated event {event.name}.")
             return redirect(f"{reverse('sportsday:events')}?meet={event.meet.slug}")
 
+    grade_options, selected_grade_values = _event_form_grade_choices(form)
+
     context = {
         "form": form,
         "meet_options": meet_options,
         "selected_meet": event.meet,
         "event": event,
+        "grade_options": grade_options,
+        "selected_grade_values": selected_grade_values,
         "is_create": False,
     }
     return render(request, "sportsday/event_form.html", context)
