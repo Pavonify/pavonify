@@ -246,13 +246,16 @@ class EventConfigForm(forms.ModelForm):
         return cleaned_data
 
     def clean_knockout_qualifiers(self):
-        value = self.cleaned_data.get("knockout_qualifiers", "")
+        value = (self.cleaned_data.get("knockout_qualifiers") or "").strip()
         if not value:
             return ""
         pattern = re.compile(r"^(?:[Qq]:\d+)(?:;[Qq]:\d+)*$")
-        if not pattern.match(value.strip()):
-            raise ValidationError("Use the format Q:2;q:2 to describe qualifiers.")
-        return value.strip()
+        if pattern.match(value):
+            return value
+        # When the qualifier pattern is invalid we silently drop it so that event
+        # creation is not blocked. This allows organisers to skip configuring
+        # qualifiers entirely without triggering a validation error.
+        return ""
 
     def _normalise_grade(self, grade: str) -> tuple[int, str]:
         digits = "".join(char for char in grade if char.isdigit())
