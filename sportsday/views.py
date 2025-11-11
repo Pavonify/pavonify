@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import csv
 import io
-from collections import Counter, defaultdict
+from collections import defaultdict
 from datetime import datetime, timedelta
 from decimal import Decimal
 from types import SimpleNamespace
@@ -1389,22 +1389,6 @@ def event_participants(request: HttpRequest, pk: int) -> HttpResponse:
     )
     available_students = [student for student in eligible_students if student.pk not in assigned_ids]
 
-    selected_student_ids = {entry.student_id for entry in assigned_entries}
-    houses = sorted({(student.house or "Unassigned") for student in eligible_students})
-    grades = sorted(
-        {(student.grade or "Unassigned") for student in eligible_students},
-        key=_grade_option_sort_key,
-    )
-    initial_house_counts: Counter[str] = Counter()
-    initial_grade_counts: Counter[str] = Counter()
-    for entry in assigned_entries:
-        house = entry.student.house or "Unassigned"
-        grade = entry.student.grade or "Unassigned"
-        initial_house_counts[house] += 1
-        initial_grade_counts[grade] += 1
-    house_summary = [(house, initial_house_counts.get(house, 0)) for house in houses]
-    grade_summary = [(grade, initial_grade_counts.get(grade, 0)) for grade in grades]
-
     if request.method == "POST":
         if lock_reason:
             messages.error(request, lock_reason)
@@ -1486,15 +1470,8 @@ def event_participants(request: HttpRequest, pk: int) -> HttpResponse:
 
     context = {
         "event": event,
-        "eligible_students": eligible_students,
         "available_students": available_students,
         "assigned_entries": assigned_entries,
-        "assigned_student_ids": selected_student_ids,
-        "houses": houses,
-        "grades": grades,
-        "house_summary": house_summary,
-        "grade_summary": grade_summary,
-        "selected_count": len(assigned_entries),
         "lock_reason": lock_reason,
     }
     return render(request, "sportsday/event_participants.html", context)
