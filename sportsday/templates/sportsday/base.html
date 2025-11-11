@@ -123,7 +123,7 @@
             {% with url_name=request.resolver_match.url_name %}
                 <nav class="hidden md:flex items-center gap-2 text-sm">
                     <a href="{% url 'sportsday:dashboard' %}" class="px-3 py-2 rounded-md transition {% if url_name == 'dashboard' %}bg-sky/10 text-sky-700 font-semibold{% else %}hover:bg-slate-200{% endif %}">Dashboard</a>
-                    <a href="{% url 'sportsday:meet-list' %}" class="px-3 py-2 rounded-md transition {% if url_name == 'meet-list' or url_name == 'meet-detail' or url_name == 'meet-create' %}bg-sky/10 text-sky-700 font-semibold{% else %}hover:bg-slate-200{% endif %}">Meets</a>
+                    <a href="{% url 'sportsday:meet-list' %}" class="px-3 py-2 rounded-md transition {% if url_name == 'meet-list' or url_name == 'meet-detail' or url_name == 'meet-create' or url_name == 'meet-update' %}bg-sky/10 text-sky-700 font-semibold{% else %}hover:bg-slate-200{% endif %}">Meets</a>
                     <a href="{% url 'sportsday:students' %}{% if active_meet %}?meet={{ active_meet.slug }}{% endif %}" class="px-3 py-2 rounded-md transition {% if url_name == 'students' %}bg-sky/10 text-sky-700 font-semibold{% else %}hover:bg-slate-200{% endif %}">Students</a>
                     <a href="{% url 'sportsday:teachers' %}" class="px-3 py-2 rounded-md transition {% if url_name == 'teachers' %}bg-sky/10 text-sky-700 font-semibold{% else %}hover:bg-slate-200{% endif %}">Teachers</a>
                     <a href="{% url 'sportsday:sport-types' %}" class="px-3 py-2 rounded-md transition {% if url_name == 'sport-types' %}bg-sky/10 text-sky-700 font-semibold{% else %}hover:bg-slate-200{% endif %}">Sports</a>

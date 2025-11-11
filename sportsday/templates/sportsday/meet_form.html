@@ -1,75 +1,113 @@
 {% extends "sportsday/base.html" %}
-{% block title %}{% if is_create %}Create Meet{% else %}Edit Meet · {{ meet.name }}{% endif %}{% endblock %}
-{% block header_actions %}
-<nav class="actions">
-    <a href="{% url 'sportsday:meet_list' %}" role="button">Back to meet list</a>
-    {% if not is_create %}
-    <a href="{% url 'sportsday:dashboard' meet.slug %}" role="button" class="secondary">View dashboard</a>
-    {% endif %}
-</nav>
-{% endblock %}
+{% block title %}Sports Day · {% if is_create %}Create Meet{% else %}Edit Meet · {{ meet.name }}{% endif %}{% endblock %}
 {% block content %}
-<section class="card">
-    <h2>{% if is_create %}Create a new meet{% else %}Edit meet{% endif %}</h2>
-    <form method="post">
+<section class="space-y-6">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+            <p class="text-sm uppercase tracking-widest text-slate-400">Meets</p>
+            <h1 class="text-2xl font-semibold">{% if is_create %}Create a Meet{% else %}Edit {{ meet.name }}{% endif %}</h1>
+            <p class="text-sm text-slate-400">Set the key details, scoring rules, and participation limits.</p>
+        </div>
+        <div class="flex flex-wrap gap-2 text-sm">
+            <a href="{% url 'sportsday:meet-list' %}" class="inline-flex items-center gap-2 rounded-full border border-slate-700 px-4 py-2 text-slate-200 hover:border-sky-500/40 hover:text-sky-100">Back to meets</a>
+            {% if not is_create %}
+                <a href="{% url 'sportsday:meet-detail' meet.slug %}" class="inline-flex items-center gap-2 rounded-full bg-sky-500 px-4 py-2 font-medium text-slate-900 shadow-lg shadow-sky-500/40 hover:bg-sky-400">View meet</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <form method="post" class="space-y-6">
         {% csrf_token %}
-        {{ form.non_field_errors }}
-        <div class="grid">
-            <label for="{{ form.name.id_for_label }}">
-                {{ form.name.label }}
-                {{ form.name }}
-                {% if form.name.errors %}<small>{{ form.name.errors|join:", " }}</small>{% endif %}
-            </label>
-            <label for="{{ form.slug.id_for_label }}">
-                {{ form.slug.label }}
-                {{ form.slug }}
-                {% if form.slug.help_text %}<small>{{ form.slug.help_text }}</small>{% endif %}
-                {% if form.slug.errors %}<small>{{ form.slug.errors|join:", " }}</small>{% endif %}
-            </label>
-        </div>
-        <div class="grid">
-            <label for="{{ form.date.id_for_label }}">
-                {{ form.date.label }}
-                {{ form.date }}
-                {% if form.date.errors %}<small>{{ form.date.errors|join:", " }}</small>{% endif %}
-            </label>
-            <label for="{{ form.max_events_per_student.id_for_label }}">
-                {{ form.max_events_per_student.label }}
-                {{ form.max_events_per_student }}
-                {% if form.max_events_per_student.errors %}<small>{{ form.max_events_per_student.errors|join:", " }}</small>{% endif %}
-            </label>
-        </div>
-        <fieldset>
-            <legend>{{ form.allowed_grades.label }}</legend>
-            {% if form.allowed_grades.help_text %}<small>{{ form.allowed_grades.help_text }}</small>{% endif %}
-            <div class="grade-grid">
-                {% for checkbox in form.allowed_grades %}
-                <label class="grade-option" for="{{ checkbox.id_for_label }}">
-                    {{ checkbox.tag }}
-                    <span>{{ checkbox.choice_label }}</span>
-                </label>
-                {% endfor %}
+        {% if form.non_field_errors %}
+            <div class="rounded-xl border border-rose-500/60 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+                {% for error in form.non_field_errors %}<div>{{ error }}</div>{% endfor %}
             </div>
-            {% if form.allowed_grades.errors %}<small>{{ form.allowed_grades.errors|join:", " }}</small>{% endif %}
-        </fieldset>
-        <label class="checkbox" for="{{ form.is_locked.id_for_label }}">
-            {{ form.is_locked }} {{ form.is_locked.label }}
-            {% if form.is_locked.errors %}<small>{{ form.is_locked.errors|join:", " }}</small>{% endif %}
-        </label>
-        <label for="{{ form.access_code.id_for_label }}">
-            {{ form.access_code.label }}
-            {{ form.access_code }}
-            {% if form.access_code.help_text %}<small>{{ form.access_code.help_text }}</small>{% endif %}
-            {% if form.access_code.errors %}<small>{{ form.access_code.errors|join:", " }}</small>{% endif %}
-        </label>
-        {% if form.clear_access_code.is_hidden %}
-            {{ form.clear_access_code }}
-        {% else %}
-        <label class="checkbox" for="{{ form.clear_access_code.id_for_label }}">
-            {{ form.clear_access_code }} {{ form.clear_access_code.label }}
-        </label>
         {% endif %}
-        <button type="submit">{% if is_create %}Create meet{% else %}Save changes{% endif %}</button>
+
+        <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-6 space-y-6">
+            <h2 class="text-lg font-semibold text-slate-100">Meet details</h2>
+            <div class="grid gap-4 md:grid-cols-2">
+                <label class="space-y-1 text-sm font-medium text-slate-200">
+                    <span class="text-xs uppercase tracking-widest text-slate-400">{{ form.name.label }}</span>
+                    {{ form.name }}
+                    {% if form.name.errors %}<span class="block text-xs text-rose-300">{{ form.name.errors|join:", " }}</span>{% endif %}
+                </label>
+                <label class="space-y-1 text-sm font-medium text-slate-200">
+                    <span class="text-xs uppercase tracking-widest text-slate-400">{{ form.slug.label }}</span>
+                    {{ form.slug }}
+                    {% if form.slug.help_text %}<span class="block text-xs text-slate-500">{{ form.slug.help_text }}</span>{% endif %}
+                    {% if form.slug.errors %}<span class="block text-xs text-rose-300">{{ form.slug.errors|join:", " }}</span>{% endif %}
+                </label>
+                <label class="space-y-1 text-sm font-medium text-slate-200">
+                    <span class="text-xs uppercase tracking-widest text-slate-400">{{ form.date.label }}</span>
+                    {{ form.date }}
+                    {% if form.date.errors %}<span class="block text-xs text-rose-300">{{ form.date.errors|join:", " }}</span>{% endif %}
+                </label>
+                <label class="space-y-1 text-sm font-medium text-slate-200">
+                    <span class="text-xs uppercase tracking-widest text-slate-400">Location</span>
+                    {{ form.location }}
+                    {% if form.location.errors %}<span class="block text-xs text-rose-300">{{ form.location.errors|join:", " }}</span>{% endif %}
+                </label>
+            </div>
+            <div class="grid gap-4 md:grid-cols-3">
+                <label class="space-y-1 text-sm font-medium text-slate-200">
+                    <span class="text-xs uppercase tracking-widest text-slate-400">{{ form.start_time.label }}</span>
+                    {{ form.start_time }}
+                    {% if form.start_time.errors %}<span class="block text-xs text-rose-300">{{ form.start_time.errors|join:", " }}</span>{% endif %}
+                </label>
+                <label class="space-y-1 text-sm font-medium text-slate-200">
+                    <span class="text-xs uppercase tracking-widest text-slate-400">{{ form.end_time.label }}</span>
+                    {{ form.end_time }}
+                    {% if form.end_time.errors %}<span class="block text-xs text-rose-300">{{ form.end_time.errors|join:", " }}</span>{% endif %}
+                </label>
+                <label class="space-y-1 text-sm font-medium text-slate-200">
+                    <span class="text-xs uppercase tracking-widest text-slate-400">{{ form.max_events_per_student.label }}</span>
+                    {{ form.max_events_per_student }}
+                    {% if form.max_events_per_student.errors %}<span class="block text-xs text-rose-300">{{ form.max_events_per_student.errors|join:", " }}</span>{% endif %}
+                </label>
+            </div>
+            <label class="space-y-1 text-sm font-medium text-slate-200">
+                <span class="text-xs uppercase tracking-widest text-slate-400">{{ form.notes.label }}</span>
+                {{ form.notes }}
+                {% if form.notes.errors %}<span class="block text-xs text-rose-300">{{ form.notes.errors|join:", " }}</span>{% endif %}
+            </label>
+        </div>
+
+        <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-6 space-y-6">
+            <h2 class="text-lg font-semibold text-slate-100">Scoring</h2>
+            <div class="grid gap-4 md:grid-cols-2">
+                <label class="space-y-1 text-sm font-medium text-slate-200">
+                    <span class="text-xs uppercase tracking-widest text-slate-400">{{ form.scoring_preset.label }}</span>
+                    {{ form.scoring_preset }}
+                    {% if form.scoring_preset.errors %}<span class="block text-xs text-rose-300">{{ form.scoring_preset.errors|join:", " }}</span>{% endif %}
+                </label>
+                <label class="space-y-1 text-sm font-medium text-slate-200">
+                    <span class="text-xs uppercase tracking-widest text-slate-400">{{ form.tie_method.label }}</span>
+                    {{ form.tie_method }}
+                    {% if form.tie_method.errors %}<span class="block text-xs text-rose-300">{{ form.tie_method.errors|join:", " }}</span>{% endif %}
+                </label>
+            </div>
+            <div class="grid gap-4 md:grid-cols-2">
+                <label class="space-y-1 text-sm font-medium text-slate-200">
+                    <span class="text-xs uppercase tracking-widest text-slate-400">{{ form.points_csv.label }}</span>
+                    {{ form.points_csv }}
+                    <span class="block text-xs text-slate-500">Enter comma-separated values for each placing.</span>
+                    {% if form.points_csv.errors %}<span class="block text-xs text-rose-300">{{ form.points_csv.errors|join:", " }}</span>{% endif %}
+                </label>
+                <label class="space-y-1 text-sm font-medium text-slate-200">
+                    <span class="text-xs uppercase tracking-widest text-slate-400">{{ form.participation_point.label }}</span>
+                    {{ form.participation_point }}
+                    {% if form.participation_point.errors %}<span class="block text-xs text-rose-300">{{ form.participation_point.errors|join:", " }}</span>{% endif %}
+                </label>
+            </div>
+        </div>
+
+        <div class="flex justify-end">
+            <button type="submit" class="inline-flex items-center gap-2 rounded-full bg-sky-500 px-5 py-2 text-sm font-semibold text-slate-900 shadow-lg shadow-sky-500/40 transition hover:bg-sky-400">
+                {% if is_create %}Create meet{% else %}Save changes{% endif %}
+            </button>
+        </div>
     </form>
 </section>
 {% endblock %}
+{% block mobile_nav %}{% endblock %}

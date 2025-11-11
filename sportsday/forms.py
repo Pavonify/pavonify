@@ -114,6 +114,34 @@ class MeetBasicsForm(forms.ModelForm):
             self.initial.setdefault("participation_point", default_preset.participation_point)
             self.initial.setdefault("tie_method", models.ScoringRule.TieMethod.SHARE)
 
+        text_widgets = (
+            forms.TextInput,
+            forms.NumberInput,
+            forms.Select,
+            forms.Textarea,
+            forms.DateInput,
+            forms.TimeInput,
+        )
+        for field in self.fields.values():
+            widget = field.widget
+            if isinstance(widget, forms.CheckboxInput):
+                existing = widget.attrs.get("class", "")
+                widget.attrs["class"] = f"{existing} {LIGHT_CHECKBOX_CLASSES}".strip()
+            elif isinstance(widget, text_widgets):
+                existing = widget.attrs.get("class", "")
+                widget.attrs["class"] = f"{existing} {LIGHT_TEXT_INPUT_CLASSES}".strip()
+
+        number_fields = ("max_events_per_student", "participation_point")
+        for name in number_fields:
+            widget = self.fields[name].widget
+            if isinstance(widget, forms.NumberInput):
+                widget.attrs.setdefault("min", "0")
+
+        for name in ("start_time", "end_time"):
+            widget = self.fields[name].widget
+            if isinstance(widget, forms.TimeInput):
+                widget.attrs.setdefault("step", "60")
+
     def clean(self):
         cleaned_data = super().clean()
         name = cleaned_data.get("name", "")
@@ -243,7 +271,7 @@ class SportTypeForm(forms.ModelForm):
 
 
 class EventConfigForm(forms.ModelForm):
-    """Form used in the wizard to configure a single event."""
+    """Form used to configure a single event."""
 
     schedule_dt = forms.DateTimeField(
         required=False,
@@ -280,6 +308,29 @@ class EventConfigForm(forms.ModelForm):
         self.fields["assigned_teachers"].required = False
         self.fields["knockout_qualifiers"].required = False
         self.fields["notes"].required = False
+
+        text_widgets = (
+            forms.TextInput,
+            forms.NumberInput,
+            forms.Select,
+            forms.Textarea,
+            forms.DateTimeInput,
+        )
+        for name, field in self.fields.items():
+            widget = field.widget
+            if isinstance(widget, forms.CheckboxInput):
+                existing = widget.attrs.get("class", "")
+                widget.attrs["class"] = f"{existing} {LIGHT_CHECKBOX_CLASSES}".strip()
+            elif isinstance(widget, text_widgets):
+                existing = widget.attrs.get("class", "")
+                widget.attrs["class"] = f"{existing} {LIGHT_TEXT_INPUT_CLASSES}".strip()
+
+        for name in ("capacity", "attempts", "rounds_total"):
+            widget = self.fields[name].widget
+            if isinstance(widget, forms.NumberInput):
+                widget.attrs.setdefault("min", "1")
+
+        self.fields["assigned_teachers"].widget.attrs.setdefault("size", "6")
 
     def clean(self):
         cleaned_data = super().clean()

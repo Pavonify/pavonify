@@ -1,8 +1,0 @@
-<div class="space-y-2" id="slug-field" hx-target="this" hx-swap="outerHTML">
-    <label class="text-sm font-medium text-slate-200" for="id_slug">Slug</label>
-    <input type="text" name="slug" id="id_slug" value="{{ value|default:'' }}" placeholder="spring-athletics" class="w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-100 focus:border-sky-500 focus:outline-none" />
-    {% if errors %}
-        <p class="text-xs text-rose-300">{{ errors|join:', ' }}</p>
-    {% endif %}
-    <p class="text-xs text-slate-500">Leave blank to auto-generate from the meet name.</p>
-</div>

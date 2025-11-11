@@ -1,0 +1,139 @@
+{% extends "sportsday/base.html" %}
+{% block title %}Sports Day · {% if is_create %}Create Event{% else %}Edit Event · {{ event.name }}{% endif %}{% endblock %}
+{% block content %}
+<section class="space-y-6">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+            <p class="text-sm uppercase tracking-widest text-slate-400">Events</p>
+            <h1 class="text-2xl font-semibold">{% if is_create %}Create an Event{% else %}Edit {{ event.name }}{% endif %}</h1>
+            <p class="text-sm text-slate-400">Attach the event to a meet, define divisions, and configure capacity.</p>
+        </div>
+        <div class="flex flex-wrap gap-2 text-sm">
+            <a href="{% url 'sportsday:events' %}{% if selected_meet %}?meet={{ selected_meet.slug }}{% endif %}" class="inline-flex items-center gap-2 rounded-full border border-slate-700 px-4 py-2 text-slate-200 hover:border-sky-500/40 hover:text-sky-100">Back to events</a>
+            {% if not is_create %}
+                <a href="{% url 'sportsday:event-detail' event.pk %}" class="inline-flex items-center gap-2 rounded-full bg-sky-500 px-4 py-2 font-medium text-slate-900 shadow-lg shadow-sky-500/40 hover:bg-sky-400">View event</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <form method="post" class="space-y-6">
+        {% csrf_token %}
+        {% if form.non_field_errors %}
+            <div class="rounded-xl border border-rose-500/60 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+                {% for error in form.non_field_errors %}<div>{{ error }}</div>{% endfor %}
+            </div>
+        {% endif %}
+
+        <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-6 space-y-6">
+            <h2 class="text-lg font-semibold text-slate-100">Meet & basics</h2>
+            <div class="grid gap-4 md:grid-cols-3">
+                <label class="space-y-1 text-sm font-medium text-slate-200">
+                    <span class="text-xs uppercase tracking-widest text-slate-400">Meet</span>
+                    <select name="meet" class="w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-100 focus:border-sky-500 focus:outline-none">
+                        <option value="">Select meet…</option>
+                        {% for option in meet_options %}
+                            <option value="{{ option.pk }}" {% if selected_meet and option.pk == selected_meet.pk %}selected{% endif %}>{{ option.name }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <label class="space-y-1 text-sm font-medium text-slate-200 md:col-span-2">
+                    <span class="text-xs uppercase tracking-widest text-slate-400">{{ form.name.label }}</span>
+                    {{ form.name }}
+                    {% if form.name.errors %}<span class="block text-xs text-rose-300">{{ form.name.errors|join:", " }}</span>{% endif %}
+                </label>
+            </div>
+            <div class="grid gap-4 md:grid-cols-3">
+                <label class="space-y-1 text-sm font-medium text-slate-200">
+                    <span class="text-xs uppercase tracking-widest text-slate-400">{{ form.sport_type.label }}</span>
+                    {{ form.sport_type }}
+                    {% if form.sport_type.errors %}<span class="block text-xs text-rose-300">{{ form.sport_type.errors|join:", " }}</span>{% endif %}
+                </label>
+                <label class="space-y-1 text-sm font-medium text-slate-200">
+                    <span class="text-xs uppercase tracking-widest text-slate-400">{{ form.grade_min.label }}</span>
+                    {{ form.grade_min }}
+                    {% if form.grade_min.errors %}<span class="block text-xs text-rose-300">{{ form.grade_min.errors|join:", " }}</span>{% endif %}
+                </label>
+                <label class="space-y-1 text-sm font-medium text-slate-200">
+                    <span class="text-xs uppercase tracking-widest text-slate-400">{{ form.grade_max.label }}</span>
+                    {{ form.grade_max }}
+                    {% if form.grade_max.errors %}<span class="block text-xs text-rose-300">{{ form.grade_max.errors|join:", " }}</span>{% endif %}
+                </label>
+            </div>
+            <div class="grid gap-4 md:grid-cols-3">
+                <label class="space-y-1 text-sm font-medium text-slate-200">
+                    <span class="text-xs uppercase tracking-widest text-slate-400">{{ form.gender_limit.label }}</span>
+                    {{ form.gender_limit }}
+                    {% if form.gender_limit.errors %}<span class="block text-xs text-rose-300">{{ form.gender_limit.errors|join:", " }}</span>{% endif %}
+                </label>
+                <label class="space-y-1 text-sm font-medium text-slate-200">
+                    <span class="text-xs uppercase tracking-widest text-slate-400">{{ form.schedule_dt.label }}</span>
+                    {{ form.schedule_dt }}
+                    {% if form.schedule_dt.errors %}<span class="block text-xs text-rose-300">{{ form.schedule_dt.errors|join:", " }}</span>{% endif %}
+                </label>
+                <label class="space-y-1 text-sm font-medium text-slate-200">
+                    <span class="text-xs uppercase tracking-widest text-slate-400">{{ form.location.label }}</span>
+                    {{ form.location }}
+                    {% if form.location.errors %}<span class="block text-xs text-rose-300">{{ form.location.errors|join:", " }}</span>{% endif %}
+                </label>
+            </div>
+        </div>
+
+        <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-6 space-y-6">
+            <h2 class="text-lg font-semibold text-slate-100">Format & capacity</h2>
+            <div class="grid gap-4 md:grid-cols-4">
+                <label class="space-y-1 text-sm font-medium text-slate-200 md:col-span-2">
+                    <span class="text-xs uppercase tracking-widest text-slate-400">{{ form.measure_unit.label }}</span>
+                    {{ form.measure_unit }}
+                    {% if form.measure_unit.errors %}<span class="block text-xs text-rose-300">{{ form.measure_unit.errors|join:", " }}</span>{% endif %}
+                </label>
+                <label class="space-y-1 text-sm font-medium text-slate-200">
+                    <span class="text-xs uppercase tracking-widest text-slate-400">{{ form.capacity.label }}</span>
+                    {{ form.capacity }}
+                    {% if form.capacity.errors %}<span class="block text-xs text-rose-300">{{ form.capacity.errors|join:", " }}</span>{% endif %}
+                </label>
+                <label class="space-y-1 text-sm font-medium text-slate-200">
+                    <span class="text-xs uppercase tracking-widest text-slate-400">{{ form.attempts.label }}</span>
+                    {{ form.attempts }}
+                    {% if form.attempts.errors %}<span class="block text-xs text-rose-300">{{ form.attempts.errors|join:", " }}</span>{% endif %}
+                </label>
+            </div>
+            <div class="grid gap-4 md:grid-cols-3">
+                <label class="space-y-1 text-sm font-medium text-slate-200">
+                    <span class="text-xs uppercase tracking-widest text-slate-400">{{ form.rounds_total.label }}</span>
+                    {{ form.rounds_total }}
+                    {% if form.rounds_total.errors %}<span class="block text-xs text-rose-300">{{ form.rounds_total.errors|join:", " }}</span>{% endif %}
+                </label>
+                <label class="space-y-1 text-sm font-medium text-slate-200 md:col-span-2">
+                    <span class="text-xs uppercase tracking-widest text-slate-400">{{ form.knockout_qualifiers.label }}</span>
+                    {{ form.knockout_qualifiers }}
+                    <span class="block text-xs text-slate-500">Optional pattern such as <code class="font-mono">Q:2;q:2</code> for automatic qualifiers.</span>
+                    {% if form.knockout_qualifiers.errors %}<span class="block text-xs text-rose-300">{{ form.knockout_qualifiers.errors|join:", " }}</span>{% endif %}
+                </label>
+            </div>
+        </div>
+
+        <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-6 space-y-6">
+            <h2 class="text-lg font-semibold text-slate-100">Team & notes</h2>
+            <div class="grid gap-4 md:grid-cols-2">
+                <label class="space-y-1 text-sm font-medium text-slate-200">
+                    <span class="text-xs uppercase tracking-widest text-slate-400">{{ form.assigned_teachers.label }}</span>
+                    {{ form.assigned_teachers }}
+                    {% if form.assigned_teachers.errors %}<span class="block text-xs text-rose-300">{{ form.assigned_teachers.errors|join:", " }}</span>{% endif %}
+                </label>
+                <label class="space-y-1 text-sm font-medium text-slate-200">
+                    <span class="text-xs uppercase tracking-widest text-slate-400">{{ form.notes.label }}</span>
+                    {{ form.notes }}
+                    {% if form.notes.errors %}<span class="block text-xs text-rose-300">{{ form.notes.errors|join:", " }}</span>{% endif %}
+                </label>
+            </div>
+        </div>
+
+        <div class="flex justify-end">
+            <button type="submit" class="inline-flex items-center gap-2 rounded-full bg-sky-500 px-5 py-2 text-sm font-semibold text-slate-900 shadow-lg shadow-sky-500/40 transition hover:bg-sky-400">
+                {% if is_create %}Create event{% else %}Save changes{% endif %}
+            </button>
+        </div>
+    </form>
+</section>
+{% endblock %}
+{% block mobile_nav %}{% endblock %}
