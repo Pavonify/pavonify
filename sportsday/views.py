@@ -1248,9 +1248,13 @@ def event_list(request: HttpRequest) -> HttpResponse:
         if not request.user.is_staff:
             teacher = _teacher_for_user(request.user)
             if teacher:
-                events = events.filter(assigned_teachers=teacher)
-            else:
-                events = events.none()
+                events = events.annotate(
+                    is_assigned_to_user=Count(
+                        "assigned_teachers",
+                        filter=Q(assigned_teachers=teacher),
+                        distinct=True,
+                    )
+                )
 
     mobile_nav = mobile_nav_active = None
     if active_meet:
