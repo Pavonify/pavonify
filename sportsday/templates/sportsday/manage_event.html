@@ -1,0 +1,462 @@
+{% extends "sportsday/base.html" %}
+{% block title %}Sports Day · Manage Event · {{ event.name }}{% endblock %}
+{% block extra_head %}
+    {{ block.super }}
+    <style>
+        body.sd-high-contrast {
+            background: #000 !important;
+            color: #f8fafc !important;
+        }
+        body.sd-high-contrast .hc-surface,
+        body.sd-high-contrast table,
+        body.sd-high-contrast .hc-table {
+            background-color: #0f172a !important;
+            color: #f8fafc !important;
+        }
+        body.sd-high-contrast table thead {
+            background-color: #1f2937 !important;
+            color: #f8fafc !important;
+        }
+        body.sd-high-contrast table tbody tr:nth-child(even) {
+            background-color: #1f2937 !important;
+        }
+        body.sd-high-contrast table tbody tr:nth-child(odd) {
+            background-color: #111827 !important;
+        }
+        body.sd-high-contrast input,
+        body.sd-high-contrast select,
+        body.sd-high-contrast textarea {
+            background-color: #020617 !important;
+            color: #f8fafc !important;
+            border-color: #475569 !important;
+        }
+        body.sd-high-contrast .hc-muted {
+            color: #cbd5f5 !important;
+        }
+        body.sd-high-contrast .hc-border {
+            border-color: #1e293b !important;
+        }
+    </style>
+{% endblock %}
+{% block content %}
+<section class="space-y-6">
+    <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div>
+            <p class="text-xs uppercase tracking-widest text-slate-500">Manage event</p>
+            <h1 class="text-2xl font-semibold text-ink">{{ event.name }}</h1>
+            <p class="text-sm text-slate-500">{{ event.meet.name }} · {{ event.sport_type.label }}</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2 text-sm">
+            <button type="button" class="inline-flex items-center gap-2 rounded-full border border-slate-300 px-4 py-2 text-slate-700 transition hover:border-sky-500 hover:text-sky-700" data-toggle-contrast>High contrast</button>
+            <a href="{% url 'sportsday:events' %}?meet={{ event.meet.slug }}" class="inline-flex items-center gap-2 rounded-full border border-slate-300 px-4 py-2 text-slate-700 transition hover:border-sky-500 hover:text-sky-700">Back to events</a>
+            <a href="{% url 'sportsday:event-detail' event.pk %}" class="inline-flex items-center gap-2 rounded-full border border-sky-500 px-4 py-2 font-semibold text-slate-900 shadow-lg shadow-sky-500/40 transition hover:bg-sky-400">Event overview</a>
+            <a href="{% url 'sportsday:event-start-list-printable' event.pk %}" class="inline-flex items-center gap-2 rounded-full border border-slate-300 px-4 py-2 text-slate-700 transition hover:border-sky-500 hover:text-sky-700">Print start list</a>
+        </div>
+    </div>
+
+    {% if form_errors %}
+        <div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+            <p class="font-semibold">Please correct the highlighted issues:</p>
+            <ul class="list-disc pl-5">
+                {% for error in form_errors %}
+                    <li>{{ error }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+
+    {% if lock_reason %}
+        <div class="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">{{ lock_reason }}</div>
+    {% endif %}
+
+    <form method="post" class="space-y-6" data-manage-form data-mode="{{ mode }}" data-can-edit="{{ can_edit|yesno:'true,false' }}" data-field-type="{% if mode == 'field' %}{% if event.sport_type.archetype == 'FIELD_DISTANCE' %}distance{% else %}count{% endif %}{% endif %}" data-allow-time="{{ allow_time_input|yesno:'true,false' }}">
+        {% csrf_token %}
+        {% if mode == 'track' %}
+            <div class="rounded-2xl border border-slate-200 bg-white/80 p-6 shadow-sm hc-surface hc-border">
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <h2 class="text-lg font-semibold text-ink">Track results</h2>
+                        <p class="text-sm text-slate-500 hc-muted">Ranking is primary. Times are optional (top 3 if you like).</p>
+                    </div>
+                    {% if can_edit %}
+                        <button type="button" class="inline-flex items-center gap-2 rounded-full border border-sky-500 px-4 py-2 text-sky-700 transition hover:bg-sky-50" data-auto-rank>Auto-rank by current order</button>
+                    {% endif %}
+                </div>
+                <div class="mt-4 overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-200 rounded-xl bg-white hc-table">
+                        <thead class="bg-slate-100/80 sticky top-0 z-10">
+                            <tr class="text-left text-xs font-semibold uppercase tracking-wider text-slate-600">
+                                <th class="px-3 py-3">#</th>
+                                <th class="px-3 py-3">Student</th>
+                                <th class="px-3 py-3">House</th>
+                                <th class="px-3 py-3">DQ</th>
+                                <th class="px-3 py-3">DNS</th>
+                                {% if allow_time_input %}<th class="px-3 py-3">Optional time</th>{% endif %}
+                            </tr>
+                        </thead>
+                        <tbody class="text-sm">
+                            {% for row in entries %}
+                                <tr class="transition odd:bg-slate-50 even:bg-slate-100 data-[muted='true']:opacity-60" data-track-row data-entry-id="{{ row.entry_id }}" data-muted="{% if row.dq or row.dns %}true{% else %}false{% endif %}">
+                                    <td class="px-3 py-3 align-middle">
+                                        <input type="number" min="1" step="1" name="rank[{{ row.entry_id }}]" value="{{ row.rank_input }}" class="w-20 rounded-lg border border-slate-300 px-2 py-1 text-center text-base font-semibold text-slate-800 shadow-sm focus:border-sky-500 focus:outline-none focus:ring" data-rank-input {% if row.dq or row.dns or not can_edit %}disabled{% endif %}>
+                                    </td>
+                                    <td class="px-3 py-3 align-middle">
+                                        <div class="font-semibold text-ink">{{ row.student.first_name }} {{ row.student.last_name }}</div>
+                                        <div class="text-xs text-slate-500 hc-muted">Grade {{ row.student.grade }}</div>
+                                    </td>
+                                    <td class="px-3 py-3 align-middle text-slate-700">{{ row.house }}</td>
+                                    <td class="px-3 py-3 align-middle">
+                                        <label class="inline-flex items-center gap-2 text-sm">
+                                            <input type="checkbox" name="dq[{{ row.entry_id }}]" class="h-4 w-4 rounded border-slate-300 text-rose-500 focus:ring-rose-500" data-dq {% if row.dq %}checked{% endif %} {% if not can_edit %}disabled{% endif %}>
+                                            <span class="text-xs uppercase tracking-wide text-slate-500">DQ</span>
+                                        </label>
+                                    </td>
+                                    <td class="px-3 py-3 align-middle">
+                                        <label class="inline-flex items-center gap-2 text-sm">
+                                            <input type="checkbox" name="dns[{{ row.entry_id }}]" class="h-4 w-4 rounded border-slate-300 text-amber-500 focus:ring-amber-500" data-dns {% if row.dns %}checked{% endif %} {% if not can_edit %}disabled{% endif %}>
+                                            <span class="text-xs uppercase tracking-wide text-slate-500">DNS</span>
+                                        </label>
+                                    </td>
+                                    {% if allow_time_input %}
+                                        <td class="px-3 py-3 align-middle">
+                                            <input type="text" name="time[{{ row.entry_id }}]" value="{{ row.time_input }}" placeholder="mm:ss.SSS" class="w-36 rounded-lg border border-slate-300 px-3 py-2 text-base text-slate-800 shadow-sm focus:border-sky-500 focus:outline-none focus:ring" data-time-input {% if row.dq or row.dns or not can_edit %}disabled{% endif %}>
+                                        </td>
+                                    {% endif %}
+                                </tr>
+                            {% empty %}
+                                <tr>
+                                    <td colspan="{% if allow_time_input %}6{% else %}5{% endif %}" class="px-3 py-6 text-center text-sm text-slate-500">No entries yet. Add students via the start list first.</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        {% else %}
+            <div class="rounded-2xl border border-slate-200 bg-white/80 p-6 shadow-sm hc-surface hc-border">
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <h2 class="text-lg font-semibold text-ink">Field results</h2>
+                        <p class="text-sm text-slate-500 hc-muted">Enter up to {{ attempt_count }} attempts. Higher marks win; ties break on next-best then earliest successful attempt.</p>
+                    </div>
+                </div>
+                <div class="mt-4 overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-200 rounded-xl bg-white hc-table">
+                        <thead class="bg-slate-100/80 sticky top-0 z-10">
+                            <tr class="text-left text-xs font-semibold uppercase tracking-wider text-slate-600">
+                                <th class="px-3 py-3">Student</th>
+                                <th class="px-3 py-3">House</th>
+                                {% for number in attempt_range %}
+                                    <th class="px-3 py-3 text-center">Attempt {{ number }}</th>
+                                {% endfor %}
+                                <th class="px-3 py-3 text-center">Best</th>
+                                <th class="px-3 py-3 text-center">Pos</th>
+                                <th class="px-3 py-3 text-center">DQ</th>
+                                <th class="px-3 py-3 text-center">DNS</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-sm">
+                            {% for row in entries %}
+                                <tr class="transition odd:bg-slate-50 even:bg-slate-100 data-[muted='true']:opacity-60" data-field-row data-entry-id="{{ row.entry_id }}" data-muted="{% if row.dq or row.dns %}true{% else %}false{% endif %}">
+                                    <td class="px-3 py-3 align-middle">
+                                        <div class="font-semibold text-ink">{{ row.student.first_name }} {{ row.student.last_name }}</div>
+                                        <div class="text-xs text-slate-500 hc-muted">Grade {{ row.student.grade }}</div>
+                                    </td>
+                                    <td class="px-3 py-3 align-middle text-slate-700">{{ row.house }}</td>
+                                    {% for attempt in row.attempts %}
+                                        <td class="px-2 py-2 text-center align-middle">
+                                            <input
+                                                name="attempt[{{ row.entry_id }}][{{ attempt.index }}]"
+                                                value="{{ attempt.raw }}"
+                                                {% if event.sport_type.archetype == 'FIELD_DISTANCE' %}
+                                                    type="number" step="0.001"
+                                                {% else %}
+                                                    type="number" step="1"
+                                                {% endif %}
+                                                class="w-24 rounded-lg border border-slate-300 px-2 py-2 text-center text-base text-slate-800 shadow-sm focus:border-sky-500 focus:outline-none focus:ring"
+                                                data-attempt-input
+                                                data-attempt-index="{{ attempt.index }}"
+                                                {% if row.dq or row.dns or not can_edit %}disabled{% endif %}
+                                            >
+                                        </td>
+                                    {% endfor %}
+                                    <td class="px-3 py-3 text-center align-middle font-semibold text-slate-700" data-best-cell>{{ row.best_display }}</td>
+                                    <td class="px-3 py-3 text-center align-middle font-semibold text-slate-700" data-position-cell>{% if row.position %}{{ row.position }}{% endif %}</td>
+                                    <td class="px-3 py-3 text-center align-middle">
+                                        <label class="inline-flex items-center justify-center gap-2 text-sm">
+                                            <input type="checkbox" name="dq[{{ row.entry_id }}]" class="h-4 w-4 rounded border-slate-300 text-rose-500 focus:ring-rose-500" data-dq {% if row.dq %}checked{% endif %} {% if not can_edit %}disabled{% endif %}>
+                                        </label>
+                                    </td>
+                                    <td class="px-3 py-3 text-center align-middle">
+                                        <label class="inline-flex items-center justify-center gap-2 text-sm">
+                                            <input type="checkbox" name="dns[{{ row.entry_id }}]" class="h-4 w-4 rounded border-slate-300 text-amber-500 focus:ring-amber-500" data-dns {% if row.dns %}checked{% endif %} {% if not can_edit %}disabled{% endif %}>
+                                        </label>
+                                    </td>
+                                </tr>
+                            {% empty %}
+                                <tr>
+                                    <td colspan="{{ attempt_range|length|add:'6' }}" class="px-3 py-6 text-center text-sm text-slate-500">No entries yet. Add students via the start list first.</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="mt-3 text-xs text-slate-500 hc-muted">
+                    {% if event.sport_type.archetype == 'FIELD_DISTANCE' %}
+                        Accepts decimal metres (e.g. 4.55). Leave blank for fouls or passes.
+                    {% else %}
+                        Accepts whole numbers. Leave blank for fouls or passes.
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
+
+        <div class="flex flex-wrap items-center justify-end gap-3">
+            <button type="submit" name="action" value="save" class="inline-flex items-center gap-2 rounded-full border border-sky-500 bg-sky-500 px-5 py-2 text-sm font-semibold text-slate-900 shadow-lg shadow-sky-500/40 transition hover:bg-sky-400 disabled:cursor-not-allowed disabled:border-slate-300 disabled:bg-slate-200 disabled:text-slate-500" {% if not can_edit %}disabled{% endif %}>Save</button>
+            <button type="submit" name="action" value="lock" class="inline-flex items-center gap-2 rounded-full border border-emerald-500 bg-emerald-500 px-5 py-2 text-sm font-semibold text-emerald-950 shadow-lg shadow-emerald-500/30 transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:border-slate-300 disabled:bg-slate-200 disabled:text-slate-500" {% if not can_edit %}disabled{% endif %}>Mark complete</button>
+        </div>
+    </form>
+</section>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const manageForm = document.querySelector('[data-manage-form]');
+        if (!manageForm) {
+            return;
+        }
+        const canEdit = manageForm.dataset.canEdit === 'true';
+        const mode = manageForm.dataset.mode;
+        const fieldType = manageForm.dataset.fieldType || 'distance';
+        const allowTime = manageForm.dataset.allowTime === 'true';
+
+        const contrastToggle = document.querySelector('[data-toggle-contrast]');
+        if (contrastToggle) {
+            contrastToggle.addEventListener('click', () => {
+                document.body.classList.toggle('sd-high-contrast');
+            });
+        }
+
+        const enforceStatus = (row) => {
+            const dq = row.querySelector('[data-dq]');
+            const dns = row.querySelector('[data-dns]');
+            if (!dq || !dns) {
+                return;
+            }
+            if (dq.checked && dns.checked) {
+                dq.checked = false;
+            }
+            if (dns.checked && dq.checked) {
+                dq.checked = false;
+            }
+            const flagged = dq.checked || dns.checked;
+            const disableInputs = flagged || !canEdit;
+            row.dataset.muted = flagged ? 'true' : 'false';
+            const rankInput = row.querySelector('[data-rank-input]');
+            if (rankInput) {
+                rankInput.disabled = disableInputs;
+            }
+            const timeInput = row.querySelector('[data-time-input]');
+            if (timeInput) {
+                timeInput.disabled = disableInputs || !allowTime;
+            }
+            const attemptInputs = row.querySelectorAll('[data-attempt-input]');
+            attemptInputs.forEach((input) => {
+                input.disabled = disableInputs;
+            });
+            if (flagged) {
+                const bestCell = row.querySelector('[data-best-cell]');
+                const posCell = row.querySelector('[data-position-cell]');
+                if (bestCell) {
+                    bestCell.textContent = '';
+                }
+                if (posCell) {
+                    posCell.textContent = '';
+                }
+            }
+        };
+
+        const trackRows = Array.from(document.querySelectorAll('[data-track-row]'));
+        trackRows.forEach((row) => {
+            enforceStatus(row);
+            const dq = row.querySelector('[data-dq]');
+            const dns = row.querySelector('[data-dns]');
+            if (dq) {
+                dq.addEventListener('change', () => enforceStatus(row));
+            }
+            if (dns) {
+                dns.addEventListener('change', () => enforceStatus(row));
+            }
+        });
+
+        const autoRankButton = document.querySelector('[data-auto-rank]');
+        if (autoRankButton && canEdit) {
+            autoRankButton.addEventListener('click', (event) => {
+                event.preventDefault();
+                let counter = 1;
+                trackRows.forEach((row) => {
+                    const dq = row.querySelector('[data-dq]');
+                    const dns = row.querySelector('[data-dns]');
+                    if (dq?.checked || dns?.checked) {
+                        return;
+                    }
+                    const rankInput = row.querySelector('[data-rank-input]');
+                    if (rankInput && !rankInput.disabled) {
+                        rankInput.value = counter;
+                        counter += 1;
+                    }
+                });
+            });
+        }
+
+        const parseAttemptValue = (input) => {
+            const raw = (input.value || '').trim();
+            if (!raw) {
+                return null;
+            }
+            const number = Number(raw);
+            if (Number.isNaN(number)) {
+                return null;
+            }
+            if (fieldType === 'count') {
+                return Math.trunc(number);
+            }
+            return number;
+        };
+
+        const formatAttemptValue = (value) => {
+            if (value === null || value === undefined) {
+                return '';
+            }
+            if (fieldType === 'count') {
+                return String(value);
+            }
+            return Number(value).toFixed(3).replace(/\.0+$/, '').replace(/\.$/, '');
+        };
+
+        const equalSeries = (a, b) => {
+            if (a.length !== b.length) {
+                return false;
+            }
+            for (let i = 0; i < a.length; i += 1) {
+                if (Math.abs(a[i] - b[i]) > 0.0005) {
+                    return false;
+                }
+            }
+            return true;
+        };
+
+        const updateFieldRows = () => {
+            const fieldRows = Array.from(document.querySelectorAll('[data-field-row]'));
+            const contenders = [];
+            fieldRows.forEach((row, index) => {
+                enforceStatus(row);
+                const dq = row.querySelector('[data-dq]');
+                const dns = row.querySelector('[data-dns]');
+                const bestCell = row.querySelector('[data-best-cell]');
+                const posCell = row.querySelector('[data-position-cell]');
+                if (dq?.checked || dns?.checked) {
+                    if (bestCell) {
+                        bestCell.textContent = bestCell.textContent || '';
+                    }
+                    if (posCell) {
+                        posCell.textContent = posCell.textContent || '';
+                    }
+                    return;
+                }
+                const inputs = Array.from(row.querySelectorAll('[data-attempt-input]'));
+                const values = [];
+                inputs.forEach((input, attemptIdx) => {
+                    const parsed = parseAttemptValue(input);
+                    if (parsed !== null && parsed !== undefined && !Number.isNaN(parsed)) {
+                        values.push({ value: Number(parsed), index: attemptIdx + 1 });
+                    }
+                });
+                if (!values.length) {
+                    if (bestCell) {
+                        bestCell.textContent = '';
+                    }
+                    if (posCell) {
+                        posCell.textContent = '';
+                    }
+                    return;
+                }
+                values.sort((a, b) => {
+                    if (b.value === a.value) {
+                        return a.index - b.index;
+                    }
+                    return b.value - a.value;
+                });
+                const best = values[0];
+                const series = values.map((entry) => entry.value).sort((a, b) => b - a);
+                if (bestCell) {
+                    bestCell.textContent = formatAttemptValue(best.value);
+                }
+                contenders.push({
+                    row,
+                    bestValue: best.value,
+                    bestAttempt: best.index,
+                    series,
+                    order: index,
+                });
+            });
+
+            contenders.sort((a, b) => {
+                const maxLength = Math.max(a.series.length, b.series.length);
+                for (let i = 0; i < maxLength; i += 1) {
+                    const aValue = a.series[i] ?? -Infinity;
+                    const bValue = b.series[i] ?? -Infinity;
+                    if (aValue !== bValue) {
+                        return bValue - aValue;
+                    }
+                }
+                if (a.bestValue !== b.bestValue) {
+                    return b.bestValue - a.bestValue;
+                }
+                if (a.bestAttempt !== b.bestAttempt) {
+                    return a.bestAttempt - b.bestAttempt;
+                }
+                return a.order - b.order;
+            });
+
+            let rank = 1;
+            let idx = 0;
+            while (idx < contenders.length) {
+                const group = [contenders[idx]];
+                while (
+                    idx + group.length < contenders.length
+                    && equalSeries(contenders[idx].series, contenders[idx + group.length].series)
+                    && contenders[idx].bestAttempt === contenders[idx + group.length].bestAttempt
+                ) {
+                    group.push(contenders[idx + group.length]);
+                }
+                group.forEach((contender) => {
+                    const posCell = contender.row.querySelector('[data-position-cell]');
+                    if (posCell) {
+                        posCell.textContent = String(rank);
+                    }
+                });
+                rank += group.length;
+                idx += group.length;
+            }
+        };
+
+        if (mode === 'field') {
+            const fieldRows = Array.from(document.querySelectorAll('[data-field-row]'));
+            fieldRows.forEach((row) => {
+                const dq = row.querySelector('[data-dq]');
+                const dns = row.querySelector('[data-dns]');
+                if (dq) {
+                    dq.addEventListener('change', () => updateFieldRows());
+                }
+                if (dns) {
+                    dns.addEventListener('change', () => updateFieldRows());
+                }
+                row.querySelectorAll('[data-attempt-input]').forEach((input) => {
+                    input.addEventListener('input', () => updateFieldRows());
+                });
+            });
+            updateFieldRows();
+        }
+    });
+</script>
+{% endblock %}
