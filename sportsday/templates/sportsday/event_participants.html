@@ -6,7 +6,7 @@
         <div>
             <p class="text-sm uppercase tracking-widest text-slate-400">Participants</p>
             <h1 class="text-2xl font-semibold">{{ event.name }}</h1>
-            <p class="text-sm text-slate-400">Drag or use the arrow buttons to move students into the start list.</p>
+            <p class="text-sm text-slate-400">Tick students to add them to the start list.</p>
         </div>
         <div class="flex flex-wrap gap-2 text-sm">
             <a href="{% url 'sportsday:events' %}?meet={{ event.meet.slug }}" class="inline-flex items-center gap-2 rounded-full border border-slate-700 px-4 py-2 text-slate-200 hover:border-sky-500/40 hover:text-sky-100">Back to events</a>
@@ -23,35 +23,76 @@
         <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-6">
             <h2 class="text-lg font-semibold text-slate-100">Eligible students</h2>
             <p class="text-sm text-slate-400">Meet: {{ event.meet.name }} · Grades {{ event.grade_min }}{% if event.grade_min != event.grade_max %}–{{ event.grade_max }}{% endif %} · {{ event.get_gender_limit_display }}</p>
-            <div class="mt-4 grid gap-4 md:grid-cols-[1fr,auto,1fr] md:items-center">
-                <div>
-                    <div class="mb-2 flex items-center justify-between">
-                        <span class="text-xs uppercase tracking-widest text-slate-500">Available students</span>
-                        <span class="text-xs text-slate-500" data-available-count>{{ available_students|length }}</span>
+            <div class="mt-6 grid gap-6 lg:grid-cols-[2fr,1fr]">
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between text-xs uppercase tracking-widest text-slate-500">
+                        <span>Eligible students</span>
+                        <span>{{ eligible_students|length }}</span>
                     </div>
-                    <select id="available" multiple size="12" class="w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-100 focus:border-sky-500 focus:outline-none" {% if lock_reason %}disabled{% endif %}>
-                        {% for student in available_students %}
-                            <option value="{{ student.pk }}">{{ student.last_name }}, {{ student.first_name }} · Grade {{ student.grade }} · {{ student.house }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="flex flex-col items-center gap-2">
-                    <button type="button" id="add-participants" class="inline-flex items-center gap-2 rounded-full bg-sky-500 px-3 py-1 text-sm font-semibold text-slate-900 shadow-sm hover:bg-sky-400 disabled:cursor-not-allowed disabled:opacity-60" {% if lock_reason %}disabled{% endif %}>&gt;</button>
-                    <button type="button" id="remove-participants" class="inline-flex items-center gap-2 rounded-full bg-slate-800 px-3 py-1 text-sm font-semibold text-slate-200 hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60" {% if lock_reason %}disabled{% endif %}>&lt;</button>
-                </div>
-                <div>
-                    <div class="mb-2 flex items-center justify-between">
-                        <span class="text-xs uppercase tracking-widest text-slate-500">Event participants</span>
-                        <span class="text-xs text-slate-500" data-participants-count>{{ assigned_entries|length }}</span>
+                    <div class="max-h-[28rem] overflow-y-auto rounded-xl border border-slate-800 bg-slate-950/60">
+                        {% if eligible_students %}
+                            <ul class="divide-y divide-slate-800" data-participants-list>
+                                {% for student in eligible_students %}
+                                    {% with house=student.house|default:"Unassigned" grade=student.grade|default:"Unassigned" %}
+                                        <li>
+                                            <label class="flex cursor-pointer items-center gap-3 px-4 py-3 text-sm text-slate-200 hover:bg-slate-800/60">
+                                                <input type="checkbox" name="participants" value="{{ student.pk }}" class="h-4 w-4 rounded border-slate-600 bg-slate-900 text-sky-500 focus:ring-sky-500" data-participant-checkbox data-house="{{ house }}" data-grade="{{ grade }}" {% if student.pk in assigned_student_ids %}checked{% endif %} {% if lock_reason %}disabled{% endif %}>
+                                                <span class="flex flex-col">
+                                                    <span class="font-medium">{{ student.last_name }}, {{ student.first_name }}</span>
+                                                    <span class="text-xs text-slate-400">Grade {{ student.grade|default:"—" }} · {{ student.house|default:"Unassigned" }}</span>
+                                                </span>
+                                            </label>
+                                        </li>
+                                    {% endwith %}
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            <p class="px-4 py-6 text-sm text-slate-400">No students match the filters for this event.</p>
+                        {% endif %}
                     </div>
-                    <select id="participants" name="participants" multiple size="12" class="w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-100 focus:border-sky-500 focus:outline-none" {% if lock_reason %}disabled{% endif %}>
-                        {% for entry in assigned_entries %}
-                            <option value="{{ entry.student.pk }}" selected>{{ entry.student.last_name }}, {{ entry.student.first_name }} · Grade {{ entry.student.grade }} · {{ entry.student.house }}</option>
-                        {% endfor %}
-                    </select>
+                </div>
+                <div class="space-y-4">
+                    <div class="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
+                        <p class="text-xs uppercase tracking-widest text-slate-500">Selected participants</p>
+                        <p class="mt-2 text-2xl font-semibold text-slate-100" data-selected-count>
+                            {% if event.capacity %}
+                                {{ selected_count }} / {{ event.capacity }}
+                            {% else %}
+                                {{ selected_count }}
+                            {% endif %}
+                        </p>
+                        {% if event.capacity %}
+                            <p class="mt-1 text-xs text-slate-500" data-capacity-message>Max participants: {{ event.capacity }}</p>
+                        {% endif %}
+                    </div>
+                    {% if house_summary %}
+                        <div class="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
+                            <p class="text-xs uppercase tracking-widest text-slate-500">By house</p>
+                            <dl class="mt-2 space-y-1 text-sm text-slate-300">
+                                {% for house, count in house_summary %}
+                                    <div class="flex items-center justify-between" data-house-count data-house="{{ house }}">
+                                        <dt class="text-slate-400">{{ house }}</dt>
+                                        <dd class="font-semibold" data-count-value>{{ count }}</dd>
+                                    </div>
+                                {% endfor %}
+                            </dl>
+                        </div>
+                    {% endif %}
+                    {% if grade_summary %}
+                        <div class="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
+                            <p class="text-xs uppercase tracking-widest text-slate-500">By grade</p>
+                            <dl class="mt-2 space-y-1 text-sm text-slate-300">
+                                {% for grade, count in grade_summary %}
+                                    <div class="flex items-center justify-between" data-grade-count data-grade="{{ grade }}">
+                                        <dt class="text-slate-400">{{ grade }}</dt>
+                                        <dd class="font-semibold" data-count-value>{{ count }}</dd>
+                                    </div>
+                                {% endfor %}
+                            </dl>
+                        </div>
+                    {% endif %}
                 </div>
             </div>
-            <p class="mt-3 text-xs text-slate-500">Tip: hold Ctrl (Cmd on Mac) to select multiple students before using the arrow buttons.</p>
         </div>
 
         <div class="flex justify-end">
@@ -64,46 +105,82 @@
 {% if not lock_reason %}
 <script>
 (function () {
-    function updateCounts() {
-        const availableCount = document.querySelector('[data-available-count]');
-        const participantCount = document.querySelector('[data-participants-count]');
-        if (availableCount) {
-            availableCount.textContent = document.getElementById('available').options.length;
+    const form = document.querySelector('form');
+    if (!form) {
+        return;
+    }
+    const checkboxes = Array.from(document.querySelectorAll('[data-participant-checkbox]'));
+    const selectedCountEl = document.querySelector('[data-selected-count]');
+    const capacityMessageEl = document.querySelector('[data-capacity-message]');
+    const capacity = parseInt('{{ event.capacity }}', 10) || 0;
+    const houseRows = Array.from(document.querySelectorAll('[data-house-count]'));
+    const gradeRows = Array.from(document.querySelectorAll('[data-grade-count]'));
+    const initialDisabled = new WeakSet();
+
+    checkboxes.forEach((checkbox) => {
+        if (checkbox.disabled) {
+            initialDisabled.add(checkbox);
         }
-        if (participantCount) {
-            participantCount.textContent = document.getElementById('participants').options.length;
+        checkbox.addEventListener('change', updateState);
+    });
+
+    function updateState() {
+        const houseTotals = {};
+        const gradeTotals = {};
+        let selectedTotal = 0;
+
+        checkboxes.forEach((checkbox) => {
+            if (checkbox.checked) {
+                selectedTotal += 1;
+                const house = checkbox.dataset.house || 'Unassigned';
+                const grade = checkbox.dataset.grade || 'Unassigned';
+                houseTotals[house] = (houseTotals[house] || 0) + 1;
+                gradeTotals[grade] = (gradeTotals[grade] || 0) + 1;
+            }
+        });
+
+        houseRows.forEach((row) => {
+            const valueEl = row.querySelector('[data-count-value]');
+            if (valueEl) {
+                valueEl.textContent = houseTotals[row.dataset.house] || 0;
+            }
+        });
+
+        gradeRows.forEach((row) => {
+            const valueEl = row.querySelector('[data-count-value]');
+            if (valueEl) {
+                valueEl.textContent = gradeTotals[row.dataset.grade] || 0;
+            }
+        });
+
+        if (selectedCountEl) {
+            if (capacity) {
+                selectedCountEl.textContent = `${selectedTotal} / ${capacity}`;
+            } else {
+                selectedCountEl.textContent = `${selectedTotal}`;
+            }
+        }
+
+        const atCapacity = capacity && selectedTotal >= capacity;
+        checkboxes.forEach((checkbox) => {
+            if (initialDisabled.has(checkbox)) {
+                return;
+            }
+            if (atCapacity && !checkbox.checked) {
+                checkbox.disabled = true;
+                checkbox.dataset.capacityDisabled = 'true';
+            } else if (!atCapacity && checkbox.dataset.capacityDisabled === 'true') {
+                checkbox.disabled = false;
+                delete checkbox.dataset.capacityDisabled;
+            }
+        });
+
+        if (capacityMessageEl) {
+            capacityMessageEl.classList.toggle('text-amber-300', atCapacity);
         }
     }
 
-    function moveOptions(sourceId, targetId, selectMoved = false) {
-        const source = document.getElementById(sourceId);
-        const target = document.getElementById(targetId);
-        const selected = Array.from(source.options).filter(option => option.selected);
-        if (!selected.length) {
-            return;
-        }
-        selected.forEach(option => {
-            source.removeChild(option);
-            option.selected = selectMoved;
-            target.appendChild(option);
-        });
-        updateCounts();
-    }
-    document.getElementById('add-participants').addEventListener('click', function (event) {
-        event.preventDefault();
-        moveOptions('available', 'participants', true);
-    });
-    document.getElementById('remove-participants').addEventListener('click', function (event) {
-        event.preventDefault();
-        moveOptions('participants', 'available');
-        const available = document.getElementById('available');
-        Array.from(available.options).forEach(option => option.selected = false);
-        updateCounts();
-    });
-    document.querySelector('form').addEventListener('submit', function () {
-        const participants = document.getElementById('participants');
-        Array.from(participants.options).forEach(option => option.selected = true);
-    });
+    updateState();
 })();
 </script>
 {% endif %}
