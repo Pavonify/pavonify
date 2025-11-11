@@ -16,9 +16,6 @@ from types import SimpleNamespace
 from . import models
 
 __all__ = [
-    "parse_time",
-    "parse_distance",
-    "parse_count",
     "parse_time_to_seconds",
     "normalize_distance",
     "rank_track",
@@ -56,8 +53,8 @@ class ScoringRecord:
         return (self.points or Decimal("0")) + (self.participation or Decimal("0"))
 
 
-def parse_time(value: str | float | Decimal | None) -> Decimal | None:
-    """Parse time strings such as ``mm:ss.SSS`` or ``ss.SSS`` into seconds."""
+def parse_time_to_seconds(value: str | float | Decimal | None) -> Decimal | None:
+    """Parse a human-friendly time string (mm:ss.mmm or ss.mmm) into seconds."""
 
     if value in (None, ""):
         return None
@@ -72,7 +69,7 @@ def parse_time(value: str | float | Decimal | None) -> Decimal | None:
         if ":" in text:
             parts = text.split(":")
             if len(parts) != 2:
-                raise ValueError("Use mm:ss.SSS or ss.SSS for times.")
+                raise ValueError("Use mm:ss.mmm or ss.mmm format for times.")
             minutes, seconds = parts
             try:
                 candidate = Decimal(minutes) * Decimal(60) + Decimal(seconds)
@@ -88,14 +85,8 @@ def parse_time(value: str | float | Decimal | None) -> Decimal | None:
     return candidate.quantize(Decimal("0.001"))
 
 
-def parse_time_to_seconds(value: str | float | Decimal | None) -> Decimal | None:
-    """Backward-compatible wrapper around :func:`parse_time`."""
-
-    return parse_time(value)
-
-
-def parse_distance(value: str | float | Decimal | None) -> Decimal | None:
-    """Parse a decimal distance value in metres."""
+def normalize_distance(value: str | float | Decimal | None) -> Decimal | None:
+    """Normalise a distance/count entry into metres or integer counts."""
 
     if value in (None, ""):
         return None
@@ -104,59 +95,29 @@ def parse_distance(value: str | float | Decimal | None) -> Decimal | None:
     elif isinstance(value, (int, float)):
         candidate = Decimal(str(value))
     else:
-        text = value.strip()
-        if not text:
-            return None
-        try:
-            candidate = Decimal(text)
-        except InvalidOperation as exc:
-            raise ValueError("Invalid distance supplied.") from exc
-    if candidate < 0:
-        raise ValueError("Distance cannot be negative.")
-    return candidate.quantize(Decimal("0.001"))
-
-
-def parse_count(value: str | float | Decimal | None) -> int | None:
-    """Parse an integer-based attempt count."""
-
-    if value in (None, ""):
-        return None
-    if isinstance(value, bool):
-        raise ValueError("Invalid count supplied.")
-    if isinstance(value, (int, Decimal)):
-        candidate = int(value)
-    elif isinstance(value, float):
-        if value != int(value):
-            raise ValueError("Counts must be whole numbers.")
-        candidate = int(value)
-    else:
-        text = value.strip()
-        if not text:
-            return None
-        try:
-            candidate = int(text)
-        except (TypeError, ValueError) as exc:
-            raise ValueError("Invalid count supplied.") from exc
-    if candidate < 0:
-        raise ValueError("Count cannot be negative.")
-    return candidate
-
-
-def normalize_distance(value: str | float | Decimal | None) -> Decimal | None:
-    """Normalise a distance/count entry into metres or integer counts."""
-
-    if value in (None, ""):
-        return None
-    if isinstance(value, str):
         text = value.strip().lower()
+        if not text:
+            return None
         if text.endswith("cm"):
-            distance = parse_distance(text[:-2])
-            if distance is None:
-                return None
-            return (distance / Decimal(100)).quantize(Decimal("0.001"))
-        if text.endswith("m"):
-            return parse_distance(text[:-1])
-    return parse_distance(value)
+            text = text[:-2].strip()
+            try:
+                candidate = Decimal(text) / Decimal(100)
+            except InvalidOperation as exc:
+                raise ValueError("Invalid distance supplied.") from exc
+        elif text.endswith("m"):
+            text = text[:-1].strip()
+            try:
+                candidate = Decimal(text)
+            except InvalidOperation as exc:
+                raise ValueError("Invalid distance supplied.") from exc
+        else:
+            try:
+                candidate = Decimal(text)
+            except InvalidOperation as exc:
+                raise ValueError("Invalid distance supplied.") from exc
+    if candidate < 0:
+        raise ValueError("Distance/count cannot be negative.")
+    return candidate.quantize(Decimal("0.001"))
 
 
 def compute_timetable_clashes(

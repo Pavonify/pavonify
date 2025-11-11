@@ -54,13 +54,6 @@
                     <span class="text-xs uppercase tracking-widest text-slate-400">{{ form.sport_type.label }}</span>
                     {{ form.sport_type }}
                     {% if form.sport_type.errors %}<span class="block text-xs text-rose-300">{{ form.sport_type.errors|join:", " }}</span>{% endif %}
-                    <div class="text-xs text-slate-500" data-sport-archetype-display>
-                        {% if selected_sport_type_meta %}
-                            Format: {{ selected_sport_type_meta.archetype_label }}
-                        {% else %}
-                            Select a sport to view its format.
-                        {% endif %}
-                    </div>
                 </label>
                 <div class="md:col-span-2 space-y-2 text-sm font-medium text-slate-200">
                     <span class="text-xs uppercase tracking-widest text-slate-400">Grades</span>
@@ -188,7 +181,6 @@
             </button>
         </div>
     </form>
-    {{ sport_type_meta|json_script:"sport-type-meta" }}
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const meetSelect = document.querySelector('select[name="meet"]');
@@ -201,9 +193,6 @@
             const gradeSummary = document.querySelector('[data-grade-summary]');
             const gradeContainer = document.querySelector('[data-grade-checkboxes]');
             const scheduleInput = document.getElementById('id_schedule_dt');
-            const sportMetaElement = document.getElementById('sport-type-meta');
-            const sportArchetypeDisplay = document.querySelector('[data-sport-archetype-display]');
-            const sportMeta = sportMetaElement ? JSON.parse(sportMetaElement.textContent || '{}') : {};
 
             let nameDirty = false;
             let isUpdatingName = false;
@@ -323,22 +312,6 @@
                 refreshAutoName();
             }
 
-            function updateSportArchetype() {
-                if (!sportArchetypeDisplay) {
-                    return;
-                }
-                if (!sportSelect) {
-                    sportArchetypeDisplay.textContent = 'Select a sport to view its format.';
-                    return;
-                }
-                const meta = sportMeta[String(sportSelect.value || '')];
-                if (meta && meta.archetype_label) {
-                    sportArchetypeDisplay.textContent = `Format: ${meta.archetype_label}`;
-                } else {
-                    sportArchetypeDisplay.textContent = 'Select a sport to view its format.';
-                }
-            }
-
             if (nameInput) {
                 nameInput.addEventListener('input', function () {
                     if (!isUpdatingName) {
@@ -362,17 +335,13 @@
             }
 
             if (sportSelect) {
-                sportSelect.addEventListener('change', () => {
-                    refreshAutoName();
-                    updateSportArchetype();
-                });
+                sportSelect.addEventListener('change', refreshAutoName);
             }
             if (genderSelect) {
                 genderSelect.addEventListener('change', refreshAutoName);
             }
 
             initialiseAutoName();
-            updateSportArchetype();
 
             function autoFillScheduleFromMeet(force) {
                 if (!meetSelect || !scheduleInput) {
