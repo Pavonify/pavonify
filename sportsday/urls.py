@@ -31,6 +31,7 @@ urlpatterns = [
     path("events/table/", views.events_table_fragment, name="events-table-fragment"),
     path("events/<int:pk>/edit/", views.event_update, name="event-update"),
     path("events/<int:pk>/delete/", views.event_delete, name="event-delete"),
+    path("events/<int:event_id>/manage/", views.manage_event, name="manage-event"),
     path(
         "events/<int:pk>/participants/",
         views.event_participants,
