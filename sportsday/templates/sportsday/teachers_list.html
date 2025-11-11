@@ -10,6 +10,8 @@
         </div>
         <div class="flex flex-wrap gap-2">
             <a href="{% url 'sportsday:export-teachers-csv' %}" class="inline-flex items-center gap-2 rounded-full border border-slate-700 px-4 py-2 text-sm text-slate-300 hover:border-sky-500/40 hover:text-sky-200">Export CSV</a>
+            <a href="{% url 'sportsday:teachers-upload' %}" class="inline-flex items-center gap-2 rounded-full border border-slate-700 px-4 py-2 text-sm text-slate-300 hover:border-sky-500/40 hover:text-sky-200">Upload CSV</a>
+            <a href="{% url 'sportsday:teachers-upload' %}#add-teacher" class="inline-flex items-center gap-2 rounded-full border border-slate-700 px-4 py-2 text-sm text-slate-300 hover:border-sky-500/40 hover:text-sky-200">Add teacher</a>
             <a href="{% url 'sportsday:meet-wizard-template' 'teachers' %}" class="inline-flex items-center gap-2 rounded-full bg-sky-500 px-4 py-2 text-sm font-medium text-slate-900 shadow-lg shadow-sky-500/40 hover:bg-sky-400">Download template</a>
         </div>
     </div>

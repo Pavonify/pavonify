@@ -243,6 +243,63 @@ class TeacherUploadForm(forms.Form):
         return uploaded
 
 
+class StudentForm(forms.ModelForm):
+    """Collect core student details for manual entry."""
+
+    class Meta:
+        model = models.Student
+        fields = (
+            "first_name",
+            "last_name",
+            "dob",
+            "grade",
+            "house",
+            "gender",
+            "external_id",
+            "is_active",
+        )
+        widgets = {
+            "dob": forms.DateInput(attrs={"type": "date"}),
+        }
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        text_input_classes = (
+            "mt-1 w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-200"
+        )
+        checkbox_classes = "h-4 w-4 rounded border-slate-600 text-sky-500 focus:ring-sky-500"
+        for field in self.fields.values():
+            widget = field.widget
+            existing = widget.attrs.get("class", "")
+            if isinstance(widget, forms.CheckboxInput):
+                widget.attrs["class"] = f"{existing} {checkbox_classes}".strip()
+            else:
+                widget.attrs["class"] = f"{existing} {text_input_classes}".strip()
+
+
+class TeacherForm(forms.ModelForm):
+    """Collect teacher details for manual entry."""
+
+    class Meta:
+        model = models.Teacher
+        fields = (
+            "first_name",
+            "last_name",
+            "email",
+            "external_id",
+        )
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        text_input_classes = (
+            "mt-1 w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-200"
+        )
+        for field in self.fields.values():
+            widget = field.widget
+            existing = widget.attrs.get("class", "")
+            widget.attrs["class"] = f"{existing} {text_input_classes}".strip()
+
+
 class StartListAddForm(forms.Form):
     """Allow coordinators to add a student to an event start list."""
 
