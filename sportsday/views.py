@@ -20,6 +20,7 @@ from django.http import (
     HttpRequest,
     HttpResponse,
     HttpResponseBadRequest,
+    HttpResponseForbidden,
 )
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -116,13 +117,331 @@ def _gender_label(code: str) -> str:
 
 
 def _teacher_for_user(user) -> models.Teacher | None:
+    """Best-effort mapping from the logged-in user to a Teacher record.
+
+    Historically teachers authenticated via email, but some deployments only
+    populate the ``external_id`` field when syncing staff lists.  The updated
+    lookup keeps the email matching behaviour while also falling back to common
+    identifiers so that marshals without stored emails can still be recognised
+    as assigned teachers.
+    """
+
     if not getattr(user, "is_authenticated", False):
         return None
-    email = getattr(user, "email", "") or ""
-    if not email:
-        return None
-    return models.Teacher.objects.filter(email__iexact=email).first()
 
+    filters = Q()
+    email = (getattr(user, "email", "") or "").strip()
+    if email:
+        filters |= Q(email__iexact=email)
+
+    username = (getattr(user, "username", "") or "").strip()
+    if username:
+        filters |= Q(external_id__iexact=username)
+
+    user_pk = getattr(user, "pk", None)
+    if user_pk:
+        filters |= Q(external_id__iexact=str(user_pk))
+
+    if not filters:
+        return None
+
+    return models.Teacher.objects.filter(filters).first()
+
+
+def _format_decimal_input(value: Decimal | None) -> str:
+    """Format decimal values for pre-populating inputs."""
+
+    if value is None:
+        return ""
+    quantized = value.quantize(Decimal("0.001"))
+    text = format(quantized.normalize(), "f")
+    if "." in text:
+        text = text.rstrip("0").rstrip(".")
+    return text
+
+
+def _track_rows_from_db(entries: list[models.Entry], *, allow_time: bool) -> list[dict[str, object]]:
+    """Prepare track-row dictionaries from persisted data."""
+
+    rows: list[dict[str, object]] = []
+    for entry in entries:
+        result = getattr(entry, "result", None)
+        attempt_lookup = {attempt.attempt_no: attempt for attempt in entry.attempts.all()}
+        attempt = attempt_lookup.get(1)
+        time_value: Decimal | None = None
+        if attempt and attempt.time_seconds is not None:
+            time_value = attempt.time_seconds
+        elif result and result.best_value is not None:
+            time_value = result.best_value
+        dq = entry.status == models.Entry.Status.DQ
+        dns = entry.status == models.Entry.Status.DNS
+        if dq and dns:
+            dns = True
+            dq = False
+        rows.append(
+            {
+                "entry": entry,
+                "entry_id": entry.pk,
+                "student": entry.student,
+                "house": entry.student.house or "—",
+                "rank_input": str(result.rank) if result and result.rank is not None else "",
+                "rank_value": result.rank if result else None,
+                "time_input": _format_decimal_input(time_value) if allow_time else "",
+                "parsed_time": time_value,
+                "dq": dq,
+                "dns": dns,
+                "status": entry.status,
+            }
+        )
+    return rows
+
+
+def _track_rows_from_post(
+    entries: list[models.Entry],
+    data,
+    *,
+    allow_time: bool,
+) -> tuple[list[dict[str, object]], list[str]]:
+    """Parse submitted track rows from POST data."""
+
+    rows: list[dict[str, object]] = []
+    errors: list[str] = []
+    for entry in entries:
+        dq = bool(data.get(f"dq[{entry.pk}]"))
+        dns = bool(data.get(f"dns[{entry.pk}]"))
+        if dq and dns:
+            dq = False
+            dns = True
+        rank_raw = (data.get(f"rank[{entry.pk}]") or "").strip()
+        time_raw = (data.get(f"time[{entry.pk}]") or "").strip() if allow_time else ""
+        rank_value: int | None = None
+        time_value: Decimal | None = None
+        if not dq and not dns and rank_raw:
+            try:
+                rank_value = int(rank_raw)
+                if rank_value < 1:
+                    raise ValueError
+            except ValueError:
+                errors.append(f"{entry.student} – enter a positive rank.")
+        if allow_time and not dq and not dns and time_raw:
+            try:
+                time_value = services.parse_time(time_raw)
+            except ValueError:
+                errors.append(
+                    f"{entry.student} – enter time as mm:ss.SSS, ss.SSS, or whole seconds."
+                )
+        status = models.Entry.Status.DNS if dns else (
+            models.Entry.Status.DQ if dq else models.Entry.Status.CONFIRMED
+        )
+        rows.append(
+            {
+                "entry": entry,
+                "entry_id": entry.pk,
+                "student": entry.student,
+                "house": entry.student.house or "—",
+                "rank_input": rank_raw,
+                "rank_value": rank_value,
+                "time_input": time_raw,
+                "parsed_time": time_value,
+                "dq": dq,
+                "dns": dns,
+                "status": status,
+            }
+        )
+    return rows, errors
+
+
+def _field_rows_from_db(
+    entries: list[models.Entry],
+    *,
+    attempt_count: int,
+    archetype: str,
+) -> list[dict[str, object]]:
+    rows: list[dict[str, object]] = []
+    for entry in entries:
+        attempts_lookup = {attempt.attempt_no: attempt for attempt in entry.attempts.all()}
+        row_attempts: list[dict[str, object]] = []
+        for index in range(1, attempt_count + 1):
+            attempt = attempts_lookup.get(index)
+            decimal_value: Decimal | None = None
+            count_value: int | None = None
+            if archetype == models.SportType.Archetype.FIELD_DISTANCE:
+                if attempt and attempt.valid and attempt.distance_m is not None:
+                    decimal_value = attempt.distance_m
+            else:
+                if attempt and attempt.valid and attempt.count is not None:
+                    count_value = attempt.count
+                    decimal_value = Decimal(count_value)
+            if archetype == models.SportType.Archetype.FIELD_DISTANCE:
+                display_value = _format_decimal_input(decimal_value)
+            else:
+                display_value = str(count_value) if count_value is not None else ""
+            row_attempts.append(
+                {
+                    "index": index,
+                    "raw": display_value,
+                    "decimal": decimal_value,
+                    "count": count_value,
+                }
+            )
+        dq = entry.status == models.Entry.Status.DQ
+        dns = entry.status == models.Entry.Status.DNS
+        if dq and dns:
+            dns = True
+            dq = False
+        rows.append(
+            {
+                "entry": entry,
+                "entry_id": entry.pk,
+                "student": entry.student,
+                "house": entry.student.house or "—",
+                "attempts": row_attempts,
+                "dq": dq,
+                "dns": dns,
+                "status": entry.status,
+                "best_value": None,
+                "best_display": "",
+                "position": None,
+                "best_attempt_no": None,
+            }
+        )
+    _assign_field_positions(rows, archetype)
+    return rows
+
+
+def _field_rows_from_post(
+    entries: list[models.Entry],
+    data,
+    *,
+    attempt_count: int,
+    archetype: str,
+) -> tuple[list[dict[str, object]], list[str]]:
+    rows: list[dict[str, object]] = []
+    errors: list[str] = []
+    for entry in entries:
+        dq = bool(data.get(f"dq[{entry.pk}]"))
+        dns = bool(data.get(f"dns[{entry.pk}]"))
+        if dq and dns:
+            dq = False
+            dns = True
+        row_attempts: list[dict[str, object]] = []
+        for index in range(1, attempt_count + 1):
+            field_name = f"attempt[{entry.pk}][{index}]"
+            raw_value = (data.get(field_name) or "").strip()
+            decimal_value: Decimal | None = None
+            count_value: int | None = None
+            if raw_value:
+                try:
+                    if archetype == models.SportType.Archetype.FIELD_DISTANCE:
+                        decimal_value = services.parse_distance(raw_value)
+                    else:
+                        count_value = services.parse_count(raw_value)
+                        if count_value is not None:
+                            decimal_value = Decimal(count_value)
+                except ValueError:
+                    errors.append(
+                        f"{entry.student} attempt {index} – enter a valid number."
+                    )
+            if archetype == models.SportType.Archetype.FIELD_DISTANCE:
+                display_value = raw_value
+            else:
+                display_value = raw_value
+            row_attempts.append(
+                {
+                    "index": index,
+                    "raw": display_value,
+                    "decimal": decimal_value,
+                    "count": count_value,
+                }
+            )
+        status = models.Entry.Status.DNS if dns else (
+            models.Entry.Status.DQ if dq else models.Entry.Status.CONFIRMED
+        )
+        rows.append(
+            {
+                "entry": entry,
+                "entry_id": entry.pk,
+                "student": entry.student,
+                "house": entry.student.house or "—",
+                "attempts": row_attempts,
+                "dq": dq,
+                "dns": dns,
+                "status": status,
+                "best_value": None,
+                "best_display": "",
+                "position": None,
+                "best_attempt_no": None,
+            }
+        )
+    _assign_field_positions(rows, archetype)
+    return rows, errors
+
+
+def _assign_field_positions(rows: list[dict[str, object]], archetype: str) -> None:
+    """Compute best attempts and live positions for field events."""
+
+    contenders: list[tuple[tuple, int, int, dict[str, object]]] = []
+    for row in rows:
+        status = row.get("status")
+        if status not in {
+            models.Entry.Status.CONFIRMED,
+            models.Entry.Status.DQ,
+            models.Entry.Status.DNS,
+        }:
+            status = models.Entry.Status.CONFIRMED
+        row["status"] = status
+        if status != models.Entry.Status.CONFIRMED:
+            row["best_value"] = None
+            row["best_display"] = ""
+            row["position"] = None
+            row["best_attempt_no"] = None
+            continue
+        valid_values: list[Decimal] = [
+            attempt["decimal"]
+            for attempt in row.get("attempts", [])
+            if attempt.get("decimal") is not None
+        ]
+        if not valid_values:
+            row["best_value"] = None
+            row["best_display"] = ""
+            row["position"] = None
+            row["best_attempt_no"] = None
+            continue
+        best_value = max(valid_values)
+        row["best_value"] = best_value
+        row["best_display"] = _format_decimal_input(best_value)
+        best_attempt_no: int | None = None
+        for attempt in row.get("attempts", []):
+            if attempt.get("decimal") == best_value:
+                best_attempt_no = attempt.get("index")
+                break
+        row["best_attempt_no"] = best_attempt_no
+        ordered_series = sorted(valid_values, reverse=True)
+        row["series"] = ordered_series
+        best_attempt_key = best_attempt_no if best_attempt_no is not None else 9999
+        sort_key = tuple(-value for value in ordered_series)
+        contenders.append((sort_key, best_attempt_key, row["entry"].pk, row))
+
+    contenders.sort(key=lambda item: (item[0], item[1], item[2]))
+    current_rank = 1
+    index = 0
+    while index < len(contenders):
+        group = [contenders[index]]
+        while (
+            index + len(group) < len(contenders)
+            and contenders[index + len(group)][0] == group[0][0]
+            and contenders[index + len(group)][1] == group[0][1]
+        ):
+            group.append(contenders[index + len(group)])
+        for _, _, _, row in group:
+            row["position"] = current_rank
+        current_rank += len(group)
+        index += len(group)
+
+    # Clear helper keys from rows without contenders
+    for row in rows:
+        if row.get("position") is None:
+            row.setdefault("best_display", "")
 
 def _student_filters(request: HttpRequest) -> dict[str, str | None]:
     """Extract student table filters from GET or POST data."""
@@ -1304,6 +1623,14 @@ def event_create(request: HttpRequest) -> HttpResponse:
             return redirect(f"{reverse('sportsday:events')}?meet={event.meet.slug}")
 
     grade_options, selected_grade_values = _event_form_grade_choices(form)
+    sport_type_meta = {
+        str(sport.pk): {
+            "label": sport.label,
+            "archetype": sport.archetype,
+            "archetype_label": sport.get_archetype_display(),
+        }
+        for sport in models.SportType.objects.all()
+    }
 
     context = {
         "form": form,
@@ -1312,6 +1639,9 @@ def event_create(request: HttpRequest) -> HttpResponse:
         "grade_options": grade_options,
         "selected_grade_values": selected_grade_values,
         "is_create": True,
+        "sport_type_meta": sport_type_meta,
+        "selected_sport_type_id": form["sport_type"].value() or "",
+        "selected_sport_type_meta": sport_type_meta.get(str(form["sport_type"].value() or "")),
     }
     return render(request, "sportsday/event_form.html", context)
 
@@ -1342,6 +1672,14 @@ def event_update(request: HttpRequest, pk: int) -> HttpResponse:
             return redirect(f"{reverse('sportsday:events')}?meet={event.meet.slug}")
 
     grade_options, selected_grade_values = _event_form_grade_choices(form)
+    sport_type_meta = {
+        str(sport.pk): {
+            "label": sport.label,
+            "archetype": sport.archetype,
+            "archetype_label": sport.get_archetype_display(),
+        }
+        for sport in models.SportType.objects.all()
+    }
 
     context = {
         "form": form,
@@ -1351,6 +1689,9 @@ def event_update(request: HttpRequest, pk: int) -> HttpResponse:
         "grade_options": grade_options,
         "selected_grade_values": selected_grade_values,
         "is_create": False,
+        "sport_type_meta": sport_type_meta,
+        "selected_sport_type_id": form["sport_type"].value() or "",
+        "selected_sport_type_meta": sport_type_meta.get(str(form["sport_type"].value() or "")),
     }
     return render(request, "sportsday/event_form.html", context)
 
@@ -1527,6 +1868,153 @@ def events_table_fragment(request: HttpRequest) -> HttpResponse:
         events = events.filter(meet__slug=meet_slug)
     events = events.order_by("schedule_dt", "name")[:10]
     return render(request, "sportsday/partials/events_table.html", {"events": events})
+
+
+@login_required
+def manage_event(request: HttpRequest, event_id: int) -> HttpResponse:
+    """Unified results entry screen for track and field events."""
+
+    event = get_object_or_404(
+        models.Event.objects.select_related("meet", "sport_type")
+        .prefetch_related("assigned_teachers"),
+        pk=event_id,
+    )
+    entries = list(
+        event.entries.select_related("student", "result")
+        .prefetch_related("attempts")
+        .order_by("student__last_name", "student__first_name")
+    )
+
+    archetype = event.sport_type.archetype
+    mode = "track" if archetype.startswith("TRACK") or archetype == models.SportType.Archetype.RANK_ONLY else "field"
+    allow_time_input = archetype == models.SportType.Archetype.TRACK_TIME
+    attempt_count = event.attempts or event.sport_type.default_attempts or 1
+    attempt_count = max(1, attempt_count)
+    attempt_range = list(range(1, attempt_count + 1))
+
+    lock_reason = _event_lock_reason(event)
+    assigned_teacher_ids = set(event.assigned_teachers.values_list("pk", flat=True))
+    can_post = bool(getattr(request.user, "is_staff", False))
+    teacher = _teacher_for_user(request.user)
+    if teacher and teacher.pk in assigned_teacher_ids:
+        can_post = True
+
+    def _build_context(rows: list[dict[str, object]], errors: list[str] | None = None) -> dict[str, object]:
+        return {
+            "event": event,
+            "entries": rows,
+            "mode": mode,
+            "allow_time_input": allow_time_input,
+            "attempt_count": attempt_count,
+            "attempt_range": attempt_range,
+            "lock_reason": lock_reason,
+            "form_errors": errors or [],
+            "is_rank_only": archetype == models.SportType.Archetype.RANK_ONLY,
+            "can_edit": can_post and not lock_reason,
+            "active_meet": event.meet,
+        }
+
+    if request.method == "POST":
+        if not can_post:
+            return HttpResponseForbidden("You do not have permission to update this event.")
+        if lock_reason:
+            messages.error(request, lock_reason)
+            return redirect(reverse("sportsday:manage-event", kwargs={"event_id": event.pk}))
+        if mode == "track":
+            rows, errors = _track_rows_from_post(entries, request.POST, allow_time=allow_time_input)
+        else:
+            rows, errors = _field_rows_from_post(
+                entries,
+                request.POST,
+                attempt_count=attempt_count,
+                archetype=archetype,
+            )
+        if errors:
+            for message_text in errors:
+                messages.error(request, message_text)
+            context = _build_context(rows, errors)
+            return render(request, "sportsday/manage_event.html", context)
+
+        with transaction.atomic():
+            if mode == "track":
+                for row in rows:
+                    entry: models.Entry = row["entry"]
+                    status: str = row.get("status") or models.Entry.Status.CONFIRMED
+                    if entry.status != status:
+                        entry.status = status
+                        entry.save(update_fields=["status"])
+                    result, _ = models.Result.objects.get_or_create(entry=entry, defaults={"finalized": True})
+                    if status != models.Entry.Status.CONFIRMED:
+                        result.rank = None
+                        result.best_value = None
+                    else:
+                        result.rank = row.get("rank_value")
+                        result.best_value = row.get("parsed_time") if allow_time_input else None
+                    result.finalized = True
+                    result.save()
+                    if status != models.Entry.Status.CONFIRMED or not allow_time_input or row.get("parsed_time") is None:
+                        entry.attempts.all().delete()
+                    else:
+                        models.Attempt.objects.update_or_create(
+                            entry=entry,
+                            attempt_no=1,
+                            defaults={
+                                "time_seconds": row.get("parsed_time"),
+                                "distance_m": None,
+                                "count": None,
+                                "valid": True,
+                            },
+                        )
+                        entry.attempts.exclude(attempt_no=1).delete()
+            else:
+                valid_attempt_numbers = list(range(1, attempt_count + 1))
+                for row in rows:
+                    entry: models.Entry = row["entry"]
+                    status: str = row.get("status") or models.Entry.Status.CONFIRMED
+                    if entry.status != status:
+                        entry.status = status
+                        entry.save(update_fields=["status"])
+                    result, _ = models.Result.objects.get_or_create(entry=entry, defaults={"finalized": True})
+                    if status != models.Entry.Status.CONFIRMED:
+                        result.rank = None
+                        result.best_value = None
+                    else:
+                        result.rank = row.get("position")
+                        result.best_value = row.get("best_value")
+                    result.finalized = True
+                    result.save()
+                    for attempt in row.get("attempts", []):
+                        decimal_value: Decimal | None = attempt.get("decimal")
+                        count_value: int | None = attempt.get("count")
+                        valid = decimal_value is not None
+                        models.Attempt.objects.update_or_create(
+                            entry=entry,
+                            attempt_no=attempt["index"],
+                            defaults={
+                                "time_seconds": None,
+                                "distance_m": decimal_value if archetype == models.SportType.Archetype.FIELD_DISTANCE and valid else None,
+                                "count": count_value if archetype == models.SportType.Archetype.FIELD_COUNT and valid else None,
+                                "valid": valid,
+                            },
+                        )
+                    entry.attempts.exclude(attempt_no__in=valid_attempt_numbers).delete()
+
+        action = request.POST.get("action", "save")
+        if action == "lock":
+            event.is_locked = True
+            event.save(update_fields=["is_locked"])
+            messages.success(request, "Event marked complete.")
+        else:
+            messages.success(request, "Results saved.")
+        return redirect(reverse("sportsday:manage-event", kwargs={"event_id": event.pk}))
+
+    if mode == "track":
+        rows = _track_rows_from_db(entries, allow_time=allow_time_input)
+    else:
+        rows = _field_rows_from_db(entries, attempt_count=attempt_count, archetype=archetype)
+
+    context = _build_context(rows)
+    return render(request, "sportsday/manage_event.html", context)
 
 
 def event_detail(request: HttpRequest, pk: int) -> HttpResponse:
