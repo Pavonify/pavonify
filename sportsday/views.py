@@ -1894,7 +1894,7 @@ def manage_event(request: HttpRequest, event_id: int) -> HttpResponse:
 
     lock_reason = _event_lock_reason(event)
     assigned_teacher_ids = set(event.assigned_teachers.values_list("pk", flat=True))
-    can_post = bool(getattr(request.user, "is_staff", False))
+    can_post = getattr(request.user, "is_authenticated", False)
     teacher = _teacher_for_user(request.user)
     if teacher and teacher.pk in assigned_teacher_ids:
         can_post = True
