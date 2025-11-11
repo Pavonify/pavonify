@@ -9,8 +9,8 @@
             <p class="text-sm text-slate-400">{{ meet.date|date:"l, j F Y" }} · {{ meet.location|default:"Venue TBC" }}</p>
         </div>
         <div class="flex flex-wrap gap-2">
-            <a href="{% url 'sportsday:meet-create' %}?meet={{ meet.slug }}&step=basics" class="inline-flex items-center gap-2 rounded-full border border-slate-700 px-4 py-2 text-sm text-slate-300 hover:border-sky-500/40 hover:text-sky-200">Edit basics</a>
-            <a href="{% url 'sportsday:meet-create' %}?meet={{ meet.slug }}&step=events" class="inline-flex items-center gap-2 rounded-full border border-slate-700 px-4 py-2 text-sm text-slate-300 hover:border-sky-500/40 hover:text-sky-200">Add event</a>
+            <a href="{% url 'sportsday:meet-update' meet.slug %}" class="inline-flex items-center gap-2 rounded-full border border-slate-700 px-4 py-2 text-sm text-slate-300 hover:border-sky-500/40 hover:text-sky-200">Edit meet</a>
+            <a href="{% url 'sportsday:event-create' %}?meet={{ meet.slug }}" class="inline-flex items-center gap-2 rounded-full border border-slate-700 px-4 py-2 text-sm text-slate-300 hover:border-sky-500/40 hover:text-sky-200">Add event</a>
             <a href="{% url 'sportsday:events' %}?meet={{ meet.slug }}" class="inline-flex items-center gap-2 rounded-full border border-slate-700 px-4 py-2 text-sm text-slate-300 hover:border-sky-500/40 hover:text-sky-200">View events</a>
             <a href="{% url 'sportsday:students' %}?meet={{ meet.slug }}" class="inline-flex items-center gap-2 rounded-full border border-slate-700 px-4 py-2 text-sm text-slate-300 hover:border-sky-500/40 hover:text-sky-200">Students</a>
             <form method="post" action="{% url 'sportsday:meet-toggle-lock' meet.slug %}" hx-post="{% url 'sportsday:meet-toggle-lock' meet.slug %}" hx-target="closest section" hx-swap="outerHTML">
@@ -112,7 +112,7 @@
                 </div>
             </dl>
         {% else %}
-            <p class="mt-2 text-sm text-slate-400">No scoring rule configured yet. Use the meet setup wizard to define points.</p>
+            <p class="mt-2 text-sm text-slate-400">No scoring rule configured yet. Edit the meet to define points.</p>
         {% endif %}
         <div class="mt-4">
             <a href="{% url 'sportsday:leaderboards' %}?meet={{ meet.slug }}" class="inline-flex items-center gap-2 rounded-full border border-slate-700 px-4 py-2 text-sm text-slate-300 hover:border-sky-500/40 hover:text-sky-200">View leaderboards</a>

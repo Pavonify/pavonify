@@ -1,0 +1,94 @@
+{% extends "sportsday/base.html" %}
+{% block title %}Sports Day · Participants · {{ event.name }}{% endblock %}
+{% block content %}
+<section class="space-y-6">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+            <p class="text-sm uppercase tracking-widest text-slate-400">Participants</p>
+            <h1 class="text-2xl font-semibold">{{ event.name }}</h1>
+            <p class="text-sm text-slate-400">Drag or use the arrow buttons to move students into the start list.</p>
+        </div>
+        <div class="flex flex-wrap gap-2 text-sm">
+            <a href="{% url 'sportsday:events' %}?meet={{ event.meet.slug }}" class="inline-flex items-center gap-2 rounded-full border border-slate-700 px-4 py-2 text-slate-200 hover:border-sky-500/40 hover:text-sky-100">Back to events</a>
+            <a href="{% url 'sportsday:event-detail' event.pk %}" class="inline-flex items-center gap-2 rounded-full bg-sky-500 px-4 py-2 font-medium text-slate-900 shadow-lg shadow-sky-500/40 hover:bg-sky-400">Manage event</a>
+        </div>
+    </div>
+
+    {% if lock_reason %}
+        <div class="rounded-xl border border-amber-500/60 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">{{ lock_reason }}</div>
+    {% endif %}
+
+    <form method="post" class="space-y-6">
+        {% csrf_token %}
+        <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-6">
+            <h2 class="text-lg font-semibold text-slate-100">Eligible students</h2>
+            <p class="text-sm text-slate-400">Meet: {{ event.meet.name }} · Grades {{ event.grade_min }}{% if event.grade_min != event.grade_max %}–{{ event.grade_max }}{% endif %} · {{ event.get_gender_limit_display }}</p>
+            <div class="mt-4 grid gap-4 md:grid-cols-[1fr,auto,1fr] md:items-center">
+                <div>
+                    <div class="mb-2 flex items-center justify-between">
+                        <span class="text-xs uppercase tracking-widest text-slate-500">Available students</span>
+                        <span class="text-xs text-slate-500">{{ available_students|length }}</span>
+                    </div>
+                    <select id="available" multiple size="12" class="w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-100 focus:border-sky-500 focus:outline-none" {% if lock_reason %}disabled{% endif %}>
+                        {% for student in available_students %}
+                            <option value="{{ student.pk }}">{{ student.last_name }}, {{ student.first_name }} · Grade {{ student.grade }} · {{ student.house }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="flex flex-col items-center gap-2">
+                    <button type="button" id="add-participants" class="inline-flex items-center gap-2 rounded-full bg-sky-500 px-3 py-1 text-sm font-semibold text-slate-900 shadow-sm hover:bg-sky-400 disabled:cursor-not-allowed disabled:opacity-60" {% if lock_reason %}disabled{% endif %}>&gt;</button>
+                    <button type="button" id="remove-participants" class="inline-flex items-center gap-2 rounded-full bg-slate-800 px-3 py-1 text-sm font-semibold text-slate-200 hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60" {% if lock_reason %}disabled{% endif %}>&lt;</button>
+                </div>
+                <div>
+                    <div class="mb-2 flex items-center justify-between">
+                        <span class="text-xs uppercase tracking-widest text-slate-500">Event participants</span>
+                        <span class="text-xs text-slate-500">{{ assigned_entries|length }}</span>
+                    </div>
+                    <select id="participants" name="participants" multiple size="12" class="w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-100 focus:border-sky-500 focus:outline-none" {% if lock_reason %}disabled{% endif %}>
+                        {% for entry in assigned_entries %}
+                            <option value="{{ entry.student.pk }}" selected>{{ entry.student.last_name }}, {{ entry.student.first_name }} · Grade {{ entry.student.grade }} · {{ entry.student.house }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <p class="mt-3 text-xs text-slate-500">Tip: hold Ctrl (Cmd on Mac) to select multiple students before using the arrow buttons.</p>
+        </div>
+
+        <div class="flex justify-end">
+            <button type="submit" class="inline-flex items-center gap-2 rounded-full bg-sky-500 px-5 py-2 text-sm font-semibold text-slate-900 shadow-lg shadow-sky-500/40 transition hover:bg-sky-400 disabled:cursor-not-allowed disabled:opacity-60" {% if lock_reason %}disabled{% endif %}>Save participants</button>
+        </div>
+    </form>
+</section>
+{% endblock %}
+{% block extra_scripts %}
+{% if not lock_reason %}
+<script>
+(function () {
+    function moveOptions(sourceId, targetId) {
+        const source = document.getElementById(sourceId);
+        const target = document.getElementById(targetId);
+        const selected = Array.from(source.selectedOptions);
+        selected.forEach(option => {
+            source.removeChild(option);
+            option.selected = true;
+            target.appendChild(option);
+        });
+    }
+    document.getElementById('add-participants').addEventListener('click', function (event) {
+        event.preventDefault();
+        moveOptions('available', 'participants');
+    });
+    document.getElementById('remove-participants').addEventListener('click', function (event) {
+        event.preventDefault();
+        moveOptions('participants', 'available');
+        const available = document.getElementById('available');
+        Array.from(available.options).forEach(option => option.selected = false);
+    });
+    document.querySelector('form').addEventListener('submit', function () {
+        const participants = document.getElementById('participants');
+        Array.from(participants.options).forEach(option => option.selected = true);
+    });
+})();
+</script>
+{% endif %}
+{% endblock %}

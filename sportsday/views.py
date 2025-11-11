@@ -23,20 +23,12 @@ from django.http import (
 )
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
-from django.utils.text import slugify
 from django.views.decorators.http import require_POST
 
 from . import forms, models, qr, services
 
 
-WIZARD_SESSION_KEY = "sportsday_meet_wizard"
 LOCKED_STATUS_CODE = 423
-
-
-def _get_wizard_state(request: HttpRequest) -> dict[str, object]:
-    """Return the wizard state stored in the session."""
-
-    return request.session.get(WIZARD_SESSION_KEY, {}).copy()
 
 
 def _event_lock_reason(event: models.Event) -> str | None:
@@ -231,85 +223,6 @@ def _build_leaderboard_summaries(records: list[services.ScoringRecord]):
     }
 
 
-def _set_wizard_state(request: HttpRequest, state: dict[str, object]) -> None:
-    """Persist wizard state to the session."""
-
-    request.session[WIZARD_SESSION_KEY] = state
-    request.session.modified = True
-
-
-def _clear_wizard_state(request: HttpRequest) -> None:
-    """Remove wizard state from the session."""
-
-    if WIZARD_SESSION_KEY in request.session:
-        del request.session[WIZARD_SESSION_KEY]
-        request.session.modified = True
-
-
-def _build_wizard_steps(meet: models.Meet | None, wizard_state: dict[str, object]) -> list[dict[str, object]]:
-    steps = [
-        {
-            "key": "basics",
-            "label": "Basics",
-            "description": "Dates, slug, and the essentials to get started.",
-            "title": "Meet basics",
-            "tagline": "Step 1 of 3",
-            "disabled": False,
-        },
-        {
-            "key": "events",
-            "label": "Events Builder",
-            "description": "Add sport types, configure attempts, and plan the schedule.",
-            "title": "Build events",
-            "tagline": "Step 2 of 3",
-            "disabled": meet is None,
-        },
-        {
-            "key": "people",
-            "label": "People",
-            "description": "Bring students and staff into the mix.",
-            "title": "Roster & officials",
-            "tagline": "Step 3 of 3",
-            "disabled": meet is None,
-        },
-    ]
-    steps[0]["complete"] = meet is not None
-    steps[1]["complete"] = bool(meet and meet.events.exists())
-    steps[2]["complete"] = bool(wizard_state.get("people_uploaded"))
-    return steps
-
-
-def _wizard_progress(request: HttpRequest, requested_step: str = "basics") -> dict[str, object]:
-    wizard_state = _get_wizard_state(request)
-    meet = _get_wizard_meet(request)
-    steps = _build_wizard_steps(meet, wizard_state)
-    step_map = {step["key"]: step for step in steps}
-    current = step_map.get(requested_step, steps[0])
-    if current.get("disabled"):
-        current = steps[0]
-    index = steps.index(current)
-    previous_step = next((steps[i] for i in range(index - 1, -1, -1)), None)
-    next_step = next((steps[i] for i in range(index + 1, len(steps))), None)
-    return {
-        "meet": meet,
-        "steps": steps,
-        "current": current,
-        "previous_step": previous_step,
-        "next_step": next_step,
-        "next_step_enabled": bool(next_step and not next_step.get("disabled")),
-    }
-
-
-def _get_wizard_meet(request: HttpRequest) -> models.Meet | None:
-    """Return the meet currently being configured."""
-
-    state = request.session.get(WIZARD_SESSION_KEY) or {}
-    meet_id = state.get("meet_id")
-    if not meet_id:
-        return None
-    return models.Meet.objects.filter(pk=meet_id).first()
-
-
 def _build_meet_mobile_nav(meet: models.Meet, active: str = "start") -> tuple[list[dict[str, str]], str]:
     """Return the mobile nav definition for meet-scoped pages."""
 
@@ -402,7 +315,7 @@ def dashboard(request: HttpRequest) -> HttpResponse:
         {
             "overline": "Quick start",
             "title": "New Meet",
-            "description": "Launch the guided wizard to spin up a fresh carnival.",
+            "description": "Create a meet, set the basics, and start building events in minutes.",
             "badge": "+",
             "url": reverse("sportsday:meet-create"),
             "stats": [
@@ -467,82 +380,10 @@ def meet_list(request: HttpRequest) -> HttpResponse:
 
 
 def meet_create(request: HttpRequest) -> HttpResponse:
-    """Render the meet creation wizard."""
+    """Create a new meet from a single form."""
 
-    if request.GET.get("reset") == "1":
-        _clear_wizard_state(request)
-
-    wizard_state = _get_wizard_state(request)
-    meet = _get_wizard_meet(request)
-    meet_slug = request.GET.get("meet")
-    if meet_slug:
-        selected = models.Meet.objects.filter(slug=meet_slug).first()
-        if selected:
-            wizard_state.update(
-                {
-                    "meet_id": selected.pk,
-                    "events_configured": selected.events.exists(),
-                }
-            )
-            _set_wizard_state(request, wizard_state)
-            meet = selected
-    requested_step = request.GET.get("step", "basics")
-    progress = _wizard_progress(request, requested_step)
-    steps = progress["steps"]
-    current = progress["current"]
-    previous_step = progress["previous_step"]
-    next_step = progress["next_step"]
-
-    context = {
-        "steps": steps,
-        "active_step": current["key"],
-        "current_stage": {
-            "title": current["title"],
-            "tagline": current["tagline"],
-            "lede": current["description"],
-            "hx_url": f"{reverse('sportsday:meet-wizard-stage')}?step={current['key']}",
-        },
-        "previous_step": previous_step,
-        "next_step": next_step,
-        "next_step_enabled": progress["next_step_enabled"],
-        "active_meet": progress["meet"],
-    }
-    return render(request, "sportsday/meet_wizard.html", context)
-
-
-def meet_wizard_stage(request: HttpRequest) -> HttpResponse:
-    """Return the HTMX fragment for the requested wizard step."""
-
-    step = request.GET.get("step", "basics")
-    if step == "events":
-        if request.method == "POST":
-            action = request.POST.get("action")
-            if action == "delete":
-                return _wizard_delete_event(request)
-            return _wizard_create_event(request)
-        return _render_wizard_events(request)
-    if step == "people":
-        if request.method == "POST":
-            return _wizard_people_post(request)
-        return _render_wizard_people(request)
-    if request.method == "POST":
-        return _wizard_basics_post(request)
-    return _render_wizard_basics(request)
-
-
-def _wizard_basics_post(request: HttpRequest) -> HttpResponse:
-    meet = _get_wizard_meet(request)
-    scoring_rule = meet.scoring_rules.first() if meet else None
-    action = request.POST.get("action", "save")
-    if action == "delete":
-        if meet:
-            meet_name = meet.name
-            meet.delete()
-            _clear_wizard_state(request)
-            messages.success(request, f"Deleted meet {meet_name}.")
-        return _render_wizard_basics(request, form=forms.MeetBasicsForm(), saved=False, deleted=True)
-    form = forms.MeetBasicsForm(request.POST, instance=meet, scoring_rule=scoring_rule)
-    if form.is_valid():
+    form = forms.MeetBasicsForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
         meet = form.save()
         models.ScoringRule.objects.update_or_create(
             meet=meet,
@@ -552,327 +393,46 @@ def _wizard_basics_post(request: HttpRequest) -> HttpResponse:
                 "tie_method": form.cleaned_data["tie_method"],
             },
         )
-        state = _get_wizard_state(request)
-        state.update(
-            {
-                "meet_id": meet.pk,
-                "events_configured": meet.events.exists(),
-            }
+        messages.success(request, f"Created meet {meet.name}.")
+        return redirect("sportsday:meet-detail", slug=meet.slug)
+
+    context = {
+        "form": form,
+        "active_meet": None,
+        "is_create": True,
+    }
+    return render(request, "sportsday/meet_form.html", context)
+
+
+def meet_update(request: HttpRequest, slug: str) -> HttpResponse:
+    """Edit the configuration of an existing meet."""
+
+    meet = get_object_or_404(models.Meet.objects.prefetch_related("scoring_rules"), slug=slug)
+    scoring_rule = meet.scoring_rules.first()
+    form = forms.MeetBasicsForm(request.POST or None, instance=meet, scoring_rule=scoring_rule)
+    if request.method == "POST" and form.is_valid():
+        meet = form.save()
+        models.ScoringRule.objects.update_or_create(
+            meet=meet,
+            defaults={
+                "points_csv": form.cleaned_data["points_csv"],
+                "participation_point": form.cleaned_data["participation_point"],
+                "tie_method": form.cleaned_data["tie_method"],
+            },
         )
-        _set_wizard_state(request, state)
-        messages.success(request, f"Saved basics for {meet.name}.")
-        refreshed_form = forms.MeetBasicsForm(instance=meet, scoring_rule=meet.scoring_rules.first())
-        return _render_wizard_basics(request, form=refreshed_form, saved=True)
-    return _render_wizard_basics(request, form=form, saved=False)
+        messages.success(request, f"Updated meet {meet.name}.")
+        return redirect("sportsday:meet-detail", slug=meet.slug)
 
-
-def _render_wizard_basics(
-    request: HttpRequest,
-    form: forms.MeetBasicsForm | None = None,
-    saved: bool = False,
-    deleted: bool = False,
-) -> HttpResponse:
-    meet = _get_wizard_meet(request)
-    scoring_rule = meet.scoring_rules.first() if meet else None
-    if form is None:
-        form = forms.MeetBasicsForm(instance=meet, scoring_rule=scoring_rule)
-    preview_points, preview_participation = _resolve_scoring_preview(form)
     context = {
         "form": form,
         "meet": meet,
-        "saved": saved,
-        "deleted": deleted,
-        "scoring_preview": {
-            "points_csv": preview_points,
-            "participation_point": preview_participation,
-        },
-        "wizard_progress": _wizard_progress(request, "basics"),
+        "active_meet": meet,
+        "is_create": False,
     }
-    return render(request, "sportsday/partials/wizard_basics.html", context)
+    return render(request, "sportsday/meet_form.html", context)
 
 
-def _resolve_scoring_preview(form: forms.MeetBasicsForm) -> tuple[str, Decimal]:
-    source = form.data if form.is_bound else form.initial
-    preset_key = (source.get("scoring_preset") if hasattr(source, "get") else None) or form.initial.get("scoring_preset")
-    if preset_key and preset_key != "custom":
-        preset = next((item for item in forms.SCORING_PRESETS if item.key == preset_key), None)
-        if preset:
-            return preset.points_csv, preset.participation_point
-    points_csv = None
-    participation_point: Decimal | None = None
-    if hasattr(source, "get"):
-        points_csv = source.get("points_csv") or None
-        participation_raw = source.get("participation_point") or None
-    else:
-        points_csv = source.get("points_csv") if isinstance(source, dict) else None
-        participation_raw = source.get("participation_point") if isinstance(source, dict) else None
-    if not points_csv:
-        points_csv = form.initial.get("points_csv") or forms.SCORING_PRESETS[0].points_csv
-    if participation_raw is None:
-        participation_raw = form.initial.get("participation_point") or forms.SCORING_PRESETS[0].participation_point
-    if isinstance(participation_raw, Decimal):
-        participation_point = participation_raw
-    else:
-        try:
-            participation_point = Decimal(str(participation_raw))
-        except (ArithmeticError, ValueError, TypeError):
-            participation_point = forms.SCORING_PRESETS[0].participation_point
-    return str(points_csv), participation_point
-
-
-def _render_wizard_events(
-    request: HttpRequest, form: forms.EventConfigForm | None = None, saved: bool = False
-) -> HttpResponse:
-    meet = _get_wizard_meet(request)
-    if not meet:
-        return render(request, "sportsday/partials/wizard_events.html", {"meet": None, "events": []})
-    teacher_qs = models.Teacher.objects.order_by("last_name", "first_name")
-    selected_sport = None
-    if form is None:
-        sport_id = request.GET.get("sport") or request.GET.get("sport_type")
-        initial: dict[str, object] = {}
-        if sport_id:
-            selected_sport = models.SportType.objects.filter(pk=sport_id).first()
-            if selected_sport:
-                initial = {
-                    "sport_type": selected_sport,
-                    "name": selected_sport.label,
-                    "measure_unit": selected_sport.default_unit,
-                    "capacity": selected_sport.default_capacity,
-                    "attempts": selected_sport.default_attempts,
-                }
-        form = forms.EventConfigForm(initial=initial, teacher_queryset=teacher_qs)
-        if selected_sport is None:
-            selected_sport = initial.get("sport_type") if isinstance(initial.get("sport_type"), models.SportType) else None
-    else:
-        selected_sport = _determine_selected_sport(form)
-    events = (
-        meet.events.select_related("sport_type")
-        .prefetch_related("assigned_teachers")
-        .order_by("schedule_dt", "name")
-    )
-    context = {
-        "meet": meet,
-        "form": form,
-        "events": events,
-        "saved": saved,
-        "selected_sport": selected_sport,
-        "sport_types": models.SportType.objects.order_by("label"),
-        "unit_choices": models.SportType.DefaultUnit.choices,
-    }
-    return render(request, "sportsday/partials/wizard_events.html", context)
-
-
-def _determine_selected_sport(form: forms.EventConfigForm) -> models.SportType | None:
-    if hasattr(form, "cleaned_data") and form.is_bound and form.is_valid():
-        sport_type = form.cleaned_data.get("sport_type")
-        if sport_type:
-            return sport_type
-    value = None
-    if form.is_bound:
-        value = form.data.get("sport_type")
-    if not value:
-        value = form.initial.get("sport_type")
-    if isinstance(value, models.SportType):
-        return value
-    if value:
-        try:
-            return models.SportType.objects.get(pk=value)
-        except (models.SportType.DoesNotExist, ValueError, TypeError):
-            return None
-    return None
-
-
-def _wizard_create_event(request: HttpRequest) -> HttpResponse:
-    meet = _get_wizard_meet(request)
-    if not meet:
-        return _render_wizard_events(request)
-    teacher_qs = models.Teacher.objects.order_by("last_name", "first_name")
-    form = forms.EventConfigForm(request.POST, teacher_queryset=teacher_qs)
-    if form.is_valid():
-        event = form.save(commit=False)
-        event.meet = meet
-        if not event.name:
-            event.name = event.sport_type.label
-        if not event.measure_unit:
-            event.measure_unit = event.sport_type.default_unit
-        if not event.capacity:
-            event.capacity = event.sport_type.default_capacity
-        if event.sport_type.archetype == models.SportType.Archetype.TRACK_TIME:
-            event.attempts = 1
-        elif not event.attempts:
-            event.attempts = event.sport_type.default_attempts
-        event.save()
-        form.save_m2m()
-        state = _get_wizard_state(request)
-        state.update({"meet_id": meet.pk, "events_configured": True})
-        _set_wizard_state(request, state)
-        return _render_wizard_events(
-            request,
-            form=forms.EventConfigForm(
-                initial={
-                    "sport_type": event.sport_type,
-                    "name": event.sport_type.label,
-                    "measure_unit": event.sport_type.default_unit,
-                    "capacity": event.sport_type.default_capacity,
-                    "attempts": event.sport_type.default_attempts,
-                },
-                teacher_queryset=teacher_qs,
-            ),
-            saved=True,
-        )
-    return _render_wizard_events(request, form=form, saved=False)
-
-
-def _wizard_delete_event(request: HttpRequest) -> HttpResponse:
-    meet = _get_wizard_meet(request)
-    if not meet:
-        return _render_wizard_events(request)
-    event_id = request.POST.get("event_id")
-    if event_id:
-        models.Event.objects.filter(meet=meet, pk=event_id).delete()
-    meet.refresh_from_db()
-    state = _get_wizard_state(request)
-    state.update({"meet_id": meet.pk, "events_configured": meet.events.exists()})
-    _set_wizard_state(request, state)
-    return _render_wizard_events(request, saved=False)
-
-
-def _render_wizard_people(
-    request: HttpRequest,
-    student_form: forms.StudentUploadForm | None = None,
-    teacher_form: forms.TeacherUploadForm | None = None,
-    summary: dict[str, object] | None = None,
-) -> HttpResponse:
-    meet = _get_wizard_meet(request)
-    if not meet:
-        return render(request, "sportsday/partials/wizard_people.html", {"meet": None})
-    if student_form is None:
-        student_form = forms.StudentUploadForm()
-    if teacher_form is None:
-        teacher_form = forms.TeacherUploadForm()
-    summary = summary or {}
-    summary.setdefault("students", None)
-    summary.setdefault("teachers", None)
-    students = (
-        models.Student.objects.annotate(
-            events_tally=Count("entries", filter=Q(entries__event__meet=meet), distinct=True)
-        )
-        .order_by("last_name", "first_name")
-        .distinct()
-    )
-    context = {
-        "meet": meet,
-        "student_form": student_form,
-        "teacher_form": teacher_form,
-        "students": students,
-        "summary": summary,
-    }
-    return render(request, "sportsday/partials/wizard_people.html", context)
-
-
-def _wizard_people_post(request: HttpRequest) -> HttpResponse:
-    meet = _get_wizard_meet(request)
-    if not meet:
-        return _render_wizard_people(request)
-    upload_type = request.POST.get("upload_type")
-    summary: dict[str, object] = {}
-    student_form = forms.StudentUploadForm()
-    teacher_form = forms.TeacherUploadForm()
-    state = _get_wizard_state(request)
-    if upload_type == "students":
-        student_form = forms.StudentUploadForm(request.POST, request.FILES)
-        if student_form.is_valid():
-            result = _import_students(student_form.cleaned_data["file"])
-            summary["students"] = result
-            if result["created"] or result["updated"]:
-                state.update({"meet_id": meet.pk, "people_uploaded": True})
-                _set_wizard_state(request, state)
-            student_form = forms.StudentUploadForm()
-        else:
-            summary["students"] = {"errors": student_form.errors.get("file")}
-    elif upload_type == "teachers":
-        teacher_form = forms.TeacherUploadForm(request.POST, request.FILES)
-        if teacher_form.is_valid():
-            result = _import_teachers(teacher_form.cleaned_data["file"])
-            summary["teachers"] = result
-            if result["created"] or result["updated"]:
-                state.update({"meet_id": meet.pk, "people_uploaded": True})
-                _set_wizard_state(request, state)
-            teacher_form = forms.TeacherUploadForm()
-        else:
-            summary["teachers"] = {"errors": teacher_form.errors.get("file")}
-    return _render_wizard_people(
-        request,
-        student_form=student_form,
-        teacher_form=teacher_form,
-        summary=summary,
-    )
-
-
-def meet_wizard_event_preview(request: HttpRequest) -> HttpResponse:
-    """Return a preview of the marshal UI for the proposed event."""
-
-    meet = _get_wizard_meet(request)
-    if not meet:
-        return HttpResponseBadRequest("Create the meet basics first.")
-    teacher_qs = models.Teacher.objects.order_by("last_name", "first_name")
-    form = forms.EventConfigForm(request.POST or None, teacher_queryset=teacher_qs)
-    if not form.is_valid():
-        return render(
-            request,
-            "sportsday/partials/wizard_event_preview.html",
-            {"form": form, "errors": form.errors, "event": None},
-        )
-    data = form.cleaned_data
-    sport_type = data["sport_type"]
-    attempts = data.get("attempts") or sport_type.default_attempts
-    if sport_type.archetype == models.SportType.Archetype.TRACK_TIME:
-        attempts = 1
-    measure_unit = data.get("measure_unit") or sport_type.default_unit
-    rounds_total = data.get("rounds_total") or 1
-    attempts_list = list(range(1, attempts + 1))
-    preview = SimpleNamespace(
-        name=data.get("name") or sport_type.label,
-        sport_type=sport_type,
-        measure_unit=measure_unit,
-        attempts=attempts,
-        rounds_total=rounds_total,
-    )
-    return render(
-        request,
-        "sportsday/partials/wizard_event_preview.html",
-        {"event": preview, "form": form, "attempt_numbers": attempts_list},
-    )
-
-
-def meet_wizard_scoring_preview(request: HttpRequest) -> HttpResponse:
-    """Render a lightweight preview of scoring values."""
-
-    form = forms.MeetBasicsForm(request.GET or None)
-    points, participation = _resolve_scoring_preview(form)
-    context = {"points_csv": points, "participation_point": participation}
-    return render(request, "sportsday/partials/wizard_scoring_preview.html", context)
-
-
-def meet_slugify(request: HttpRequest) -> HttpResponse:
-    """Return a slugified version of the provided meet name."""
-
-    name = request.GET.get("name", "")
-    candidate = slugify(name) or "meet"
-    base = candidate
-    index = 2
-    while models.Meet.objects.filter(slug=candidate).exists():
-        candidate = f"{base}-{index}"
-        index += 1
-    return render(
-        request,
-        "sportsday/partials/wizard_slug_field.html",
-        {"value": candidate, "errors": []},
-    )
-
-
-def meet_wizard_download_template(request: HttpRequest, kind: str) -> HttpResponse:
+def meet_download_template(request: HttpRequest, kind: str) -> HttpResponse:
     """Serve CSV templates for bulk imports."""
 
     if kind == "students":
@@ -1152,15 +712,11 @@ def meet_toggle_lock(request: HttpRequest, slug: str) -> HttpResponse:
 @login_required
 @require_POST
 def meet_delete(request: HttpRequest, slug: str) -> HttpResponse:
-    """Delete a meet and clear wizard state when necessary."""
+    """Delete a meet and tidy related session state."""
 
     meet = get_object_or_404(models.Meet, slug=slug)
-    meet_id = meet.pk
-    current_meet = _get_wizard_meet(request)
     meet_name = meet.name
     meet.delete()
-    if current_meet and current_meet.pk == meet_id:
-        _clear_wizard_state(request)
     messages.success(request, f"Deleted meet {meet_name}.")
     return redirect("sportsday:meet-list")
 
@@ -1604,12 +1160,11 @@ def sport_type_admin(request: HttpRequest) -> HttpResponse:
     if form is None:
         form = forms.SportTypeForm(instance=selected_instance)
 
-    active_meet = _get_wizard_meet(request)
     context = {
         "sports": sport_queryset,
         "form": form,
         "selected_sport": selected_instance,
-        "active_meet": active_meet,
+        "active_meet": None,
     }
     return render(request, "sportsday/sport_types_admin.html", context)
 
@@ -1662,6 +1217,204 @@ def event_list(request: HttpRequest) -> HttpResponse:
     return render(request, "sportsday/events_list.html", context)
 
 
+def event_create(request: HttpRequest) -> HttpResponse:
+    """Create a standalone event for a meet."""
+
+    teacher_qs = models.Teacher.objects.order_by("last_name", "first_name")
+    meet_options = models.Meet.objects.order_by("name")
+    selected_meet: models.Meet | None = None
+    initial_meet = request.GET.get("meet") or request.POST.get("meet")
+    if initial_meet:
+        selected_meet = (
+            models.Meet.objects.filter(slug=initial_meet).first()
+            or models.Meet.objects.filter(pk=initial_meet).first()
+        )
+
+    form = forms.EventConfigForm(request.POST or None, teacher_queryset=teacher_qs)
+    if request.method == "POST":
+        meet_identifier = request.POST.get("meet")
+        meet = (
+            models.Meet.objects.filter(pk=meet_identifier).first()
+            or models.Meet.objects.filter(slug=meet_identifier).first()
+        )
+        if not meet:
+            form.add_error(None, "Select a meet for this event.")
+        else:
+            selected_meet = meet
+        if form.is_valid():
+            event = form.save(commit=False)
+            event.meet = meet
+            event.save()
+            form.save_m2m()
+            messages.success(request, f"Created event {event.name}.")
+            return redirect(f"{reverse('sportsday:events')}?meet={event.meet.slug}")
+
+    context = {
+        "form": form,
+        "meet_options": meet_options,
+        "selected_meet": selected_meet,
+        "is_create": True,
+    }
+    return render(request, "sportsday/event_form.html", context)
+
+
+def event_update(request: HttpRequest, pk: int) -> HttpResponse:
+    """Edit an existing event."""
+
+    event = get_object_or_404(models.Event.objects.select_related("meet"), pk=pk)
+    teacher_qs = models.Teacher.objects.order_by("last_name", "first_name")
+    meet_options = models.Meet.objects.order_by("name")
+    form = forms.EventConfigForm(request.POST or None, instance=event, teacher_queryset=teacher_qs)
+    if request.method == "POST":
+        meet_identifier = request.POST.get("meet")
+        meet = (
+            models.Meet.objects.filter(pk=meet_identifier).first()
+            or models.Meet.objects.filter(slug=meet_identifier).first()
+        )
+        if not meet:
+            form.add_error(None, "Select a meet for this event.")
+        else:
+            selected_meet = meet
+        if form.is_valid():
+            event = form.save(commit=False)
+            event.meet = meet
+            event.save()
+            form.save_m2m()
+            messages.success(request, f"Updated event {event.name}.")
+            return redirect(f"{reverse('sportsday:events')}?meet={event.meet.slug}")
+
+    context = {
+        "form": form,
+        "meet_options": meet_options,
+        "selected_meet": event.meet,
+        "event": event,
+        "is_create": False,
+    }
+    return render(request, "sportsday/event_form.html", context)
+
+
+@require_POST
+def event_delete(request: HttpRequest, pk: int) -> HttpResponse:
+    """Delete an event if it is not locked."""
+
+    event = get_object_or_404(models.Event.objects.select_related("meet"), pk=pk)
+    lock_reason = _event_lock_reason(event)
+    if lock_reason:
+        messages.error(request, lock_reason)
+        return redirect("sportsday:events")
+
+    event_name = event.name
+    meet_slug = event.meet.slug
+    event.delete()
+    messages.success(request, f"Deleted event {event_name}.")
+    return redirect(f"{reverse('sportsday:events')}?meet={meet_slug}")
+
+
+def event_participants(request: HttpRequest, pk: int) -> HttpResponse:
+    """Dual-list interface to assign participants to an event."""
+
+    event = get_object_or_404(models.Event.objects.select_related("meet", "sport_type"), pk=pk)
+    lock_reason = _event_lock_reason(event)
+    round_no = 1
+    assigned_entries = list(
+        event.entries.filter(round_no=round_no)
+        .select_related("student")
+        .order_by("lane_or_order", "heat", "student__last_name", "student__first_name")
+    )
+    assigned_ids = [entry.student_id for entry in assigned_entries]
+    eligible_students = list(
+        _eligible_students_queryset(event, search_query="", round_no=round_no, include_assigned=True)
+    )
+    available_students = [student for student in eligible_students if student.pk not in assigned_ids]
+
+    if request.method == "POST":
+        if lock_reason:
+            messages.error(request, lock_reason)
+            return redirect("sportsday:event-participants", pk=event.pk)
+
+        selected_ids = [int(value) for value in request.POST.getlist("participants") if value.isdigit()]
+        selected_set = set(selected_ids)
+        students_map = {student.pk: student for student in models.Student.objects.filter(pk__in=selected_ids)}
+        errors: list[str] = []
+
+        if len(selected_ids) != len(students_map):
+            errors.append("One or more selected students could not be found.")
+
+        if not event.sport_type.supports_heats and len(selected_ids) > event.capacity:
+            errors.append(f"This event can only host {event.capacity} participants.")
+
+        assigned_lookup = {entry.student_id: entry for entry in assigned_entries}
+        meet_limit = event.meet.max_events_per_student or 0
+        if meet_limit:
+            existing_counts = {
+                row["student_id"]: row["total"]
+                for row in models.Entry.objects.filter(event__meet=event.meet, student_id__in=selected_set)
+                .exclude(event=event)
+                .values("student_id")
+                .annotate(total=Count("pk"))
+            }
+        else:
+            existing_counts = {}
+
+        for student_id in selected_ids:
+            student = students_map.get(student_id)
+            if not student:
+                continue
+            if not student.is_active:
+                errors.append(f"{student} is inactive.")
+                continue
+            if not event.grade_allows(student.grade):
+                errors.append(f"{student} is outside the grade range for this event.")
+            if not event.gender_allows(student.gender):
+                errors.append(f"{student} does not match the gender limit for this event.")
+            if meet_limit:
+                total_entries = existing_counts.get(student_id, 0) + 1
+                if total_entries > meet_limit:
+                    errors.append(f"{student} exceeds the {meet_limit} event limit for this meet.")
+
+        if errors:
+            for message_text in errors:
+                messages.error(request, message_text)
+        else:
+            for entry in assigned_entries:
+                if entry.student_id not in selected_set:
+                    entry.delete()
+
+            assigned_entries = list(
+                event.entries.filter(round_no=round_no)
+                .select_related("student")
+                .order_by("lane_or_order", "heat", "student__last_name", "student__first_name")
+            )
+            assigned_lookup = {entry.student_id: entry for entry in assigned_entries}
+            ordered_entries: list[models.Entry] = []
+
+            for student_id in selected_ids:
+                student = students_map.get(student_id)
+                if not student:
+                    continue
+                entry = assigned_lookup.get(student_id)
+                if entry is None:
+                    entry = models.Entry.objects.create(
+                        event=event,
+                        student=student,
+                        round_no=round_no,
+                        heat=1,
+                    )
+                ordered_entries.append(entry)
+
+            _apply_lane_assignments(event, ordered_entries)
+            messages.success(request, "Updated event participants.")
+            return redirect("sportsday:event-participants", pk=event.pk)
+
+    context = {
+        "event": event,
+        "available_students": available_students,
+        "assigned_entries": assigned_entries,
+        "lock_reason": lock_reason,
+    }
+    return render(request, "sportsday/event_participants.html", context)
+
+
 def _build_event_group(events: Iterable[models.Event], meet: models.Meet | None) -> dict[str, object]:
     """Create a table group for a sequence of events on the same day."""
 
@@ -1681,7 +1434,7 @@ def _build_event_group(events: Iterable[models.Event], meet: models.Meet | None)
 
 
 def events_table_fragment(request: HttpRequest) -> HttpResponse:
-    """Lightweight event cards used in the wizard preview."""
+    """Lightweight event cards used in dashboard previews."""
 
     meet_slug = request.GET.get("meet")
     events = models.Event.objects.select_related("sport_type", "meet")
@@ -2071,8 +1824,14 @@ def _process_results_submission(
     return qualifiers_created, action != "validate", _message_for_action(action)
 
 
-def _eligible_students_queryset(event: models.Event, search_query: str, round_no: int):
-    """Return the queryset used in the add-to-start-list dropdown."""
+def _eligible_students_queryset(
+    event: models.Event,
+    search_query: str,
+    round_no: int,
+    *,
+    include_assigned: bool = False,
+):
+    """Return the queryset used to select eligible students for an event."""
 
     queryset = models.Student.objects.filter(is_active=True)
     if event.gender_limit != models.Event.GenderLimit.MIXED:
@@ -2083,8 +1842,16 @@ def _eligible_students_queryset(event: models.Event, search_query: str, round_no
             | Q(last_name__icontains=search_query)
             | Q(external_id__icontains=search_query)
         )
-    assigned_ids = event.entries.filter(round_no=round_no).values_list("student_id", flat=True)
-    queryset = queryset.exclude(pk__in=assigned_ids)
+    if not include_assigned:
+        assigned_ids = event.entries.filter(round_no=round_no).values_list("student_id", flat=True)
+        queryset = queryset.exclude(pk__in=assigned_ids)
+    queryset = queryset.order_by("last_name", "first_name").distinct()
+    grade_values = queryset.values("pk", "grade")
+    allowed_ids = [row["pk"] for row in grade_values if event.grade_allows(row["grade"])]
+    if allowed_ids:
+        queryset = queryset.filter(pk__in=allowed_ids)
+    else:
+        queryset = queryset.none()
     return queryset.order_by("last_name", "first_name").distinct()
 
 

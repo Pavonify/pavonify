@@ -1,4 +1,3 @@
-from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 from decimal import Decimal
 
@@ -188,15 +187,9 @@ class SportsdayViewsTests(TestCase):
         response = self.client.get(reverse("sportsday:students-table-fragment"), {"meet": self.meet.slug})
         self.assertContains(response, self.student.last_name)
 
-
-@override_settings(STATICFILES_STORAGE="django.contrib.staticfiles.storage.StaticFilesStorage")
-class MeetWizardTests(TestCase):
-    def setUp(self):
-        self.client.defaults["HTTP_HX-Request"] = "true"
-
-    def _complete_basics(self) -> models.Meet:
+    def test_meet_create_creates_scoring_rule(self):
         response = self.client.post(
-            reverse("sportsday:meet-wizard-stage") + "?step=basics",
+            reverse("sportsday:meet-create"),
             {
                 "name": "Winter Carnival",
                 "slug": "",
@@ -212,86 +205,55 @@ class MeetWizardTests(TestCase):
                 "tie_method": models.ScoringRule.TieMethod.SHARE,
             },
         )
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 302)
         meet = models.Meet.objects.get(name="Winter Carnival")
-        return meet
-
-    def test_basics_step_creates_meet_and_scoring_rule(self):
-        meet = self._complete_basics()
-        self.assertEqual(meet.slug, "winter-carnival")
         rule = meet.scoring_rules.first()
         self.assertIsNotNone(rule)
         self.assertEqual(rule.points_csv, "10,8,6,5,4,3,2,1")
 
-    def test_events_step_adds_event(self):
-        meet = self._complete_basics()
-        teacher = models.Teacher.objects.create(first_name="Jamie", last_name="Lee")
+    def test_event_create_creates_event(self):
         sport = models.SportType.objects.first()
         response = self.client.post(
-            reverse("sportsday:meet-wizard-stage") + "?step=events",
+            reverse("sportsday:event-create"),
             {
+                "meet": self.meet.pk,
                 "sport_type": sport.pk,
-                "name": "100m Dash",
-                "grade_min": "7",
-                "grade_max": "8",
+                "name": "200m Sprint",
+                "grade_min": "5",
+                "grade_max": "6",
                 "gender_limit": models.Event.GenderLimit.MIXED,
                 "measure_unit": sport.default_unit,
                 "capacity": 8,
                 "attempts": 1,
                 "rounds_total": 1,
-                "knockout_qualifiers": "Q:2;q:2",
-                "schedule_dt": "2025-09-01T10:00",
+                "knockout_qualifiers": "",
+                "schedule_dt": "2025-05-01T10:30",
                 "location": "Track",
-                "assigned_teachers": [str(teacher.pk)],
+                "assigned_teachers": [str(self.teacher.pk)],
+                "notes": "",
             },
         )
-        self.assertEqual(response.status_code, 200)
-        event = meet.events.get(name="100m Dash")
-        self.assertEqual(event.assigned_teachers.first(), teacher)
+        self.assertEqual(response.status_code, 302)
+        new_event = models.Event.objects.get(name="200m Sprint")
+        self.assertEqual(new_event.meet, self.meet)
+        self.assertEqual(new_event.assigned_teachers.first(), self.teacher)
 
-    def test_people_step_student_import_upserts(self):
-        meet = self._complete_basics()
-        csv_content = (
-            "first_name,last_name,dob,grade,house,gender,external_id\n"
-            "Alex,Morgan,2012-03-05,6,Blue,X,STU1\n"
+    def test_event_participants_updates_entries(self):
+        eligible_student = models.Student.objects.create(
+            first_name="Charlie",
+            last_name="Ng",
+            dob="2012-11-20",
+            grade="5",
+            house="Green",
+            gender="X",
         )
-        upload = SimpleUploadedFile("students.csv", csv_content.encode("utf-8"), content_type="text/csv")
         response = self.client.post(
-            reverse("sportsday:meet-wizard-stage") + "?step=people",
-            {"upload_type": "students", "file": upload},
+            reverse("sportsday:event-participants", kwargs={"pk": self.event.pk}),
+            {"participants": [self.student.pk, eligible_student.pk]},
         )
-        self.assertEqual(response.status_code, 200)
-        student = models.Student.objects.get(external_id="STU1")
-        self.assertEqual(student.grade, "6")
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(models.Entry.objects.filter(event=self.event, student=eligible_student).exists())
+        remaining = self.event.entries.filter(round_no=1)
+        self.assertEqual(remaining.count(), 2)
 
-        updated_csv = (
-            "first_name,last_name,dob,grade,house,gender,external_id\n"
-            "Alex,Morgan,2012-03-05,7,Blue,X,STU1\n"
-        )
-        upload_updated = SimpleUploadedFile("students.csv", updated_csv.encode("utf-8"), content_type="text/csv")
-        self.client.post(
-            reverse("sportsday:meet-wizard-stage") + "?step=people",
-            {"upload_type": "students", "file": upload_updated},
-        )
-        student.refresh_from_db()
-        self.assertEqual(student.grade, "7")
 
-    def test_people_step_teacher_import_upserts(self):
-        self._complete_basics()
-        csv_content = "first_name,last_name,email,external_id\nJamie,Lee,jlee@example.com,TCH1\n"
-        upload = SimpleUploadedFile("teachers.csv", csv_content.encode("utf-8"), content_type="text/csv")
-        self.client.post(
-            reverse("sportsday:meet-wizard-stage") + "?step=people",
-            {"upload_type": "teachers", "file": upload},
-        )
-        teacher = models.Teacher.objects.get(external_id="TCH1")
-        self.assertEqual(teacher.email, "jlee@example.com")
-
-        updated_csv = "first_name,last_name,email,external_id\nJamie,Lee,jamie.lee@example.com,TCH1\n"
-        upload_updated = SimpleUploadedFile("teachers.csv", updated_csv.encode("utf-8"), content_type="text/csv")
-        self.client.post(
-            reverse("sportsday:meet-wizard-stage") + "?step=people",
-            {"upload_type": "teachers", "file": upload_updated},
-        )
-        teacher.refresh_from_db()
-        self.assertEqual(teacher.email, "jamie.lee@example.com")
