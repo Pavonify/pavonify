@@ -32,7 +32,14 @@
                     <select name="meet" class="w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-100 focus:border-sky-500 focus:outline-none">
                         <option value="">Select meet…</option>
                         {% for option in meet_options %}
-                            <option value="{{ option.pk }}" {% if selected_meet and option.pk == selected_meet.pk %}selected{% endif %}>{{ option.name }}</option>
+                            <option
+                                value="{{ option.pk }}"
+                                data-date="{{ option.date|date:'Y-m-d' }}"
+                                {% if option.start_time %}data-start-time="{{ option.start_time|time:'H:i' }}"{% endif %}
+                                {% if selected_meet and option.pk == selected_meet.pk %}selected{% endif %}
+                            >
+                                {{ option.name }}
+                            </option>
                         {% endfor %}
                     </select>
                 </label>
@@ -48,16 +55,56 @@
                     {{ form.sport_type }}
                     {% if form.sport_type.errors %}<span class="block text-xs text-rose-300">{{ form.sport_type.errors|join:", " }}</span>{% endif %}
                 </label>
-                <label class="space-y-1 text-sm font-medium text-slate-200">
-                    <span class="text-xs uppercase tracking-widest text-slate-400">{{ form.grade_min.label }}</span>
-                    {{ form.grade_min }}
-                    {% if form.grade_min.errors %}<span class="block text-xs text-rose-300">{{ form.grade_min.errors|join:", " }}</span>{% endif %}
-                </label>
-                <label class="space-y-1 text-sm font-medium text-slate-200">
-                    <span class="text-xs uppercase tracking-widest text-slate-400">{{ form.grade_max.label }}</span>
-                    {{ form.grade_max }}
-                    {% if form.grade_max.errors %}<span class="block text-xs text-rose-300">{{ form.grade_max.errors|join:", " }}</span>{% endif %}
-                </label>
+                <div class="md:col-span-2 space-y-2 text-sm font-medium text-slate-200">
+                    <span class="text-xs uppercase tracking-widest text-slate-400">Grades</span>
+                    {% if grade_options %}
+                        <div class="text-xs text-slate-500" data-grade-summary>
+                            {% if selected_grade_values %}
+                                Selected: {{ selected_grade_values|join:", " }}
+                            {% else %}
+                                No grades selected
+                            {% endif %}
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4" data-grade-checkboxes>
+                            {% for grade in grade_options %}
+                                <label class="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-slate-200 transition hover:border-sky-500/40">
+                                    <input
+                                        type="checkbox"
+                                        class="h-4 w-4 rounded border-slate-600 text-sky-500 focus:ring-sky-500 focus:ring-offset-0"
+                                        value="{{ grade }}"
+                                        data-grade-checkbox
+                                        data-grade-order="{{ forloop.counter0 }}"
+                                        data-grade-label="{{ grade }}"
+                                        {% if grade in selected_grade_values %}checked{% endif %}
+                                    />
+                                    <span class="text-sm font-medium">{{ grade }}</span>
+                                </label>
+                            {% endfor %}
+                        </div>
+                        <div class="hidden">
+                            {{ form.grade_min }}
+                            {{ form.grade_max }}
+                        </div>
+                    {% else %}
+                        <div class="text-xs text-slate-500">No grade data found. Enter a minimum and maximum.</div>
+                        <div class="grid gap-4 sm:grid-cols-2">
+                            <label class="space-y-1 text-sm font-medium text-slate-200">
+                                <span class="text-xs uppercase tracking-widest text-slate-400">{{ form.grade_min.label }}</span>
+                                {{ form.grade_min }}
+                            </label>
+                            <label class="space-y-1 text-sm font-medium text-slate-200">
+                                <span class="text-xs uppercase tracking-widest text-slate-400">{{ form.grade_max.label }}</span>
+                                {{ form.grade_max }}
+                            </label>
+                        </div>
+                    {% endif %}
+                    {% if form.grade_min.errors or form.grade_max.errors %}
+                        <span class="block text-xs text-rose-300">
+                            {% for error in form.grade_min.errors %}{{ error }}{% if not forloop.last or form.grade_max.errors %}<br>{% endif %}{% endfor %}
+                            {% for error in form.grade_max.errors %}{{ error }}{% if not forloop.last %}<br>{% endif %}{% endfor %}
+                        </span>
+                    {% endif %}
+                </div>
             </div>
             <div class="grid gap-4 md:grid-cols-3">
                 <label class="space-y-1 text-sm font-medium text-slate-200">
@@ -134,6 +181,212 @@
             </button>
         </div>
     </form>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const meetSelect = document.querySelector('select[name="meet"]');
+            const nameInput = document.getElementById('id_name');
+            const sportSelect = document.getElementById('id_sport_type');
+            const genderSelect = document.getElementById('id_gender_limit');
+            const gradeMinInput = document.getElementById('id_grade_min');
+            const gradeMaxInput = document.getElementById('id_grade_max');
+            const gradeCheckboxes = Array.from(document.querySelectorAll('[data-grade-checkbox]'));
+            const gradeSummary = document.querySelector('[data-grade-summary]');
+            const gradeContainer = document.querySelector('[data-grade-checkboxes]');
+            const scheduleInput = document.getElementById('id_schedule_dt');
+
+            let nameDirty = false;
+            let isUpdatingName = false;
+
+            function gatherSelectedGrades() {
+                return gradeCheckboxes
+                    .filter((checkbox) => checkbox.checked)
+                    .sort((a, b) => Number(a.dataset.gradeOrder || 0) - Number(b.dataset.gradeOrder || 0));
+            }
+
+            function formatGradeGroup(labels) {
+                if (!labels.length) {
+                    return '';
+                }
+                const normalised = labels.map((label) => (label || '').trim()).filter(Boolean);
+                if (!normalised.length) {
+                    return '';
+                }
+                const everyGrade = normalised.every((label) => /^grade\s+/i.test(label));
+                const everyYear = normalised.every((label) => /^year\s+/i.test(label));
+                if (everyGrade || everyYear) {
+                    const prefix = everyGrade ? 'Grade' : 'Year';
+                    const pluralPrefix = everyGrade ? 'Grades' : 'Years';
+                    const suffixes = normalised
+                        .map((label) => label.replace(/^\w+\s+/i, '').trim())
+                        .filter(Boolean);
+                    if (suffixes.length === 1) {
+                        return `${prefix} ${suffixes[0]}`;
+                    }
+                    const first = suffixes[0];
+                    const last = suffixes[suffixes.length - 1];
+                    if (first === last) {
+                        return `${prefix} ${first}`;
+                    }
+                    return `${pluralPrefix} ${first}–${last}`;
+                }
+                if (normalised.length === 1) {
+                    return normalised[0];
+                }
+                if (normalised.length === 2) {
+                    return `${normalised[0]} & ${normalised[1]}`;
+                }
+                const leading = normalised.slice(0, -1).join(', ');
+                const last = normalised[normalised.length - 1];
+                return `${leading}, & ${last}`;
+            }
+
+            function getSelectedLabel(select) {
+                if (!select) {
+                    return '';
+                }
+                const option = select.options[select.selectedIndex];
+                if (!option || !option.value) {
+                    return '';
+                }
+                return option.textContent.trim();
+            }
+
+            function computeAutoName() {
+                const gradeLabels = gatherSelectedGrades().map((checkbox) => checkbox.dataset.gradeLabel || '');
+                const gradeText = formatGradeGroup(gradeLabels);
+                const sportText = getSelectedLabel(sportSelect);
+                const genderText = getSelectedLabel(genderSelect);
+                return [gradeText, sportText, genderText].filter(Boolean).join(' ').trim();
+            }
+
+            function refreshAutoName() {
+                if (!nameInput) {
+                    return;
+                }
+                const generated = computeAutoName();
+                if (nameDirty && nameInput.value !== generated) {
+                    return;
+                }
+                isUpdatingName = true;
+                nameInput.value = generated;
+                isUpdatingName = false;
+                nameDirty = false;
+            }
+
+            function updateGradeFields(options) {
+                if (!gradeMinInput || !gradeMaxInput) {
+                    return;
+                }
+                const config = options || {};
+                const selected = gatherSelectedGrades();
+                if (selected.length) {
+                    gradeMinInput.value = selected[0].value;
+                    gradeMaxInput.value = selected[selected.length - 1].value;
+                } else {
+                    gradeMinInput.value = '';
+                    gradeMaxInput.value = '';
+                }
+                if (gradeSummary) {
+                    const labels = selected.map((checkbox) => checkbox.dataset.gradeLabel || '');
+                    const display = formatGradeGroup(labels);
+                    gradeSummary.textContent = display ? `Selected: ${display}` : 'No grades selected';
+                }
+                if (config.updateName !== false) {
+                    refreshAutoName();
+                }
+            }
+
+            function initialiseAutoName() {
+                if (!nameInput) {
+                    return;
+                }
+                const initialGenerated = computeAutoName();
+                const current = (nameInput.value || '').trim();
+                if (!current) {
+                    nameDirty = false;
+                } else if (initialGenerated && current === initialGenerated) {
+                    nameDirty = false;
+                } else {
+                    nameDirty = true;
+                }
+                refreshAutoName();
+            }
+
+            if (nameInput) {
+                nameInput.addEventListener('input', function () {
+                    if (!isUpdatingName) {
+                        nameDirty = true;
+                    }
+                });
+            }
+
+            if (gradeContainer) {
+                gradeCheckboxes.forEach((checkbox) => {
+                    checkbox.addEventListener('change', function () {
+                        updateGradeFields();
+                    });
+                });
+                updateGradeFields({ updateName: false });
+            } else if (gradeMinInput && gradeMaxInput) {
+                ['change', 'input'].forEach((eventName) => {
+                    gradeMinInput.addEventListener(eventName, refreshAutoName);
+                    gradeMaxInput.addEventListener(eventName, refreshAutoName);
+                });
+            }
+
+            if (sportSelect) {
+                sportSelect.addEventListener('change', refreshAutoName);
+            }
+            if (genderSelect) {
+                genderSelect.addEventListener('change', refreshAutoName);
+            }
+
+            initialiseAutoName();
+
+            function autoFillScheduleFromMeet(force) {
+                if (!meetSelect || !scheduleInput) {
+                    return;
+                }
+                const selected = meetSelect.options[meetSelect.selectedIndex];
+                if (!selected) {
+                    return;
+                }
+                const dateValue = selected.dataset.date;
+                if (!dateValue) {
+                    return;
+                }
+                if (!force && scheduleInput.dataset.userEdited === 'true' && scheduleInput.dataset.autoFilled !== 'true') {
+                    return;
+                }
+                let timeValue = selected.dataset.startTime || '';
+                const currentValue = scheduleInput.value || '';
+                if (!timeValue && currentValue.includes('T')) {
+                    timeValue = currentValue.split('T')[1];
+                }
+                if (!timeValue) {
+                    timeValue = '09:00';
+                }
+                scheduleInput.value = `${dateValue}T${timeValue}`;
+                scheduleInput.dataset.autoFilled = 'true';
+                scheduleInput.dataset.userEdited = '';
+            }
+
+            if (meetSelect && scheduleInput) {
+                if (scheduleInput.value) {
+                    scheduleInput.dataset.userEdited = 'true';
+                } else {
+                    autoFillScheduleFromMeet();
+                }
+                meetSelect.addEventListener('change', function () {
+                    autoFillScheduleFromMeet(true);
+                });
+                scheduleInput.addEventListener('input', function () {
+                    scheduleInput.dataset.userEdited = 'true';
+                    scheduleInput.dataset.autoFilled = '';
+                });
+            }
+        });
+    </script>
 </section>
 {% endblock %}
 {% block mobile_nav %}{% endblock %}
