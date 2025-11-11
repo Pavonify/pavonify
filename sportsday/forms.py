@@ -164,6 +164,13 @@ class MeetBasicsForm(forms.ModelForm):
 class SportTypeForm(forms.ModelForm):
     """Create or update a sport type exposed to event builders."""
 
+    _INPUT_CLASS = (
+        "w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 "
+        "text-sm text-slate-100"
+    )
+
+    _CHECKBOX_CLASS = "h-4 w-4 rounded border-slate-600 text-sky-500"
+
     class Meta:
         model = models.SportType
         fields = (
@@ -182,11 +189,57 @@ class SportTypeForm(forms.ModelForm):
             "notes": forms.Textarea(attrs={"rows": 3}),
         }
 
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self._apply_input_styling()
+
     def clean_key(self) -> str:
         key = slugify(self.cleaned_data.get("key", ""))
         if not key:
             raise ValidationError("Enter a short unique key for this sport.")
         return key
+
+    def _apply_input_styling(self) -> None:
+        """Apply consistent Tailwind styling to form widgets."""
+
+        standard_inputs = (
+            "key",
+            "label",
+            "archetype",
+            "default_unit",
+            "default_capacity",
+            "default_attempts",
+            "notes",
+        )
+        checkbox_fields = (
+            "supports_heats",
+            "supports_finals",
+            "requires_time_for_first_place",
+        )
+
+        for field_name in standard_inputs:
+            widget = self.fields[field_name].widget
+            widget.attrs["class"] = self._merge_classes(
+                widget.attrs.get("class", ""), self._INPUT_CLASS
+            )
+
+        for field_name in ("default_capacity", "default_attempts"):
+            widget = self.fields[field_name].widget
+            if "min" not in widget.attrs:
+                widget.attrs["min"] = "1"
+
+        for field_name in checkbox_fields:
+            widget = self.fields[field_name].widget
+            widget.attrs["class"] = self._merge_classes(
+                widget.attrs.get("class", ""), self._CHECKBOX_CLASS
+            )
+
+    @staticmethod
+    def _merge_classes(existing: str, new: str) -> str:
+        existing_classes = existing.split()
+        new_classes = new.split()
+        combined = existing_classes + [cls for cls in new_classes if cls not in existing_classes]
+        return " ".join(filter(None, combined))
 
 
 class EventConfigForm(forms.ModelForm):
