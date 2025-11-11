@@ -89,28 +89,28 @@
                 {% endif %}
                 <div class="space-y-2">
                     <label for="id_key" class="text-sm font-medium text-slate-200">Key</label>
-                    {{ form.key.as_widget(attrs={"class": "w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-100"}) }}
+                    {{ form.key.as_widget(attrs={'class': 'w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-100'}) }}
                     {% if form.key.errors %}
                         <p class="text-xs text-rose-300">{{ form.key.errors|join:', ' }}</p>
                     {% endif %}
                 </div>
                 <div class="space-y-2">
                     <label for="id_label" class="text-sm font-medium text-slate-200">Label</label>
-                    {{ form.label.as_widget(attrs={"class": "w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-100"}) }}
+                    {{ form.label.as_widget(attrs={'class': 'w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-100'}) }}
                     {% if form.label.errors %}
                         <p class="text-xs text-rose-300">{{ form.label.errors|join:', ' }}</p>
                     {% endif %}
                 </div>
                 <div class="space-y-2">
                     <label for="id_archetype" class="text-sm font-medium text-slate-200">Archetype</label>
-                    {{ form.archetype.as_widget(attrs={"class": "w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-100"}) }}
+                    {{ form.archetype.as_widget(attrs={'class': 'w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-100'}) }}
                     {% if form.archetype.errors %}
                         <p class="text-xs text-rose-300">{{ form.archetype.errors|join:', ' }}</p>
                     {% endif %}
                 </div>
                 <div class="space-y-2">
                     <label for="id_default_unit" class="text-sm font-medium text-slate-200">Default unit</label>
-                    {{ form.default_unit.as_widget(attrs={"class": "w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-100"}) }}
+                    {{ form.default_unit.as_widget(attrs={'class': 'w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-100'}) }}
                     {% if form.default_unit.errors %}
                         <p class="text-xs text-rose-300">{{ form.default_unit.errors|join:', ' }}</p>
                     {% endif %}
@@ -118,14 +118,14 @@
                 <div class="grid gap-4 sm:grid-cols-2">
                     <div class="space-y-2">
                         <label for="id_default_capacity" class="text-sm font-medium text-slate-200">Default capacity</label>
-                        {{ form.default_capacity.as_widget(attrs={"class": "w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-100", "min": "1"}) }}
+                        {{ form.default_capacity.as_widget(attrs={'class': 'w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-100', 'min': '1'}) }}
                         {% if form.default_capacity.errors %}
                             <p class="text-xs text-rose-300">{{ form.default_capacity.errors|join:', ' }}</p>
                         {% endif %}
                     </div>
                     <div class="space-y-2">
                         <label for="id_default_attempts" class="text-sm font-medium text-slate-200">Default attempts</label>
-                        {{ form.default_attempts.as_widget(attrs={"class": "w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-100", "min": "1"}) }}
+                        {{ form.default_attempts.as_widget(attrs={'class': 'w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-100', 'min': '1'}) }}
                         {% if form.default_attempts.errors %}
                             <p class="text-xs text-rose-300">{{ form.default_attempts.errors|join:', ' }}</p>
                         {% endif %}
@@ -135,15 +135,15 @@
                     <label class="text-sm font-medium text-slate-200">Options</label>
                     <div class="space-y-2 rounded-lg border border-slate-800 bg-slate-950/60 p-3 text-sm text-slate-200">
                         <label class="flex items-center gap-2">
-                            {{ form.supports_heats.as_widget(attrs={"class": "h-4 w-4 rounded border-slate-600 text-sky-500"}) }}
+                            {{ form.supports_heats.as_widget(attrs={'class': 'h-4 w-4 rounded border-slate-600 text-sky-500'}) }}
                             <span>Supports heats</span>
                         </label>
                         <label class="flex items-center gap-2">
-                            {{ form.supports_finals.as_widget(attrs={"class": "h-4 w-4 rounded border-slate-600 text-sky-500"}) }}
+                            {{ form.supports_finals.as_widget(attrs={'class': 'h-4 w-4 rounded border-slate-600 text-sky-500'}) }}
                             <span>Supports finals</span>
                         </label>
                         <label class="flex items-center gap-2">
-                            {{ form.requires_time_for_first_place.as_widget(attrs={"class": "h-4 w-4 rounded border-slate-600 text-sky-500"}) }}
+                            {{ form.requires_time_for_first_place.as_widget(attrs={'class': 'h-4 w-4 rounded border-slate-600 text-sky-500'}) }}
                             <span>Requires time for first place</span>
                         </label>
                     </div>
@@ -153,7 +153,7 @@
                 </div>
                 <div class="space-y-2">
                     <label for="id_notes" class="text-sm font-medium text-slate-200">Notes</label>
-                    {{ form.notes.as_widget(attrs={"class": "w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-100"}) }}
+                    {{ form.notes.as_widget(attrs={'class': 'w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-100'}) }}
                     {% if form.notes.errors %}
                         <p class="text-xs text-rose-300">{{ form.notes.errors|join:', ' }}</p>
                     {% endif %}
