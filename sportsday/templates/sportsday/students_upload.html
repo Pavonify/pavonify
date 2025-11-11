@@ -1,126 +1,18 @@
 {% extends "sportsday/base.html" %}
-{% block title %}Upload Students{% if meet %} · {{ meet.name }}{% endif %}{% endblock %}
+{% block title %}Upload Students · {{ meet.name }}{% endblock %}
+{% block header_actions %}
+<nav class="actions">
+    <a href="{% url 'sportsday:students' meet.slug %}" role="button">Back to students</a>
+</nav>
+{% endblock %}
 {% block content %}
-<section class="space-y-6">
-    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-            <p class="text-sm uppercase tracking-widest text-slate-400">Athletes</p>
-            <h1 class="text-2xl font-semibold">Upload students</h1>
-            {% if meet %}
-                <p class="text-sm text-slate-400">Meet scope: {{ meet.name }}</p>
-            {% else %}
-                <p class="text-sm text-slate-400">Choose a meet before importing a CSV roster.</p>
-            {% endif %}
-        </div>
-        <div class="flex flex-wrap gap-2">
-            {% url 'sportsday:students' as students_url %}
-            <a href="{{ students_url }}{% if meet %}?meet={{ meet.slug }}{% endif %}"
-                class="inline-flex items-center gap-2 rounded-full border border-slate-700 px-4 py-2 text-sm text-slate-300 hover:border-sky-500/40 hover:text-sky-200">
-                Back to students
-            </a>
-            <a href="{% url 'sportsday:meet-wizard-template' 'students' %}"
-                class="inline-flex items-center gap-2 rounded-full bg-sky-500 px-4 py-2 text-sm font-medium text-slate-900 shadow-lg shadow-sky-500/40 hover:bg-sky-400">
-                Download template
-            </a>
-        </div>
-    </div>
-
-    <div class="grid gap-6 lg:grid-cols-2">
-        <section class="rounded-2xl border border-slate-800 bg-slate-900/60 p-6 text-sm text-slate-300">
-            <h2 class="text-lg font-semibold text-slate-100">Re-upload CSV roster</h2>
-            <p class="mt-1 text-slate-400">Use the official template headers: <code>first_name,last_name,dob,grade,house,gender,external_id</code>.</p>
-            <form method="post" enctype="multipart/form-data" class="mt-4 space-y-4">
-                {% csrf_token %}
-                <input type="hidden" name="form_type" value="upload" />
-                <label class="block text-xs uppercase tracking-widest text-slate-500">
-                    Meet
-                    <select name="meet"
-                        class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-200">
-                        <option value="">Select a meet</option>
-                        {% for option in meet_options %}
-                            <option value="{{ option.slug }}" {% if option.slug == selected_meet_slug %}selected{% endif %}>{{ option.name }}</option>
-                        {% endfor %}
-                    </select>
-                </label>
-                <label class="block text-xs uppercase tracking-widest text-slate-500">
-                    CSV file
-                    <input type="file" name="file" accept=".csv"
-                        class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-200" required />
-                </label>
-                {% if upload_form.non_field_errors %}
-                    <div class="rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">
-                        {% for error in upload_form.non_field_errors %}
-                            <p>{{ error }}</p>
-                        {% endfor %}
-                    </div>
-                {% endif %}
-                {% if upload_form.file.errors %}
-                    <div class="rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">
-                        {% for error in upload_form.file.errors %}
-                            <p>{{ error }}</p>
-                        {% endfor %}
-                    </div>
-                {% endif %}
-                {% if upload_summary %}
-                    <div class="rounded-lg border border-slate-700 bg-slate-950/50 px-3 py-2 text-xs text-slate-200">
-                        <p>Created: {{ upload_summary.created|default:0 }} · Updated: {{ upload_summary.updated|default:0 }}</p>
-                        {% if upload_summary.errors %}
-                            <ul class="mt-1 list-disc space-y-1 pl-5 text-rose-300">
-                                {% for error in upload_summary.errors %}
-                                    <li>{{ error }}</li>
-                                {% endfor %}
-                            </ul>
-                        {% endif %}
-                    </div>
-                {% endif %}
-                <button type="submit"
-                    class="inline-flex items-center gap-2 rounded-full bg-sky-500 px-4 py-2 text-sm font-medium text-slate-900 shadow-lg shadow-sky-500/40 hover:bg-sky-400">
-                    Upload CSV
-                </button>
-            </form>
-        </section>
-
-        <section id="add-student" class="rounded-2xl border border-slate-800 bg-slate-900/60 p-6 text-sm text-slate-300">
-            <h2 class="text-lg font-semibold text-slate-100">Add an individual student</h2>
-            <p class="mt-1 text-slate-400">Capture a quick roster correction without a spreadsheet.</p>
-            <form method="post" class="mt-4 space-y-4">
-                {% csrf_token %}
-                <input type="hidden" name="form_type" value="add" />
-                <div class="grid gap-4 sm:grid-cols-2">
-                    {% for field in student_form %}
-                        <div class="space-y-1 {% if field.field.widget.input_type == 'checkbox' %}sm:col-span-2{% else %}sm:col-span-1{% endif %}">
-                            {% if field.field.widget.input_type == 'checkbox' %}
-                                <label class="flex items-center gap-2 text-xs uppercase tracking-widest text-slate-500">
-                                    {{ field.as_widget(attrs={"class": "h-4 w-4 rounded border-slate-600 text-sky-500 focus:ring-sky-500"}) }}
-                                    <span class="text-slate-300">{{ field.label }}</span>
-                                </label>
-                            {% else %}
-                                <label class="block text-xs uppercase tracking-widest text-slate-500">
-                                    {{ field.label }}
-                                    {{ field.as_widget(attrs={"class": "mt-1 w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-200"}) }}
-                                </label>
-                            {% endif %}
-                            {% if field.errors %}
-                                <div class="rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">
-                                    {% for error in field.errors %}
-                                        <p>{{ error }}</p>
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
-                    {% endfor %}
-                </div>
-                {% if created_student %}
-                    <div class="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-200">
-                        Added {{ created_student.first_name }} {{ created_student.last_name }} successfully.
-                    </div>
-                {% endif %}
-                <button type="submit"
-                    class="inline-flex items-center gap-2 rounded-full bg-emerald-500 px-4 py-2 text-sm font-medium text-emerald-950 shadow-lg shadow-emerald-500/40 hover:bg-emerald-400">
-                    Save student
-                </button>
-            </form>
-        </section>
-    </div>
+<section class="card">
+    <h2>Upload Student CSV</h2>
+    <p>Upload a CSV file using the template headers: <code>first_name,last_name,dob,grade,house,gender,external_id</code></p>
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Upload</button>
+    </form>
 </section>
 {% endblock %}

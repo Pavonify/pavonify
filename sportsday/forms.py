@@ -243,39 +243,6 @@ class TeacherUploadForm(forms.Form):
         return uploaded
 
 
-class StudentForm(forms.ModelForm):
-    """Collect core student details for manual entry."""
-
-    class Meta:
-        model = models.Student
-        fields = (
-            "first_name",
-            "last_name",
-            "dob",
-            "grade",
-            "house",
-            "gender",
-            "external_id",
-            "is_active",
-        )
-        widgets = {
-            "dob": forms.DateInput(attrs={"type": "date"}),
-        }
-
-
-class TeacherForm(forms.ModelForm):
-    """Collect teacher details for manual entry."""
-
-    class Meta:
-        model = models.Teacher
-        fields = (
-            "first_name",
-            "last_name",
-            "email",
-            "external_id",
-        )
-
-
 class StartListAddForm(forms.Form):
     """Allow coordinators to add a student to an event start list."""
 
