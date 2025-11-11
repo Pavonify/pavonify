@@ -1911,6 +1911,7 @@ def manage_event(request: HttpRequest, event_id: int) -> HttpResponse:
             "form_errors": errors or [],
             "is_rank_only": archetype == models.SportType.Archetype.RANK_ONLY,
             "can_edit": can_post and not lock_reason,
+            "can_unlock": can_post and event.is_locked and not event.meet.is_locked,
             "active_meet": event.meet,
         }
 
