@@ -8,7 +8,9 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 from types import SimpleNamespace
 from typing import Iterable
+from urllib.parse import urlencode
 
+from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.core.exceptions import ValidationError
 from django.db import transaction
@@ -77,6 +79,62 @@ def _teacher_for_user(user) -> models.Teacher | None:
     if not email:
         return None
     return models.Teacher.objects.filter(email__iexact=email).first()
+
+
+def _student_filters(request: HttpRequest) -> dict[str, str | None]:
+    """Extract student table filters from GET or POST data."""
+
+    data = request.GET if request.method == "GET" else request.POST
+    meet = (data.get("meet") or "").strip() or None
+    house = (data.get("house") or "").strip() or None
+    query = (data.get("q") or "").strip() or None
+    return {"meet": meet, "house": house, "query": query}
+
+
+def _student_filter_query(filters: dict[str, str | None]) -> str:
+    params: dict[str, str] = {}
+    meet = filters.get("meet")
+    if meet:
+        params["meet"] = meet
+    house = filters.get("house")
+    if house:
+        params["house"] = house
+    query = filters.get("query")
+    if query:
+        params["q"] = query
+    return urlencode(params)
+
+
+def _students_queryset(filters: dict[str, str | None]):
+    students = models.Student.objects.all()
+    tally_filter = Q()
+    meet_slug = filters.get("meet")
+    if meet_slug:
+        tally_filter = Q(entries__event__meet__slug=meet_slug)
+        students = students.filter(entries__event__meet__slug=meet_slug)
+    house = filters.get("house")
+    if house:
+        students = students.filter(house__iexact=house)
+    query = filters.get("query")
+    if query:
+        students = students.filter(
+            Q(first_name__icontains=query)
+            | Q(last_name__icontains=query)
+            | Q(grade__icontains=query)
+        )
+    return (
+        students.annotate(events_tally=Count("entries", filter=tally_filter, distinct=True))
+        .order_by("last_name", "first_name")
+        .distinct()
+    )
+
+
+def _students_redirect_url(filters: dict[str, str | None]) -> str:
+    query_string = _student_filter_query(filters)
+    destination = reverse("sportsday:students")
+    if query_string:
+        return f"{destination}?{query_string}"
+    return destination
 
 
 def _build_leaderboard_summaries(records: list[services.ScoringRecord]):
@@ -1321,7 +1379,8 @@ def student_list(request: HttpRequest) -> HttpResponse:
 
     meet_options = models.Meet.objects.order_by("name")
     houses = models.Student.objects.values_list("house", flat=True).distinct().order_by("house")
-    meet_slug = request.GET.get("meet")
+    filters = _student_filters(request)
+    meet_slug = filters.get("meet")
     active_meet = models.Meet.objects.filter(slug=meet_slug).first() if meet_slug else None
     mobile_nav = mobile_nav_active = None
     if active_meet:
@@ -1333,7 +1392,7 @@ def student_list(request: HttpRequest) -> HttpResponse:
         "active_meet": active_meet,
         "mobile_nav": mobile_nav,
         "mobile_nav_active": mobile_nav_active,
-        "query_params": request.GET.urlencode(),
+        "query_params": _student_filter_query(filters),
     }
     return render(request, "sportsday/students_list.html", context)
 
@@ -1341,31 +1400,78 @@ def student_list(request: HttpRequest) -> HttpResponse:
 def students_table_fragment(request: HttpRequest) -> HttpResponse:
     """HTMX table of students respecting filters."""
 
-    students = models.Student.objects.all()
-    meet_slug = request.GET.get("meet")
-    house = request.GET.get("house")
-    query = request.GET.get("q")
+    filters = _student_filters(request)
+    students = _students_queryset(filters)
+    filters_context = filters.copy()
+    filters_context["query_string"] = _student_filter_query(filters)
 
-    tally_filter = Q()
-    if meet_slug:
-        tally_filter = Q(entries__event__meet__slug=meet_slug)
-        students = students.filter(entries__event__meet__slug=meet_slug)
-    if house:
-        students = students.filter(house__iexact=house)
-    if query:
-        students = students.filter(
-            Q(first_name__icontains=query)
-            | Q(last_name__icontains=query)
-            | Q(grade__icontains=query)
-        )
-
-    students = (
-        students.annotate(events_tally=Count("entries", filter=tally_filter, distinct=True))
-        .order_by("last_name", "first_name")
-        .distinct()
+    return render(
+        request,
+        "sportsday/partials/students_table.html",
+        {"students": students, "filters": filters_context},
     )
 
-    return render(request, "sportsday/partials/students_table.html", {"students": students})
+
+@staff_member_required
+def student_edit(request: HttpRequest, student_id: int) -> HttpResponse:
+    """Edit an existing student record."""
+
+    student = get_object_or_404(models.Student, pk=student_id)
+    filters = _student_filters(request)
+    filters_context = filters.copy()
+    filters_context["query_string"] = _student_filter_query(filters)
+    return_url = _students_redirect_url(filters)
+
+    if request.method == "POST":
+        form = forms.StudentForm(request.POST, instance=student)
+        if form.is_valid():
+            updated_student = form.save()
+            messages.success(request, f"Updated {updated_student.first_name} {updated_student.last_name}.")
+            return redirect(return_url)
+    else:
+        form = forms.StudentForm(instance=student)
+
+    active_meet = None
+    if filters.get("meet"):
+        active_meet = models.Meet.objects.filter(slug=filters["meet"]).first()
+    mobile_nav = mobile_nav_active = None
+    if active_meet:
+        mobile_nav, mobile_nav_active = _build_meet_mobile_nav(active_meet, active="students")
+
+    context = {
+        "form": form,
+        "student": student,
+        "filters": filters_context,
+        "return_url": return_url,
+        "active_meet": active_meet,
+        "mobile_nav": mobile_nav,
+        "mobile_nav_active": mobile_nav_active,
+    }
+    return render(request, "sportsday/student_form.html", context)
+
+
+@staff_member_required
+@require_POST
+def student_delete(request: HttpRequest, student_id: int) -> HttpResponse:
+    """Remove a student and refresh the table when requested via HTMX."""
+
+    student = get_object_or_404(models.Student, pk=student_id)
+    filters = _student_filters(request)
+    student_name = str(student)
+    student.delete()
+
+    if request.headers.get("HX-Request"):
+        filters_context = filters.copy()
+        filters_context["query_string"] = _student_filter_query(filters)
+        students = _students_queryset(filters)
+        return render(
+            request,
+            "sportsday/partials/students_table.html",
+            {"students": students, "filters": filters_context},
+        )
+
+    messages.success(request, f"Deleted {student_name}.")
+    return redirect(_students_redirect_url(filters))
 
 
 def teacher_list(request: HttpRequest) -> HttpResponse:

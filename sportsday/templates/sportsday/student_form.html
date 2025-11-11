@@ -1,0 +1,122 @@
+{% extends "sportsday/base.html" %}
+{% block title %}Edit student · {{ student.first_name }} {{ student.last_name }}{% endblock %}
+{% block content %}
+<section class="space-y-6">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+            <p class="text-sm uppercase tracking-widest text-slate-500">Student</p>
+            <h1 class="text-2xl font-semibold text-slate-900">Edit {{ student.first_name }} {{ student.last_name }}</h1>
+            <p class="text-sm text-slate-600">Update personal details and activity status.</p>
+        </div>
+        <a href="{{ return_url }}" class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:border-sky-400 hover:text-sky-700">Back to students</a>
+    </div>
+
+    <div class="rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div class="border-b border-slate-200 px-6 py-4">
+            <h2 class="text-lg font-semibold text-slate-900">Student details</h2>
+        </div>
+        <form method="post" class="space-y-6 px-6 py-6">
+            {% csrf_token %}
+            {% if filters.meet %}
+                <input type="hidden" name="meet" value="{{ filters.meet }}">
+            {% endif %}
+            {% if filters.house %}
+                <input type="hidden" name="house" value="{{ filters.house }}">
+            {% endif %}
+            {% if filters.query %}
+                <input type="hidden" name="q" value="{{ filters.query }}">
+            {% endif %}
+            {% for hidden in form.hidden_fields %}
+                {{ hidden }}
+            {% endfor %}
+            {% if form.non_field_errors %}
+                <div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">
+                    {{ form.non_field_errors|join:" " }}
+                </div>
+            {% endif %}
+            <div class="grid gap-4 md:grid-cols-2">
+                <div class="space-y-1">
+                    <label for="{{ form.first_name.id_for_label }}" class="text-sm font-medium text-slate-700">{{ form.first_name.label }}</label>
+                    {{ form.first_name }}
+                    {% if form.first_name.errors %}
+                        <p class="text-sm text-rose-600">{{ form.first_name.errors|join:", " }}</p>
+                    {% endif %}
+                </div>
+                <div class="space-y-1">
+                    <label for="{{ form.last_name.id_for_label }}" class="text-sm font-medium text-slate-700">{{ form.last_name.label }}</label>
+                    {{ form.last_name }}
+                    {% if form.last_name.errors %}
+                        <p class="text-sm text-rose-600">{{ form.last_name.errors|join:", " }}</p>
+                    {% endif %}
+                </div>
+                <div class="space-y-1">
+                    <label for="{{ form.dob.id_for_label }}" class="text-sm font-medium text-slate-700">{{ form.dob.label }}</label>
+                    {{ form.dob }}
+                    {% if form.dob.errors %}
+                        <p class="text-sm text-rose-600">{{ form.dob.errors|join:", " }}</p>
+                    {% endif %}
+                </div>
+                <div class="space-y-1">
+                    <label for="{{ form.grade.id_for_label }}" class="text-sm font-medium text-slate-700">{{ form.grade.label }}</label>
+                    {{ form.grade }}
+                    {% if form.grade.errors %}
+                        <p class="text-sm text-rose-600">{{ form.grade.errors|join:", " }}</p>
+                    {% endif %}
+                </div>
+                <div class="space-y-1">
+                    <label for="{{ form.house.id_for_label }}" class="text-sm font-medium text-slate-700">{{ form.house.label }}</label>
+                    {{ form.house }}
+                    {% if form.house.errors %}
+                        <p class="text-sm text-rose-600">{{ form.house.errors|join:", " }}</p>
+                    {% endif %}
+                </div>
+                <div class="space-y-1">
+                    <label for="{{ form.gender.id_for_label }}" class="text-sm font-medium text-slate-700">{{ form.gender.label }}</label>
+                    {{ form.gender }}
+                    {% if form.gender.errors %}
+                        <p class="text-sm text-rose-600">{{ form.gender.errors|join:", " }}</p>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="space-y-1">
+                <label for="{{ form.external_id.id_for_label }}" class="text-sm font-medium text-slate-700">{{ form.external_id.label }}</label>
+                {{ form.external_id }}
+                {% if form.external_id.errors %}
+                    <p class="text-sm text-rose-600">{{ form.external_id.errors|join:", " }}</p>
+                {% endif %}
+            </div>
+            <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                <label class="flex items-center gap-3 text-sm font-medium text-slate-700" for="{{ form.is_active.id_for_label }}">
+                    {{ form.is_active }}
+                    <span>{{ form.is_active.label }}</span>
+                </label>
+                {% if form.is_active.errors %}
+                    <p class="mt-2 text-sm text-rose-600">{{ form.is_active.errors|join:", " }}</p>
+                {% endif %}
+            </div>
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <p class="text-sm text-slate-500">Changes are saved immediately and reflected across the meet dashboards.</p>
+                <div class="flex gap-2">
+                    <a href="{{ return_url }}" class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 shadow-sm transition hover:border-slate-300 hover:text-slate-800">Cancel</a>
+                    <button type="submit" class="inline-flex items-center gap-2 rounded-full bg-sky-500 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-sky-500/30 transition hover:bg-sky-400">Save changes</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</section>
+{% endblock %}
+{% block mobile_nav %}
+    {% if mobile_nav %}
+        <nav class="fixed bottom-0 inset-x-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur md:hidden">
+            <ul class="grid grid-cols-4 text-xs font-medium text-slate-600">
+                {% for item in mobile_nav %}
+                    <li>
+                        <a href="{{ item.url }}" class="flex flex-col items-center justify-center gap-1 py-3 {% if item.label|lower == mobile_nav_active %}text-sky-600{% else %}hover:text-sky-700{% endif %}">
+                            <span>{{ item.label }}</span>
+                        </a>
+                    </li>
+                {% endfor %}
+            </ul>
+        </nav>
+    {% endif %}
+{% endblock %}

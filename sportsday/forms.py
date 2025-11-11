@@ -44,6 +44,20 @@ SCORING_PRESETS: tuple[ScoringPreset, ...] = (
 )
 
 
+LIGHT_TEXT_INPUT_CLASSES = (
+    "mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 "
+    "shadow-sm focus:border-sky-500 focus:ring focus:ring-sky-200/60 focus:outline-none"
+)
+LIGHT_CHECKBOX_CLASSES = (
+    "h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500 focus:ring-offset-0"
+)
+LARGE_TEXT_INPUT_CLASSES = (
+    "mt-2 w-full rounded-xl border border-slate-300 bg-white px-3 py-3 text-lg font-semibold text-slate-900 "
+    "shadow-sm focus:border-sky-500 focus:ring-2 focus:ring-sky-200/60 focus:outline-none"
+)
+LARGE_CHECKBOX_CLASSES = "h-5 w-5 rounded border-slate-300 focus:ring-offset-0"
+
+
 class MeetBasicsForm(forms.ModelForm):
     """Collects the fields required to create a meet."""
 
@@ -264,17 +278,13 @@ class StudentForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        text_input_classes = (
-            "mt-1 w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-200"
-        )
-        checkbox_classes = "h-4 w-4 rounded border-slate-600 text-sky-500 focus:ring-sky-500"
         for field in self.fields.values():
             widget = field.widget
             existing = widget.attrs.get("class", "")
             if isinstance(widget, forms.CheckboxInput):
-                widget.attrs["class"] = f"{existing} {checkbox_classes}".strip()
+                widget.attrs["class"] = f"{existing} {LIGHT_CHECKBOX_CLASSES}".strip()
             else:
-                widget.attrs["class"] = f"{existing} {text_input_classes}".strip()
+                widget.attrs["class"] = f"{existing} {LIGHT_TEXT_INPUT_CLASSES}".strip()
 
 
 class TeacherForm(forms.ModelForm):
@@ -291,13 +301,10 @@ class TeacherForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        text_input_classes = (
-            "mt-1 w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-200"
-        )
         for field in self.fields.values():
             widget = field.widget
             existing = widget.attrs.get("class", "")
-            widget.attrs["class"] = f"{existing} {text_input_classes}".strip()
+            widget.attrs["class"] = f"{existing} {LIGHT_TEXT_INPUT_CLASSES}".strip()
 
 
 class EventGenerationForm(forms.Form):
@@ -349,14 +356,10 @@ class EventGenerationForm(forms.Form):
             grade_options = [f"G{i}" for i in range(3, 13)]
         self.fields["grades"].choices = [(grade, grade) for grade in grade_options]
         self.fields["genders"].choices = models.Event.GenderLimit.choices
-        select_class = (
-            "mt-1 w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-200"
-        )
+        select_class = LIGHT_TEXT_INPUT_CLASSES
         for key in ("sport_types", "grades", "genders"):
             self.fields[key].widget.attrs.update({"class": select_class, "size": "6"})
-        text_class = (
-            "mt-1 w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-200"
-        )
+        text_class = LIGHT_TEXT_INPUT_CLASSES
         for key in ("name_pattern", "capacity_override", "attempts_override", "rounds_total"):
             self.fields[key].widget.attrs.update({"class": text_class})
 
@@ -390,9 +393,7 @@ class BulkEntryAssignmentForm(forms.Form):
         self.meet = meet
         super().__init__(*args, **kwargs)
         self.fields["events"].queryset = meet.events.order_by("name")
-        control_class = (
-            "mt-1 w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-200"
-        )
+        control_class = LIGHT_TEXT_INPUT_CLASSES
         self.fields["mode"].widget.attrs.update({"class": control_class})
         self.fields["csv_file"].widget.attrs.update({"class": control_class})
         self.fields["events"].widget.attrs.update({"class": control_class, "size": "8"})
@@ -434,6 +435,13 @@ class StartListAddForm(forms.Form):
         self.fields["round_no"].initial = str(initial_round)
         if event.rounds_total == 1:
             self.fields["round_no"].widget = forms.HiddenInput()
+
+        for field_name in ("student", "round_no"):
+            widget = self.fields[field_name].widget
+            if isinstance(widget, forms.HiddenInput):
+                continue
+            existing = widget.attrs.get("class", "")
+            widget.attrs["class"] = f"{existing} {LIGHT_TEXT_INPUT_CLASSES}".strip()
 
     def clean_student(self):
         student: models.Student = self.cleaned_data["student"]
@@ -499,12 +507,12 @@ class BaseResultForm(forms.Form):
         self.initial.setdefault("dq", entry.status == models.Entry.Status.DQ)
         self.fields["dns"].widget.attrs.update(
             {
-                "class": "h-5 w-5 rounded border-slate-600 text-rose-500 focus:ring-rose-500",
+                "class": f"{LARGE_CHECKBOX_CLASSES} text-rose-500 focus:ring-rose-400",
             }
         )
         self.fields["dq"].widget.attrs.update(
             {
-                "class": "h-5 w-5 rounded border-slate-600 text-amber-500 focus:ring-amber-500",
+                "class": f"{LARGE_CHECKBOX_CLASSES} text-amber-500 focus:ring-amber-400",
             }
         )
 
@@ -536,7 +544,7 @@ class TrackResultForm(BaseResultForm):
             self.initial.setdefault("time_display", _format_time(attempt.time_seconds))
         self.fields["time_display"].widget.attrs.update(
             {
-                "class": "mt-2 w-full rounded-xl border border-slate-700 bg-slate-900/70 px-3 py-3 text-lg font-semibold tracking-wide text-slate-100 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-500",
+                "class": f"{LARGE_TEXT_INPUT_CLASSES} tracking-wide",
                 "placeholder": "mm:ss.mmm",
                 "autocomplete": "off",
             }
@@ -571,7 +579,7 @@ class FieldDistanceResultForm(BaseResultForm):
                 self.initial.setdefault(valid_field, record.valid)
             self.fields[distance_field].widget.attrs.update(
                 {
-                    "class": "mt-2 w-full rounded-xl border border-slate-700 bg-slate-900/70 px-3 py-3 text-lg font-semibold text-slate-100 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-500",
+                    "class": LARGE_TEXT_INPUT_CLASSES,
                     "placeholder": "0.000",
                     "autocomplete": "off",
                     "inputmode": "decimal",
@@ -579,7 +587,7 @@ class FieldDistanceResultForm(BaseResultForm):
             )
             self.fields[valid_field].widget.attrs.update(
                 {
-                    "class": "h-5 w-5 rounded border-slate-600 text-emerald-500 focus:ring-emerald-500",
+                    "class": f"{LARGE_CHECKBOX_CLASSES} text-emerald-600 focus:ring-emerald-400",
                 }
             )
             self.distance_fields.append(distance_field)
@@ -625,7 +633,7 @@ class FieldCountResultForm(BaseResultForm):
             self.initial.setdefault("count", attempt.count)
         self.fields["count"].widget.attrs.update(
             {
-                "class": "mt-2 w-full rounded-xl border border-slate-700 bg-slate-900/70 px-3 py-3 text-lg font-semibold text-slate-100 focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-500",
+                "class": LARGE_TEXT_INPUT_CLASSES,
                 "autocomplete": "off",
                 "inputmode": "numeric",
             }
@@ -649,14 +657,14 @@ class RankOnlyResultForm(BaseResultForm):
         self.fields["rank"].widget.attrs.update({"max": field_size})
         self.fields["rank"].widget.attrs.update(
             {
-                "class": "mt-2 w-full rounded-xl border border-slate-700 bg-slate-900/70 px-3 py-3 text-lg font-semibold text-slate-100 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500",
+                "class": LARGE_TEXT_INPUT_CLASSES,
                 "autocomplete": "off",
                 "inputmode": "numeric",
             }
         )
         self.fields["time_display"].widget.attrs.update(
             {
-                "class": "mt-2 w-full rounded-xl border border-slate-700 bg-slate-900/70 px-3 py-3 text-lg font-semibold text-slate-100 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-500",
+                "class": LARGE_TEXT_INPUT_CLASSES,
                 "placeholder": "mm:ss.mmm",
                 "autocomplete": "off",
             }
