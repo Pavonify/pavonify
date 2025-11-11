@@ -27,7 +27,7 @@
                 <div>
                     <div class="mb-2 flex items-center justify-between">
                         <span class="text-xs uppercase tracking-widest text-slate-500">Available students</span>
-                        <span class="text-xs text-slate-500">{{ available_students|length }}</span>
+                        <span class="text-xs text-slate-500" data-available-count>{{ available_students|length }}</span>
                     </div>
                     <select id="available" multiple size="12" class="w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-100 focus:border-sky-500 focus:outline-none" {% if lock_reason %}disabled{% endif %}>
                         {% for student in available_students %}
@@ -42,7 +42,7 @@
                 <div>
                     <div class="mb-2 flex items-center justify-between">
                         <span class="text-xs uppercase tracking-widest text-slate-500">Event participants</span>
-                        <span class="text-xs text-slate-500">{{ assigned_entries|length }}</span>
+                        <span class="text-xs text-slate-500" data-participants-count>{{ assigned_entries|length }}</span>
                     </div>
                     <select id="participants" name="participants" multiple size="12" class="w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-100 focus:border-sky-500 focus:outline-none" {% if lock_reason %}disabled{% endif %}>
                         {% for entry in assigned_entries %}
@@ -64,25 +64,41 @@
 {% if not lock_reason %}
 <script>
 (function () {
-    function moveOptions(sourceId, targetId) {
+    function updateCounts() {
+        const availableCount = document.querySelector('[data-available-count]');
+        const participantCount = document.querySelector('[data-participants-count]');
+        if (availableCount) {
+            availableCount.textContent = document.getElementById('available').options.length;
+        }
+        if (participantCount) {
+            participantCount.textContent = document.getElementById('participants').options.length;
+        }
+    }
+
+    function moveOptions(sourceId, targetId, selectMoved = false) {
         const source = document.getElementById(sourceId);
         const target = document.getElementById(targetId);
-        const selected = Array.from(source.selectedOptions);
+        const selected = Array.from(source.options).filter(option => option.selected);
+        if (!selected.length) {
+            return;
+        }
         selected.forEach(option => {
             source.removeChild(option);
-            option.selected = true;
+            option.selected = selectMoved;
             target.appendChild(option);
         });
+        updateCounts();
     }
     document.getElementById('add-participants').addEventListener('click', function (event) {
         event.preventDefault();
-        moveOptions('available', 'participants');
+        moveOptions('available', 'participants', true);
     });
     document.getElementById('remove-participants').addEventListener('click', function (event) {
         event.preventDefault();
         moveOptions('participants', 'available');
         const available = document.getElementById('available');
         Array.from(available.options).forEach(option => option.selected = false);
+        updateCounts();
     });
     document.querySelector('form').addEventListener('submit', function () {
         const participants = document.getElementById('participants');
