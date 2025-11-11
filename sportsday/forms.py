@@ -3,7 +3,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from decimal import Decimal
-import re
 
 from django import forms
 from django.core.exceptions import ValidationError
@@ -287,11 +286,8 @@ class EventConfigForm(forms.ModelForm):
             "grade_min",
             "grade_max",
             "gender_limit",
-            "measure_unit",
             "capacity",
             "attempts",
-            "rounds_total",
-            "knockout_qualifiers",
             "schedule_dt",
             "location",
             "assigned_teachers",
@@ -306,7 +302,6 @@ class EventConfigForm(forms.ModelForm):
         if teacher_queryset is not None:
             self.fields["assigned_teachers"].queryset = teacher_queryset
         self.fields["assigned_teachers"].required = False
-        self.fields["knockout_qualifiers"].required = False
         self.fields["notes"].required = False
 
         text_widgets = (
@@ -325,7 +320,7 @@ class EventConfigForm(forms.ModelForm):
                 existing = widget.attrs.get("class", "")
                 widget.attrs["class"] = f"{existing} {LIGHT_TEXT_INPUT_CLASSES}".strip()
 
-        for name in ("capacity", "attempts", "rounds_total"):
+        for name in ("capacity", "attempts"):
             widget = self.fields[name].widget
             if isinstance(widget, forms.NumberInput):
                 widget.attrs.setdefault("min", "1")
@@ -340,26 +335,21 @@ class EventConfigForm(forms.ModelForm):
             cleaned_data["attempts"] = 1
         if attempts and attempts < 1:
             self.add_error("attempts", "Attempts must be at least 1.")
-        rounds_total = cleaned_data.get("rounds_total")
-        if rounds_total and rounds_total < 1:
-            self.add_error("rounds_total", "Rounds must be at least 1.")
         grade_min = cleaned_data.get("grade_min")
         grade_max = cleaned_data.get("grade_max")
         if grade_min and grade_max and self._normalise_grade(grade_min) > self._normalise_grade(grade_max):
             self.add_error("grade_max", "Maximum grade must be greater than or equal to the minimum grade.")
         return cleaned_data
 
-    def clean_knockout_qualifiers(self):
-        value = (self.cleaned_data.get("knockout_qualifiers") or "").strip()
-        if not value:
-            return ""
-        pattern = re.compile(r"^(?:[Qq]:\d+)(?:;[Qq]:\d+)*$")
-        if pattern.match(value):
-            return value
-        # When the qualifier pattern is invalid we silently drop it so that event
-        # creation is not blocked. This allows organisers to skip configuring
-        # qualifiers entirely without triggering a validation error.
-        return ""
+    def save(self, commit: bool = True):
+        event: models.Event = super().save(commit=False)
+        sport_type: models.SportType = event.sport_type
+        if sport_type:
+            event.measure_unit = sport_type.default_unit
+        if commit:
+            event.save()
+            self.save_m2m()
+        return event
 
     def _normalise_grade(self, grade: str) -> tuple[int, str]:
         digits = "".join(char for char in grade if char.isdigit())

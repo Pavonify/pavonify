@@ -27,22 +27,18 @@ class EventConfigFormTests(TestCase):
             "grade_min": "Year 7",
             "grade_max": "Year 7",
             "gender_limit": models.Event.GenderLimit.MIXED,
-            "measure_unit": self.sport_type.default_unit,
             "capacity": self.sport_type.default_capacity,
             "attempts": self.sport_type.default_attempts,
-            "rounds_total": 1,
         }
 
-    def test_invalid_knockout_pattern_is_ignored(self) -> None:
-        """Submitting a malformed qualifier pattern should not block the form."""
+    def test_measure_unit_is_set_from_sport_type(self) -> None:
+        """The form automatically sets the measure unit based on the sport."""
 
-        form = forms.EventConfigForm(
-            data={
-                **self._base_form_data(),
-                "knockout_qualifiers": "not a valid qualifier",
-            }
-        )
+        form = forms.EventConfigForm(data=self._base_form_data())
 
         self.assertTrue(form.is_valid())
-        self.assertEqual(form.cleaned_data["knockout_qualifiers"], "")
+
+        event = form.save(commit=False)
+
+        self.assertEqual(event.measure_unit, self.sport_type.default_unit)
 
