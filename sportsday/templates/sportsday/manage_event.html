@@ -66,7 +66,18 @@
     {% endif %}
 
     {% if lock_reason %}
-        <div class="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">{{ lock_reason }}</div>
+        <div class="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <p class="m-0">{{ lock_reason }}</p>
+                {% if can_unlock %}
+                    <form method="post" action="{% url 'sportsday:event-toggle-lock' event.pk %}" class="flex items-center gap-2">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="unlock">
+                        <button type="submit" class="inline-flex items-center gap-2 rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-sky-500 hover:text-sky-700">Unlock event</button>
+                    </form>
+                {% endif %}
+            </div>
+        </div>
     {% endif %}
 
     <form method="post" class="space-y-6" data-manage-form data-mode="{{ mode }}" data-can-edit="{{ can_edit|yesno:'true,false' }}" data-field-type="{% if mode == 'field' %}{% if event.sport_type.archetype == 'FIELD_DISTANCE' %}distance{% else %}count{% endif %}{% endif %}" data-allow-time="{{ allow_time_input|yesno:'true,false' }}">
