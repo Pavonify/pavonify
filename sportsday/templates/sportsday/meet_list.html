@@ -21,7 +21,7 @@
                 <a href="{% url 'sportsday:students' meet.slug %}" role="button" class="secondary">Students</a>
             </div>
             <div class="actions">
-                <a href="{% url 'sportsday:students-upload' %}?meet={{ meet.slug }}" role="button" class="secondary">Upload roster</a>
+                <a href="{% url 'sportsday:students_upload' meet.slug %}" role="button" class="secondary">Upload roster</a>
                 <a href="{% url 'sportsday:meet_edit' meet.slug %}" role="button" class="contrast">Edit</a>
             </div>
         </article>
