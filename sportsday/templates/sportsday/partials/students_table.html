@@ -1,36 +1,71 @@
 <div id="students-table" hx-target="this" hx-swap="outerHTML">
-    <div class="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-900/60">
-        <table class="min-w-full divide-y divide-slate-800 text-left text-sm">
-            <thead class="text-xs uppercase tracking-widest text-slate-400">
+    <div class="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <table class="min-w-full divide-y divide-slate-200 text-left text-sm text-slate-700">
+            <thead class="bg-slate-50 text-xs uppercase tracking-widest text-slate-500">
                 <tr>
                     <th class="px-4 py-3">Student</th>
                     <th class="px-4 py-3">Grade</th>
                     <th class="px-4 py-3">House</th>
                     <th class="px-4 py-3">Status</th>
                     <th class="px-4 py-3 text-right">Events tally</th>
+                    <th class="px-4 py-3 text-right">Actions</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-slate-800 text-slate-200">
+            <tbody class="divide-y divide-slate-200">
                 {% for student in students %}
                     <tr>
                         <td class="px-4 py-3">
-                            <div class="font-medium text-slate-100">{{ student.first_name }} {{ student.last_name }}</div>
-                            <div class="text-xs text-slate-400">DOB {{ student.dob|date:"M j, Y" }}</div>
+                            <div class="font-semibold text-slate-900">{{ student.first_name }} {{ student.last_name }}</div>
+                            <div class="text-xs text-slate-500">DOB {{ student.dob|date:"M j, Y" }}</div>
                         </td>
-                        <td class="px-4 py-3">{{ student.grade }}</td>
-                        <td class="px-4 py-3">{{ student.house }}</td>
+                        <td class="px-4 py-3 font-medium text-slate-700">{{ student.grade }}</td>
+                        <td class="px-4 py-3 font-medium text-slate-700">{{ student.house }}</td>
                         <td class="px-4 py-3">
                             {% if student.is_active %}
-                                <span class="inline-flex items-center gap-1 rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-medium text-emerald-300">Active</span>
+                                <span class="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-3 py-1 text-xs font-medium text-emerald-700">Active</span>
                             {% else %}
-                                <span class="inline-flex items-center gap-1 rounded-full bg-slate-700/60 px-3 py-1 text-xs font-medium text-slate-300">Inactive</span>
+                                <span class="inline-flex items-center gap-1 rounded-full bg-slate-200 px-3 py-1 text-xs font-medium text-slate-600">Inactive</span>
                             {% endif %}
                         </td>
-                        <td class="px-4 py-3 text-right text-lg font-semibold text-sky-300">{{ student.events_tally }}</td>
+                        <td class="px-4 py-3 text-right text-lg font-semibold text-sky-600">{{ student.events_tally }}</td>
+                        <td class="px-4 py-3">
+                            <div class="flex items-center justify-end gap-2">
+                                {% with filters.query_string as filter_query %}
+                                    <a href="{% url 'sportsday:student-edit' student.pk %}{% if filter_query %}?{{ filter_query }}{% endif %}"
+                                       class="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 shadow-sm transition hover:border-sky-400 hover:text-sky-700"
+                                       aria-label="Edit {{ student.first_name }} {{ student.last_name }}">
+                                        Edit
+                                    </a>
+                                {% endwith %}
+                                <form method="post"
+                                      action="{% url 'sportsday:student-delete' student.pk %}"
+                                      class="inline"
+                                      hx-post="{% url 'sportsday:student-delete' student.pk %}"
+                                      hx-target="#students-table"
+                                      hx-swap="outerHTML"
+                                      hx-confirm="Delete {{ student.first_name }} {{ student.last_name }}?">
+                                    {% csrf_token %}
+                                    {% if filters.meet %}
+                                        <input type="hidden" name="meet" value="{{ filters.meet }}">
+                                    {% endif %}
+                                    {% if filters.house %}
+                                        <input type="hidden" name="house" value="{{ filters.house }}">
+                                    {% endif %}
+                                    {% if filters.query %}
+                                        <input type="hidden" name="q" value="{{ filters.query }}">
+                                    {% endif %}
+                                    <button type="submit"
+                                            class="inline-flex items-center gap-1 rounded-full border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-medium text-rose-600 shadow-sm transition hover:border-rose-300 hover:bg-rose-100"
+                                            aria-label="Delete {{ student.first_name }} {{ student.last_name }}">
+                                        Delete
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
                     </tr>
                 {% empty %}
                     <tr>
-                        <td colspan="5" class="px-4 py-6 text-center text-slate-400">No students found for this view yet.</td>
+                        <td colspan="6" class="px-4 py-6 text-center text-slate-500">No students found for this view yet.</td>
                     </tr>
                 {% endfor %}
             </tbody>

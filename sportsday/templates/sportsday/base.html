@@ -24,33 +24,82 @@
         }
     </script>
     <style>
+        :root {
+            --sd-bg: #f4f7fb;
+            --sd-surface: #ffffff;
+            --sd-surface-muted: #f1f5f9;
+            --sd-border: #d6e3f3;
+            --sd-text: #0f172a;
+            --sd-text-muted: #475569;
+        }
         body.sunlight-theme {
-            background: #f8fafc;
-            color: #0f172a;
+            background: var(--sd-bg);
+            color: var(--sd-text);
         }
         .sunlight-theme .bg-slate-900,
+        .sunlight-theme .bg-slate-900\/40,
         .sunlight-theme .bg-slate-900\/60,
         .sunlight-theme .bg-slate-900\/70,
-        .sunlight-theme .bg-slate-900\/40,
+        .sunlight-theme .bg-slate-800,
+        .sunlight-theme .bg-slate-800\/40,
+        .sunlight-theme .bg-slate-800\/60,
+        .sunlight-theme .bg-slate-950\/40,
         .sunlight-theme .bg-slate-950\/60,
         .sunlight-theme .bg-slate-950\/70,
-        .sunlight-theme .bg-slate-950\/40 {
-            background-color: rgba(255, 255, 255, 0.95) !important;
-        }
-        .sunlight-theme .border-slate-800,
-        .sunlight-theme .border-slate-700 {
-            border-color: rgba(15, 23, 42, 0.25) !important;
-        }
-        .sunlight-theme .text-slate-400,
-        .sunlight-theme .text-slate-300 {
-            color: #0f172a !important;
-        }
+        .sunlight-theme .bg-slate-700,
+        .sunlight-theme .bg-slate-700\/40,
+        .sunlight-theme .bg-slate-700\/60,
+        .sunlight-theme .bg-dusk,
         .sunlight-theme .bg-dusk\/80,
         .sunlight-theme .bg-dusk\/95 {
-            background-color: rgba(255, 255, 255, 0.88) !important;
+            background-color: var(--sd-surface) !important;
+        }
+        .sunlight-theme .border-slate-800,
+        .sunlight-theme .border-slate-700,
+        .sunlight-theme .border-slate-600 {
+            border-color: var(--sd-border) !important;
+        }
+        .sunlight-theme .divide-slate-800,
+        .sunlight-theme .divide-slate-700 {
+            --tw-divide-color: var(--sd-border) !important;
+        }
+        .sunlight-theme .text-slate-100,
+        .sunlight-theme .text-slate-200,
+        .sunlight-theme .text-slate-300,
+        .sunlight-theme .text-slate-400 {
+            color: var(--sd-text) !important;
+        }
+        .sunlight-theme .text-slate-500,
+        .sunlight-theme .text-slate-600 {
+            color: var(--sd-text-muted) !important;
+        }
+        .sunlight-theme .text-sky-200,
+        .sunlight-theme .text-sky-300 {
+            color: #0369a1 !important;
         }
         .sunlight-theme .shadow-slate-900\/40 {
-            box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12) !important;
+            box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12) !important;
+        }
+        .sunlight-theme input,
+        .sunlight-theme select,
+        .sunlight-theme textarea {
+            background-color: var(--sd-surface) !important;
+            color: var(--sd-text) !important;
+            border-color: var(--sd-border) !important;
+        }
+        .sunlight-theme input:focus,
+        .sunlight-theme select:focus,
+        .sunlight-theme textarea:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.2);
+            border-color: #0ea5e9 !important;
+        }
+        .sunlight-theme input::placeholder,
+        .sunlight-theme textarea::placeholder {
+            color: #94a3b8 !important;
+        }
+        .sunlight-theme .bg-slate-900\/80 {
+            background-color: var(--sd-surface-muted) !important;
         }
     </style>
     {% block extra_head %}{% endblock %}
