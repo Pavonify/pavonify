@@ -82,7 +82,7 @@
                                     <div class="flex items-center justify-end gap-3">
                                         <a href="{% url 'sportsday:event-update' event.pk %}" class="text-slate-300 hover:text-sky-200">Edit</a>
                                         <a href="{% url 'sportsday:event-participants' event.pk %}" class="text-slate-300 hover:text-sky-200">Participants</a>
-                                        <a href="{% url 'sportsday:manage-event' event.pk %}" class="text-slate-300 hover:text-sky-200">Manage</a>
+                                        <a href="{% url 'sportsday:event-detail' event.pk %}" class="text-slate-300 hover:text-sky-200">Manage</a>
                                         <form method="post" action="{% url 'sportsday:event-delete' event.pk %}" class="inline" onsubmit="return confirm('Delete {{ event.name }}?')">
                                             {% csrf_token %}
                                             <button type="submit" class="text-rose-300 hover:text-rose-200">Delete</button>
