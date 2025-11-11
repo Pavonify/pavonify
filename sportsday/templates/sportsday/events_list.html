@@ -31,7 +31,16 @@
                 {% endfor %}
             </select>
         </label>
-        <label class="space-y-1 text-xs uppercase tracking-widest text-slate-500 sm:col-span-3">
+        <label class="space-y-1 text-xs uppercase tracking-widest text-slate-500">
+            Marshall/Teacher
+            <select name="teacher" class="w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-200">
+                <option value="">All marshalls</option>
+                {% for teacher in teacher_options %}
+                    <option value="{{ teacher.pk }}" {% if teacher.pk|stringformat:"s" == request.GET.teacher %}selected{% endif %}>{{ teacher }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label class="space-y-1 text-xs uppercase tracking-widest text-slate-500 sm:col-span-2">
             Search
             <input type="search" name="q" value="{{ request.GET.q }}" placeholder="Search by name, grade, or sport" class="w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-200" />
         </label>
@@ -49,6 +58,7 @@
                         <th class="px-4 py-3">Event</th>
                         <th class="px-4 py-3">Division</th>
                         <th class="px-4 py-3">Sport</th>
+                        <th class="px-4 py-3">Teacher in charge</th>
                         <th class="px-4 py-3">Time</th>
                         <th class="px-4 py-3 text-center">Capacity</th>
                         <th class="px-4 py-3 text-center">Entries</th>
@@ -62,12 +72,22 @@
                             <tr>
                                 <td class="px-4 py-3">
                                     <div class="font-semibold text-slate-100">{{ event.name }}</div>
-                                    {% with teachers=event.assigned_teachers.all %}
-                                        <div class="text-xs text-slate-400">Teachers: {% if teachers %}{{ teachers|join:", " }}{% else %}Unassigned{% endif %}</div>
-                                    {% endwith %}
                                 </td>
                                 <td class="px-4 py-3">{{ event.grade_min }}{% if event.grade_min != event.grade_max %}–{{ event.grade_max }}{% endif %} · {{ event.get_gender_limit_display }}</td>
                                 <td class="px-4 py-3">{{ event.sport_type.label }}</td>
+                                <td class="px-4 py-3">
+                                    {% with teachers=event.assigned_teachers.all %}
+                                        {% if teachers %}
+                                            <div class="space-y-1">
+                                                {% for teacher in teachers %}
+                                                    <div>{{ teacher }}</div>
+                                                {% endfor %}
+                                            </div>
+                                        {% else %}
+                                            <span class="text-slate-500">Unassigned</span>
+                                        {% endif %}
+                                    {% endwith %}
+                                </td>
                                 <td class="px-4 py-3">{% if event.schedule_dt %}{{ event.schedule_dt|date:"M j · H:i" }}{% else %}<span class="text-slate-500">Unscheduled</span>{% endif %}</td>
                                 <td class="px-4 py-3 text-center">{{ event.capacity }}</td>
                                 <td class="px-4 py-3 text-center">{{ event.entries_total }}</td>
@@ -82,7 +102,7 @@
                                     <div class="flex items-center justify-end gap-3">
                                         <a href="{% url 'sportsday:event-update' event.pk %}" class="text-slate-300 hover:text-sky-200">Edit</a>
                                         <a href="{% url 'sportsday:event-participants' event.pk %}" class="text-slate-300 hover:text-sky-200">Participants</a>
-                                        <a href="{% url 'sportsday:manage-event' event.pk %}" class="text-slate-300 hover:text-sky-200">Manage</a>
+                                        <a href="{% url 'sportsday:manage-event' event.pk %}" class="text-slate-300 hover:text-sky-200">Results</a>
                                         <form method="post" action="{% url 'sportsday:event-delete' event.pk %}" class="inline" onsubmit="return confirm('Delete {{ event.name }}?')">
                                             {% csrf_token %}
                                             <button type="submit" class="text-rose-300 hover:text-rose-200">Delete</button>
@@ -92,12 +112,12 @@
                             </tr>
                         {% empty %}
                             <tr>
-                                <td colspan="8" class="px-4 py-6 text-center text-slate-400">No events match the current filters.</td>
+                                <td colspan="9" class="px-4 py-6 text-center text-slate-400">No events match the current filters.</td>
                             </tr>
                         {% endfor %}
                     {% else %}
                         <tr>
-                            <td colspan="8" class="px-4 py-6 text-center text-slate-400">Select a meet to see its events.</td>
+                            <td colspan="9" class="px-4 py-6 text-center text-slate-400">Select a meet to see its events.</td>
                         </tr>
                     {% endif %}
                 </tbody>

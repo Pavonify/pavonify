@@ -1542,6 +1542,7 @@ def event_list(request: HttpRequest) -> HttpResponse:
     """List events for a meet with management shortcuts."""
 
     meet_options = models.Meet.objects.order_by("name")
+    teacher_options = models.Teacher.objects.order_by("last_name", "first_name")
     meet_slug = request.GET.get("meet")
     if not meet_slug and meet_options.exists():
         meet_slug = meet_options.first().slug
@@ -1549,6 +1550,7 @@ def event_list(request: HttpRequest) -> HttpResponse:
 
     events = models.Event.objects.none()
     query = request.GET.get("q")
+    teacher_filter = request.GET.get("teacher")
     if active_meet:
         events = (
             models.Event.objects.filter(meet=active_meet)
@@ -1564,6 +1566,8 @@ def event_list(request: HttpRequest) -> HttpResponse:
                 | Q(grade_min__icontains=query)
                 | Q(grade_max__icontains=query)
             )
+        if teacher_filter:
+            events = events.filter(assigned_teachers__pk=teacher_filter)
         if not request.user.is_staff:
             teacher = _teacher_for_user(request.user)
             if teacher:
@@ -1583,6 +1587,7 @@ def event_list(request: HttpRequest) -> HttpResponse:
         "events": events,
         "meet_options": meet_options,
         "active_meet": active_meet,
+        "teacher_options": teacher_options,
         "mobile_nav": mobile_nav,
         "mobile_nav_active": mobile_nav_active,
     }
