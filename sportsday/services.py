@@ -417,33 +417,21 @@ def scoring_rule_for_meet(meet: models.Meet) -> models.ScoringRule | SimpleNames
     )
 
 
-def _parse_points_csv(points_csv: str) -> list[Decimal]:
-    values: list[Decimal] = []
-    for part in points_csv.split(","):
-        chunk = part.strip()
-        if not chunk:
-            continue
-        try:
-            values.append(Decimal(chunk))
-        except InvalidOperation:
-            values.append(Decimal("0"))
-    return values
+def _inverse_points_for_position(participant_count: int, position: int) -> Decimal:
+    """Return the inverse placing points for a participant position."""
 
-
-def _points_for_position(schedule: list[Decimal], position: int) -> Decimal:
     if position <= 0:
         return Decimal("0")
-    index = position - 1
-    if index >= len(schedule):
+    points = participant_count - position + 1
+    if points <= 0:
         return Decimal("0")
-    return schedule[index]
+    return Decimal(points)
 
 
 def compute_scoring_records(meet: models.Meet) -> list[ScoringRecord]:
     """Return scoring records for finalized results in the meet."""
 
     rule = scoring_rule_for_meet(meet)
-    schedule = _parse_points_csv(rule.points_csv)
     participation_value = getattr(rule, "participation_point", Decimal("0")) or Decimal("0")
     participation_value = Decimal(participation_value)
 
@@ -476,6 +464,10 @@ def compute_scoring_records(meet: models.Meet) -> list[ScoringRecord]:
 
     records: list[ScoringRecord] = []
     for event_id, event_records in per_event.items():
+        participant_count = sum(1 for record in event_records if record.rank is not None)
+        if participant_count <= 0:
+            records.extend(event_records)
+            continue
         by_rank: dict[int, list[ScoringRecord]] = defaultdict(list)
         for record in event_records:
             if record.rank is None:
@@ -490,10 +482,10 @@ def compute_scoring_records(meet: models.Meet) -> list[ScoringRecord]:
             if getattr(rule, "tie_method", models.ScoringRule.TieMethod.SHARE) == models.ScoringRule.TieMethod.SHARE:
                 total_points = Decimal("0")
                 for offset in range(tie_count):
-                    total_points += _points_for_position(schedule, rank + offset)
+                    total_points += _inverse_points_for_position(participant_count, rank + offset)
                 award = total_points / tie_count if tie_count else Decimal("0")
             else:
-                award = _points_for_position(schedule, rank)
+                award = _inverse_points_for_position(participant_count, rank)
             award = award.quantize(Decimal("0.01")) if award % 1 else award
             for record in cohort:
                 object.__setattr__(record, "points", award)
