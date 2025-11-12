@@ -5,6 +5,7 @@
     <meta charset="utf-8">
     <title>{% block title %}Sports Day{% endblock %}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://fonts.cdnfonts.com/css/gotham">
     <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     <script src="https://unpkg.com/htmx.org/dist/ext/sortable.js"></script>
@@ -13,10 +14,10 @@
             theme: {
                 extend: {
                     colors: {
-                        midnight: '#0f172a',
+                        midnight: '#001844',
                         dusk: '#1e293b',
                         dawn: '#f8fafc',
-                        ink: '#0f172a',
+                        ink: '#000000',
                         sky: '#0369a1',
                     }
                 }
@@ -29,12 +30,27 @@
             --sd-surface: #ffffff;
             --sd-surface-muted: #f1f5f9;
             --sd-border: #d6e3f3;
-            --sd-text: #0f172a;
+            --sd-heading: #001844;
+            --sd-text: #000000;
             --sd-text-muted: #475569;
+        }
+        body,
+        .sunlight-theme {
+            font-family: 'Gotham Book', 'Gotham', 'Helvetica Neue', Arial, sans-serif;
         }
         body.sunlight-theme {
             background: var(--sd-bg);
             color: var(--sd-text);
+        }
+        h1,
+        h2,
+        h3,
+        h4,
+        h5,
+        h6 {
+            font-family: 'Gotham', 'Gotham Bold', 'Gotham Medium', 'Gotham Book', sans-serif;
+            color: var(--sd-heading);
+            letter-spacing: 0.01em;
         }
         .sunlight-theme .bg-slate-900,
         .sunlight-theme .bg-slate-900\/40,
@@ -67,7 +83,7 @@
         .sunlight-theme .text-slate-200,
         .sunlight-theme .text-slate-300,
         .sunlight-theme .text-slate-400 {
-            color: var(--sd-text) !important;
+            color: var(--sd-heading) !important;
         }
         .sunlight-theme .text-slate-500,
         .sunlight-theme .text-slate-600 {
