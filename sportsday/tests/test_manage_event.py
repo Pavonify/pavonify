@@ -152,7 +152,7 @@ class ManageEventViewTests(TestCase):
         self.assertEqual(entry_three.status, models.Entry.Status.DQ)
 
     @override_settings(STATICFILES_STORAGE="django.contrib.staticfiles.storage.StaticFilesStorage")
-    def test_permissions_allow_any_authenticated_user(self):
+    def test_permissions_allow_public_access(self):
         event = models.Event.objects.create(
             meet=self.meet,
             sport_type=self.track_type,
@@ -166,31 +166,8 @@ class ManageEventViewTests(TestCase):
         student = self._create_student()
         entry = models.Entry.objects.create(event=event, student=student)
 
-        teacher = models.Teacher.objects.create(
-            first_name="Morgan",
-            last_name="Patel",
-            email="teacher@example.com",
-        )
-        event.assigned_teachers.add(teacher)
-
-        assigned_user = get_user_model().objects.create_user(
-            username="teacher-user",
-            email="teacher@example.com",
-            password="testpass",
-        )
-        self.client.logout()
-        self.client.force_login(assigned_user)
         url = reverse("sportsday:manage-event", args=[event.pk])
-        response = self.client.post(url, {f"rank[{entry.pk}]": "1"})
-        self.assertEqual(response.status_code, 302)
-
-        other_user = get_user_model().objects.create_user(
-            username="unauthorised",
-            email="other@example.com",
-            password="testpass",
-        )
         self.client.logout()
-        self.client.force_login(other_user)
         response = self.client.post(url, {f"rank[{entry.pk}]": "1"})
         self.assertEqual(response.status_code, 302)
 

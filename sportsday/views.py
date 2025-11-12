@@ -11,17 +11,10 @@ from typing import Iterable
 from urllib.parse import urlencode
 
 from django.contrib import messages
-from django.contrib.admin.views.decorators import staff_member_required
-from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import Count, Max, Min, Prefetch, Q
-from django.http import (
-    HttpRequest,
-    HttpResponse,
-    HttpResponseBadRequest,
-    HttpResponseForbidden,
-)
+from django.http import HttpRequest, HttpResponse, HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_POST
@@ -1079,7 +1072,6 @@ def meet_toggle_lock(request: HttpRequest, slug: str) -> HttpResponse:
     return redirect(redirect_url)
 
 
-@login_required
 @require_POST
 def meet_delete(request: HttpRequest, slug: str) -> HttpResponse:
     """Delete a meet and tidy related session state."""
@@ -1091,7 +1083,6 @@ def meet_delete(request: HttpRequest, slug: str) -> HttpResponse:
     return redirect("sportsday:meet-list")
 
 
-@login_required
 def events_generate(request: HttpRequest, slug: str) -> HttpResponse:
     """Bulk generate events for a meet using grade/gender divisions."""
 
@@ -1128,7 +1119,6 @@ def events_generate(request: HttpRequest, slug: str) -> HttpResponse:
     return render(request, "sportsday/events_generate.html", context)
 
 
-@staff_member_required
 def entries_bulk(request: HttpRequest, slug: str) -> HttpResponse:
     """Bulk assign entries to events within a meet."""
 
@@ -1414,7 +1404,6 @@ def students_table_fragment(request: HttpRequest) -> HttpResponse:
     )
 
 
-@staff_member_required
 def student_edit(request: HttpRequest, student_id: int) -> HttpResponse:
     """Edit an existing student record."""
 
@@ -1452,7 +1441,6 @@ def student_edit(request: HttpRequest, student_id: int) -> HttpResponse:
     return render(request, "sportsday/student_form.html", context)
 
 
-@staff_member_required
 @require_POST
 def student_delete(request: HttpRequest, student_id: int) -> HttpResponse:
     """Remove a student and refresh the table when requested via HTMX."""
@@ -1495,7 +1483,6 @@ def teachers_table_fragment(request: HttpRequest) -> HttpResponse:
     return render(request, "sportsday/partials/teachers_table.html", {"teachers": teachers})
 
 
-@login_required
 def sport_type_admin(request: HttpRequest) -> HttpResponse:
     """Simple management console for sport types."""
 
@@ -1540,13 +1527,9 @@ def sport_type_admin(request: HttpRequest) -> HttpResponse:
 
 
 def _user_can_quick_edit(user) -> bool:
-    """Return True if the user should see and use quick edit."""
+    """Quick edit is available to all visitors."""
 
-    if not getattr(user, "is_authenticated", False):
-        return False
-    if getattr(user, "is_staff", False):
-        return True
-    return user.has_perm("sportsday.change_event")
+    return True
 
 
 def event_list(request: HttpRequest) -> HttpResponse:
@@ -1977,7 +1960,6 @@ def events_table_fragment(request: HttpRequest) -> HttpResponse:
     return render(request, "sportsday/partials/events_table.html", {"events": events})
 
 
-@login_required
 def manage_event(request: HttpRequest, event_id: int) -> HttpResponse:
     """Unified results entry screen for track and field events."""
 
@@ -2000,11 +1982,7 @@ def manage_event(request: HttpRequest, event_id: int) -> HttpResponse:
     attempt_range = list(range(1, attempt_count + 1))
 
     lock_reason = _event_lock_reason(event)
-    assigned_teacher_ids = set(event.assigned_teachers.values_list("pk", flat=True))
-    can_post = getattr(request.user, "is_authenticated", False)
-    teacher = _teacher_for_user(request.user)
-    if teacher and teacher.pk in assigned_teacher_ids:
-        can_post = True
+    can_post = True
 
     def _build_context(rows: list[dict[str, object]], errors: list[str] | None = None) -> dict[str, object]:
         return {
@@ -2023,8 +2001,6 @@ def manage_event(request: HttpRequest, event_id: int) -> HttpResponse:
         }
 
     if request.method == "POST":
-        if not can_post:
-            return HttpResponseForbidden("You do not have permission to update this event.")
         if lock_reason:
             messages.error(request, lock_reason)
             return redirect(reverse("sportsday:manage-event", kwargs={"event_id": event.pk}))
