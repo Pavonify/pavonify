@@ -7,7 +7,8 @@
                     <th class="px-4 py-3">Grade</th>
                     <th class="px-4 py-3">House</th>
                     <th class="px-4 py-3">Status</th>
-                    <th class="px-4 py-3 text-right">Events tally</th>
+                    <th class="px-4 py-3 text-right">Track events</th>
+                    <th class="px-4 py-3 text-right">Field events</th>
                     <th class="px-4 py-3 text-right">Actions</th>
                 </tr>
             </thead>
@@ -27,7 +28,12 @@
                                 <span class="inline-flex items-center gap-1 rounded-full bg-slate-200 px-3 py-1 text-xs font-medium text-slate-600">Inactive</span>
                             {% endif %}
                         </td>
-                        <td class="px-4 py-3 text-right text-lg font-semibold text-sky-600">{{ student.events_tally }}</td>
+                        <td class="px-4 py-3 text-right text-lg font-semibold {% if student.track_events_tally > 2 %}text-rose-600{% else %}text-sky-600{% endif %}">
+                            {{ student.track_events_tally }}
+                        </td>
+                        <td class="px-4 py-3 text-right text-lg font-semibold {% if student.field_events_tally > 2 %}text-rose-600{% else %}text-sky-600{% endif %}">
+                            {{ student.field_events_tally }}
+                        </td>
                         <td class="px-4 py-3">
                             <div class="flex items-center justify-end gap-2">
                                 {% with filters.query_string as filter_query %}
@@ -65,7 +71,7 @@
                     </tr>
                 {% empty %}
                     <tr>
-                        <td colspan="6" class="px-4 py-6 text-center text-slate-500">No students found for this view yet.</td>
+                        <td colspan="7" class="px-4 py-6 text-center text-slate-500">No students found for this view yet.</td>
                     </tr>
                 {% endfor %}
             </tbody>
