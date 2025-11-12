@@ -17,8 +17,9 @@ from django.db.models import Count, Max, Min, Prefetch, Q
 from django.http import HttpRequest, HttpResponse, HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
-from django.views.decorators.http import require_POST
 from django.utils import timezone
+from django.utils.http import url_has_allowed_host_and_scheme
+from django.views.decorators.http import require_POST
 
 from . import forms, models, qr, services
 
@@ -2137,7 +2138,21 @@ def event_toggle_lock(request: HttpRequest, pk: int) -> HttpResponse:
         return HttpResponseBadRequest("Unlock the meet before changing event locks.")
     event.is_locked = action != "unlock"
     event.save(update_fields=["is_locked"])
-    redirect_url = reverse("sportsday:event-detail", kwargs={"pk": pk})
+
+    default_redirect = reverse("sportsday:manage-event", kwargs={"event_id": event.pk})
+    if request.headers.get("HX-Request"):
+        default_redirect = reverse("sportsday:event-detail", kwargs={"pk": event.pk})
+
+    next_url = request.POST.get("next")
+    if next_url and url_has_allowed_host_and_scheme(
+        next_url,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        redirect_url = next_url
+    else:
+        redirect_url = default_redirect
+
     if request.headers.get("HX-Request"):
         response = HttpResponse(status=204)
         response["HX-Redirect"] = redirect_url

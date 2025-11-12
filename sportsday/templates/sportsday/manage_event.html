@@ -49,7 +49,7 @@
         <div class="flex flex-wrap items-center gap-2 text-sm">
             <button type="button" class="inline-flex items-center gap-2 rounded-full border border-slate-300 px-4 py-2 text-slate-700 transition hover:border-sky-500 hover:text-sky-700" data-toggle-contrast>High contrast</button>
             <a href="{% url 'sportsday:events' %}?meet={{ event.meet.slug }}" class="inline-flex items-center gap-2 rounded-full border border-slate-300 px-4 py-2 text-slate-700 transition hover:border-sky-500 hover:text-sky-700">Back to events</a>
-            <a href="{% url 'sportsday:event-detail' event.pk %}" class="inline-flex items-center gap-2 rounded-full border border-sky-500 px-4 py-2 font-semibold text-slate-900 shadow-lg shadow-sky-500/40 transition hover:bg-sky-400">Event overview</a>
+            <a href="{% url 'sportsday:event-participants' event.pk %}" class="inline-flex items-center gap-2 rounded-full border border-sky-500 px-4 py-2 font-semibold text-slate-900 shadow-lg shadow-sky-500/40 transition hover:bg-sky-400">Assign participants</a>
             <a href="{% url 'sportsday:event-start-list-printable' event.pk %}" class="inline-flex items-center gap-2 rounded-full border border-slate-300 px-4 py-2 text-slate-700 transition hover:border-sky-500 hover:text-sky-700">Print start list</a>
         </div>
     </div>
@@ -72,6 +72,7 @@
                 {% if can_unlock %}
                     <form method="post" action="{% url 'sportsday:event-toggle-lock' event.pk %}" class="flex items-center gap-2">
                         {% csrf_token %}
+                        <input type="hidden" name="next" value="{% url 'sportsday:manage-event' event.pk %}">
                         <input type="hidden" name="action" value="unlock">
                         <button type="submit" class="inline-flex items-center gap-2 rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-sky-500 hover:text-sky-700">Unlock event</button>
                     </form>
