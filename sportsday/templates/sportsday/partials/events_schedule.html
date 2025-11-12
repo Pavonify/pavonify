@@ -17,7 +17,7 @@
                             <th class="px-3 py-2">Gender</th>
                             <th class="px-3 py-2">Capacity</th>
                             <th class="px-3 py-2">Status</th>
-                            <th class="px-3 py-2 text-right">Actions</th>
+                            <th class="px-3 py-2 text-right">Manage</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-800 text-slate-200">
@@ -38,7 +38,7 @@
                                     {% endif %}
                                 </td>
                                 <td class="px-3 py-3 text-right">
-                                    <a href="{% url 'sportsday:event-detail' event.pk %}" class="text-sky-300 hover:text-sky-200">Open</a>
+                                    <a href="{% url 'sportsday:manage-event' event.pk %}" class="text-sky-300 hover:text-sky-200">Results</a>
                                 </td>
                             </tr>
                         {% endfor %}
