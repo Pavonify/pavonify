@@ -104,6 +104,7 @@
                                 <th class="px-3 py-3">DQ</th>
                                 <th class="px-3 py-3">DNS</th>
                                 {% if allow_time_input %}<th class="px-3 py-3">Optional time</th>{% endif %}
+                                <th class="px-3 py-3">Replace</th>
                             </tr>
                         </thead>
                         <tbody class="text-sm">
@@ -134,10 +135,13 @@
                                             <input type="text" name="time[{{ row.entry_id }}]" value="{{ row.time_input }}" placeholder="mm:ss.SSS" class="w-36 rounded-lg border border-slate-300 px-3 py-2 text-base text-slate-800 shadow-sm focus:border-sky-500 focus:outline-none focus:ring" data-time-input {% if row.dq or row.dns or not can_edit %}disabled{% endif %}>
                                         </td>
                                     {% endif %}
+                                    <td class="px-3 py-3 align-middle">
+                                        {% include "sportsday/partials/manage_event_replacement.html" with row=row can_edit=can_edit %}
+                                    </td>
                                 </tr>
                             {% empty %}
                                 <tr>
-                                    <td colspan="{% if allow_time_input %}6{% else %}5{% endif %}" class="px-3 py-6 text-center text-sm text-slate-500">No entries yet. Add students via the start list first.</td>
+                                    <td colspan="{% if allow_time_input %}7{% else %}6{% endif %}" class="px-3 py-6 text-center text-sm text-slate-500">No entries yet. Add students via the start list first.</td>
                                 </tr>
                             {% endfor %}
                         </tbody>
@@ -165,6 +169,7 @@
                                 <th class="px-3 py-3 text-center">Pos</th>
                                 <th class="px-3 py-3 text-center">DQ</th>
                                 <th class="px-3 py-3 text-center">DNS</th>
+                                <th class="px-3 py-3 text-center">Replace</th>
                             </tr>
                         </thead>
                         <tbody class="text-sm">
@@ -204,10 +209,13 @@
                                             <input type="checkbox" name="dns[{{ row.entry_id }}]" class="h-4 w-4 rounded border-slate-300 text-amber-500 focus:ring-amber-500" data-dns {% if row.dns %}checked{% endif %} {% if not can_edit %}disabled{% endif %}>
                                         </label>
                                     </td>
+                                    <td class="px-3 py-3 text-center align-middle">
+                                        {% include "sportsday/partials/manage_event_replacement.html" with row=row can_edit=can_edit %}
+                                    </td>
                                 </tr>
                             {% empty %}
                                 <tr>
-                                    <td colspan="{{ attempt_range|length|add:'6' }}" class="px-3 py-6 text-center text-sm text-slate-500">No entries yet. Add students via the start list first.</td>
+                                    <td colspan="{{ attempt_range|length|add:'7' }}" class="px-3 py-6 text-center text-sm text-slate-500">No entries yet. Add students via the start list first.</td>
                                 </tr>
                             {% endfor %}
                         </tbody>
@@ -451,6 +459,96 @@
                 idx += group.length;
             }
         };
+
+        let activeReplacementRoot = null;
+
+        const closeReplacementPanel = (root) => {
+            if (!root) {
+                return;
+            }
+            const panel = root.querySelector('[data-replace-panel]');
+            if (panel) {
+                panel.classList.add('hidden');
+            }
+            const entryInput = root.querySelector('[data-replace-entry]');
+            if (entryInput) {
+                entryInput.disabled = true;
+            }
+            const select = root.querySelector('[data-replace-select]');
+            if (select) {
+                select.disabled = true;
+                select.required = false;
+            }
+            const submit = root.querySelector('[data-replace-submit]');
+            if (submit) {
+                submit.disabled = true;
+            }
+            const toggle = root.querySelector('[data-toggle-replace]');
+            if (toggle) {
+                toggle.setAttribute('aria-expanded', 'false');
+            }
+            if (activeReplacementRoot === root) {
+                activeReplacementRoot = null;
+            }
+        };
+
+        const openReplacementPanel = (root) => {
+            if (!root) {
+                return;
+            }
+            if (activeReplacementRoot && activeReplacementRoot !== root) {
+                closeReplacementPanel(activeReplacementRoot);
+            }
+            const panel = root.querySelector('[data-replace-panel]');
+            if (panel) {
+                panel.classList.remove('hidden');
+            }
+            const entryInput = root.querySelector('[data-replace-entry]');
+            if (entryInput) {
+                entryInput.disabled = false;
+            }
+            const select = root.querySelector('[data-replace-select]');
+            if (select) {
+                select.disabled = false;
+                select.required = true;
+                select.focus();
+            }
+            const submit = root.querySelector('[data-replace-submit]');
+            if (submit) {
+                submit.disabled = false;
+            }
+            const toggle = root.querySelector('[data-toggle-replace]');
+            if (toggle) {
+                toggle.setAttribute('aria-expanded', 'true');
+            }
+            activeReplacementRoot = root;
+        };
+
+        const replacementRoots = Array.from(document.querySelectorAll('[data-replace-root]'));
+        replacementRoots.forEach((root) => {
+            const toggle = root.querySelector('[data-toggle-replace]');
+            if (toggle) {
+                toggle.addEventListener('click', (event) => {
+                    if (toggle.disabled) {
+                        event.preventDefault();
+                        return;
+                    }
+                    event.preventDefault();
+                    if (activeReplacementRoot === root) {
+                        closeReplacementPanel(root);
+                    } else {
+                        openReplacementPanel(root);
+                    }
+                });
+            }
+            const cancel = root.querySelector('[data-cancel-replace]');
+            if (cancel) {
+                cancel.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    closeReplacementPanel(root);
+                });
+            }
+        });
 
         if (mode === 'field') {
             const fieldRows = Array.from(document.querySelectorAll('[data-field-row]'));

@@ -155,6 +155,84 @@ def _format_decimal_input(value: Decimal | None) -> str:
     return text
 
 
+def _annotate_replacement_options(
+    rows: list[dict[str, object]],
+    event: models.Event,
+) -> None:
+    """Attach eligible replacement student options to each row."""
+
+    if not rows:
+        return
+
+    combos: set[tuple[str, str]] = set()
+    for row in rows:
+        student = row.get("student")
+        if not isinstance(student, models.Student):
+            row["replacement_choices"] = []
+            continue
+        house = (student.house or "").strip()
+        gender = (student.gender or "").strip()
+        combos.add((house, gender))
+
+    if not combos:
+        for row in rows:
+            row["replacement_choices"] = []
+        return
+
+    candidate_filter: Q | None = None
+    for house, gender in combos:
+        clause = Q()
+        if house:
+            clause &= Q(house=house)
+        else:
+            clause &= (Q(house__isnull=True) | Q(house=""))
+        if gender:
+            clause &= Q(gender=gender)
+        else:
+            clause &= (Q(gender__isnull=True) | Q(gender=""))
+        candidate_filter = clause if candidate_filter is None else candidate_filter | clause
+
+    candidates = models.Student.objects.filter(is_active=True)
+    if candidate_filter is not None:
+        candidates = candidates.filter(candidate_filter)
+    candidates = candidates.order_by("last_name", "first_name")
+
+    event_student_ids: set[int] = set()
+    for row in rows:
+        entry = row.get("entry")
+        if isinstance(entry, models.Entry) and entry.student_id is not None:
+            event_student_ids.add(entry.student_id)
+
+    mapping: dict[tuple[str, str], list[dict[str, object]]] = {
+        combo: [] for combo in combos
+    }
+    for student in candidates:
+        if not event.grade_allows(student.grade):
+            continue
+        combo = ((student.house or "").strip(), (student.gender or "").strip())
+        if combo not in mapping:
+            continue
+        if student.pk in event_student_ids:
+            continue
+        grade = (student.grade or "").strip()
+        label_grade = f"Grade {grade}" if grade else "Grade —"
+        mapping[combo].append(
+            {
+                "id": student.pk,
+                "label": f"{student.first_name} {student.last_name} – {label_grade}",
+            }
+        )
+
+    for row in rows:
+        student = row.get("student")
+        if not isinstance(student, models.Student):
+            row["replacement_choices"] = []
+            continue
+        combo = ((student.house or "").strip(), (student.gender or "").strip())
+        choices = mapping.get(combo, [])
+        row["replacement_choices"] = choices
+
+
 def _track_rows_from_db(entries: list[models.Entry], *, allow_time: bool) -> list[dict[str, object]]:
     """Prepare track-row dictionaries from persisted data."""
 
@@ -1986,6 +2064,8 @@ def manage_event(request: HttpRequest, event_id: int) -> HttpResponse:
         .order_by("student__last_name", "student__first_name")
     )
 
+    manage_url = reverse("sportsday:manage-event", kwargs={"event_id": event.pk})
+
     archetype = event.sport_type.archetype
     mode = "track" if archetype.startswith("TRACK") or archetype == models.SportType.Archetype.RANK_ONLY else "field"
     allow_time_input = archetype == models.SportType.Archetype.TRACK_TIME
@@ -2013,9 +2093,110 @@ def manage_event(request: HttpRequest, event_id: int) -> HttpResponse:
         }
 
     if request.method == "POST":
+        action = request.POST.get("action", "save")
+        if action == "replace":
+            if lock_reason:
+                messages.error(request, lock_reason)
+                return redirect(manage_url)
+            entry_id_raw = (request.POST.get("entry_id") or "").strip()
+            student_id_raw = (request.POST.get("replacement_student") or "").strip()
+            try:
+                entry_id = int(entry_id_raw)
+            except (TypeError, ValueError):
+                messages.error(request, "Select a participant to replace.")
+                return redirect(manage_url)
+            if not student_id_raw:
+                messages.error(request, "Choose a replacement student before saving.")
+                return redirect(manage_url)
+            try:
+                replacement_id = int(student_id_raw)
+            except (TypeError, ValueError):
+                messages.error(request, "Select a valid replacement student.")
+                return redirect(manage_url)
+            try:
+                entry = event.entries.select_related("student").get(pk=entry_id)
+            except models.Entry.DoesNotExist:
+                messages.error(request, "Entry could not be found for this event.")
+                return redirect(manage_url)
+            old_student = entry.student
+            try:
+                replacement = models.Student.objects.get(pk=replacement_id)
+            except models.Student.DoesNotExist:
+                messages.error(request, "Replacement student could not be found.")
+                return redirect(manage_url)
+
+            if replacement.pk == old_student.pk:
+                messages.info(request, "The selected student is already assigned to this entry.")
+                return redirect(manage_url)
+
+            if not replacement.is_active:
+                messages.error(request, "Inactive students cannot be assigned to events.")
+                return redirect(manage_url)
+
+            original_house = (old_student.house or "").strip()
+            original_gender = (old_student.gender or "").strip()
+            if (replacement.house or "").strip() != original_house:
+                messages.error(
+                    request,
+                    "Replacement students must belong to the same house as the original participant.",
+                )
+                return redirect(manage_url)
+            if (replacement.gender or "").strip() != original_gender:
+                messages.error(
+                    request,
+                    "Replacement students must match the original participant's gender.",
+                )
+                return redirect(manage_url)
+
+            if not event.grade_allows(replacement.grade):
+                messages.error(
+                    request,
+                    "Replacement students must fall within the event's allowed grade range.",
+                )
+                return redirect(manage_url)
+            if not event.gender_allows(replacement.gender):
+                messages.error(request, "Replacement student does not meet the event's gender rules.")
+                return redirect(manage_url)
+
+            if (
+                event.entries.exclude(pk=entry.pk)
+                .filter(student_id=replacement.pk)
+                .exists()
+            ):
+                messages.error(request, "That student already has an entry in this event.")
+                return redirect(manage_url)
+
+            previous_status = entry.status
+            try:
+                with transaction.atomic():
+                    entry.student = replacement
+                    entry.status = models.Entry.Status.CONFIRMED
+                    entry.save(update_fields=["student", "status"])
+                    models.Attempt.objects.filter(entry=entry).delete()
+                    models.Result.objects.filter(entry=entry).delete()
+            except ValidationError as exc:
+                entry.student = old_student
+                entry.status = previous_status
+                message_dict = getattr(exc, "message_dict", {})
+                error_messages: list[str] = []
+                for messages_list in message_dict.values():
+                    error_messages.extend(messages_list)
+                deduped_messages = list(dict.fromkeys(error_messages))
+                messages.error(
+                    request,
+                    " ".join(deduped_messages) or str(exc),
+                )
+                return redirect(manage_url)
+
+            messages.success(
+                request,
+                f"Replaced {old_student} with {replacement}.",
+            )
+            return redirect(manage_url)
+
         if lock_reason:
             messages.error(request, lock_reason)
-            return redirect(reverse("sportsday:manage-event", kwargs={"event_id": event.pk}))
+            return redirect(manage_url)
         if mode == "track":
             rows, errors = _track_rows_from_post(entries, request.POST, allow_time=allow_time_input)
         else:
@@ -2025,6 +2206,7 @@ def manage_event(request: HttpRequest, event_id: int) -> HttpResponse:
                 attempt_count=attempt_count,
                 archetype=archetype,
             )
+        _annotate_replacement_options(rows, event)
         if errors:
             for message_text in errors:
                 messages.error(request, message_text)
@@ -2102,12 +2284,13 @@ def manage_event(request: HttpRequest, event_id: int) -> HttpResponse:
             messages.success(request, "Event marked complete.")
         else:
             messages.success(request, "Results saved.")
-        return redirect(reverse("sportsday:manage-event", kwargs={"event_id": event.pk}))
+        return redirect(manage_url)
 
     if mode == "track":
         rows = _track_rows_from_db(entries, allow_time=allow_time_input)
     else:
         rows = _field_rows_from_db(entries, attempt_count=attempt_count, archetype=archetype)
+    _annotate_replacement_options(rows, event)
 
     context = _build_context(rows)
     return render(request, "sportsday/manage_event.html", context)
