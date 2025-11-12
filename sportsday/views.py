@@ -485,8 +485,19 @@ def _students_queryset(filters: dict[str, str | None]):
             | Q(last_name__icontains=query)
             | Q(grade__icontains=query)
         )
+    track_filter = tally_filter & Q(
+        entries__event__sport_type__archetype__startswith="TRACK"
+    )
+    field_filter = tally_filter & Q(
+        entries__event__sport_type__archetype__startswith="FIELD"
+    )
+
     return (
-        students.annotate(events_tally=Count("entries", filter=tally_filter, distinct=True))
+        students.annotate(
+            events_tally=Count("entries", filter=tally_filter, distinct=True),
+            track_events_tally=Count("entries", filter=track_filter, distinct=True),
+            field_events_tally=Count("entries", filter=field_filter, distinct=True),
+        )
         .order_by("last_name", "first_name")
         .distinct()
     )
