@@ -1,0 +1,21 @@
+{% if row.replacement_choices %}
+    <div class="space-y-2" data-replace-root>
+        <button type="button" class="text-xs font-semibold text-sky-700 hover:text-sky-900 disabled:text-slate-400" data-toggle-replace {% if not can_edit %}disabled{% endif %} aria-expanded="false">Replace</button>
+        <div class="space-y-2 rounded-lg border border-slate-200 bg-white p-3 shadow-sm hidden" data-replace-panel>
+            <input type="hidden" name="entry_id" value="{{ row.entry_id }}" data-replace-entry disabled>
+            <label for="replacement-{{ row.entry_id }}" class="text-xs font-medium text-slate-600">Replacement student</label>
+            <select id="replacement-{{ row.entry_id }}" name="replacement_student" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-800 shadow-sm focus:border-sky-500 focus:outline-none focus:ring" data-replace-select disabled>
+                <option value="">Select student…</option>
+                {% for choice in row.replacement_choices %}
+                    <option value="{{ choice.id }}">{{ choice.label }}</option>
+                {% endfor %}
+            </select>
+            <div class="flex items-center gap-2">
+                <button type="submit" name="action" value="replace" class="inline-flex items-center gap-2 rounded-full border border-emerald-500 bg-emerald-500 px-4 py-1.5 text-xs font-semibold text-emerald-950 transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:border-slate-300 disabled:bg-slate-200 disabled:text-slate-500" data-replace-submit disabled>Save</button>
+                <button type="button" class="text-xs font-medium text-slate-500 hover:text-slate-700" data-cancel-replace>Cancel</button>
+            </div>
+        </div>
+    </div>
+{% else %}
+    <span class="text-xs text-slate-400">No replacements</span>
+{% endif %}
