@@ -1888,7 +1888,10 @@ def event_delete(request: HttpRequest, pk: int) -> HttpResponse:
 
     event_name = event.name
     meet_slug = event.meet.slug
-    event.delete()
+    with transaction.atomic():
+        models.Result.objects.filter(entry__event=event).delete()
+        event.entries.all().delete()
+        event.delete()
     messages.success(request, f"Deleted event {event_name}.")
     return redirect(f"{reverse('sportsday:events')}?meet={meet_slug}")
 

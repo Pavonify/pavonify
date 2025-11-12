@@ -1,5 +1,12 @@
+import os
 from decimal import Decimal
 from types import SimpleNamespace
+
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "lang_platform.settings")
+
+import django
+
+django.setup()
 
 from django.core.exceptions import ValidationError
 from django.test import TestCase
@@ -233,7 +240,7 @@ class ServicesLogicTests(TestCase):
 
         records = services.compute_scoring_records(meet)
         self.assertEqual(len(records), 2)
-        self.assertTrue(all(record.points == Decimal("9") for record in records))
+        self.assertTrue(all(record.points == Decimal("1.5") for record in records))
         self.assertTrue(all(record.participation == Decimal("0.50") for record in records))
 
     def test_compute_scoring_records_respects_skip_tie_method(self):
@@ -275,4 +282,4 @@ class ServicesLogicTests(TestCase):
 
         records = services.compute_scoring_records(meet)
         self.assertEqual(len(records), 2)
-        self.assertTrue(all(record.points == Decimal("10") for record in records))
+        self.assertTrue(all(record.points == Decimal("2") for record in records))

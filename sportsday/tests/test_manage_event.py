@@ -1,10 +1,17 @@
+import os
 from decimal import Decimal
+
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "lang_platform.settings")
+
+import django
+
+django.setup()
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
-from sportsday import models
+from sportsday import models, services
 
 
 class ManageEventViewTests(TestCase):
@@ -216,3 +223,44 @@ class ManageEventViewTests(TestCase):
 
         post_response = self.client.post(url, {f"rank[{entry.pk}]": "1"})
         self.assertEqual(post_response.status_code, 302)
+
+    def test_event_delete_clears_entries_and_scoring(self):
+        event = models.Event.objects.create(
+            meet=self.meet,
+            sport_type=self.track_type,
+            name="Relay",
+            grade_min="6",
+            grade_max="6",
+            gender_limit=models.Event.GenderLimit.MIXED,
+            measure_unit=self.track_type.default_unit,
+            capacity=8,
+        )
+        participants = [
+            self._create_student("Alex", "Morgan"),
+            self._create_student("Billie", "Chan", "Gold"),
+            self._create_student("Casey", "Diaz", "Green"),
+        ]
+        entries = [
+            models.Entry.objects.create(event=event, student=student, round_no=1, heat=1)
+            for student in participants
+        ]
+        for index, entry in enumerate(entries, start=1):
+            models.Result.objects.create(
+                entry=entry,
+                rank=index,
+                best_value=Decimal("12.000"),
+                finalized=True,
+            )
+
+        initial_records = services.compute_scoring_records(self.meet)
+        self.assertEqual(len(initial_records), 3)
+
+        event_id = event.pk
+        response = self.client.post(reverse("sportsday:event-delete", args=[event_id]))
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(models.Event.objects.filter(pk=event_id).exists())
+        self.assertFalse(models.Entry.objects.filter(event_id=event_id).exists())
+        self.assertFalse(models.Result.objects.filter(entry__event_id=event_id).exists())
+
+        remaining_records = services.compute_scoring_records(self.meet)
+        self.assertEqual(len(remaining_records), 0)
