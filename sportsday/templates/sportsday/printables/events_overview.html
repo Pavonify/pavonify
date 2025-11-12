@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>{{ meet.name }} · Event directory</title>
+    <style>
+        @import url('https://fonts.cdnfonts.com/css/gotham');
+        @page {
+            size: A4 portrait;
+            margin: 15mm;
+        }
+        body {
+            font-family: 'Gotham Book', 'Gotham', 'Helvetica Neue', Arial, sans-serif;
+            color: #0f172a;
+            background: #ffffff;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        h1, h2, h3 {
+            margin: 0;
+            font-family: 'Gotham', 'Gotham Bold', 'Gotham Medium', sans-serif;
+            color: #0f172a;
+            letter-spacing: 0.01em;
+        }
+        h1 {
+            font-size: 26px;
+            margin-bottom: 2mm;
+        }
+        h2 {
+            font-size: 18px;
+        }
+        .meet-meta {
+            color: #475569;
+            font-size: 12px;
+            margin-bottom: 10mm;
+        }
+        .event-block {
+            page-break-inside: avoid;
+            margin-bottom: 14mm;
+            border-bottom: 1px solid #cbd5f5;
+            padding-bottom: 10mm;
+        }
+        .event-meta {
+            font-size: 12px;
+            color: #475569;
+            margin-top: 1.5mm;
+        }
+        .teachers {
+            font-size: 12px;
+            margin-top: 2mm;
+            color: #0f172a;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 6mm;
+            font-size: 12px;
+        }
+        th, td {
+            border: 1px solid #cbd5f5;
+            padding: 6px 8px;
+            text-align: left;
+        }
+        th {
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-size: 11px;
+            background: #e0f2fe;
+        }
+        .empty {
+            font-style: italic;
+            color: #64748b;
+            margin-top: 4mm;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>{{ meet.name }}</h1>
+        <div class="meet-meta">
+            {{ meet.date|date:"F j, Y" }}{% if meet.location %} · {{ meet.location }}{% endif %}
+        </div>
+    </header>
+
+    {% for item in events_payload %}
+        <section class="event-block">
+            <h2>{{ item.event.name }}</h2>
+            <div class="event-meta">
+                {{ item.event.division_label }} · {{ item.event.sport_type.label }}{% if item.event.schedule_dt %} · {{ item.event.schedule_dt|date:"H:i" }}{% endif %}{% if item.event.location %} · {{ item.event.location }}{% endif %}
+            </div>
+            <div class="teachers">
+                Marshall{% if item.teachers|length != 1 %}s{% endif %}: {% if item.teachers %}{{ item.teachers|join:", " }}{% else %}Unassigned{% endif %}
+            </div>
+
+            {% if item.participants %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th scope="col">Participant</th>
+                            <th scope="col">Grade</th>
+                            <th scope="col">Gender</th>
+                            <th scope="col">House</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for student in item.participants %}
+                            <tr>
+                                <td>{{ student.first_name }} {{ student.last_name }}</td>
+                                <td>{{ student.grade }}</td>
+                                <td>{{ student.gender }}</td>
+                                <td>{{ student.house }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p class="empty">No participants have been assigned to this event yet.</p>
+            {% endif %}
+        </section>
+    {% empty %}
+        <p>No events are scheduled for this meet.</p>
+    {% endfor %}
+</body>
+</html>

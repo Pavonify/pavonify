@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>{{ meet.name }} · Teacher allocations</title>
+    <style>
+        @import url('https://fonts.cdnfonts.com/css/gotham');
+        @page {
+            size: A4 portrait;
+            margin: 15mm;
+        }
+        body {
+            font-family: 'Gotham Book', 'Gotham', 'Helvetica Neue', Arial, sans-serif;
+            color: #0f172a;
+            background: #ffffff;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        h1 {
+            font-family: 'Gotham', 'Gotham Bold', 'Gotham Medium', sans-serif;
+            margin: 0 0 3mm;
+            font-size: 26px;
+        }
+        .meet-meta {
+            color: #475569;
+            font-size: 12px;
+            margin-bottom: 10mm;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+        th, td {
+            border: 1px solid #cbd5f5;
+            padding: 6px 8px;
+            text-align: left;
+        }
+        th {
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-size: 11px;
+            background: #e0f2fe;
+        }
+        tbody tr:nth-child(even) {
+            background: #f8fafc;
+        }
+        .url {
+            font-family: 'Gotham Book', 'Helvetica Neue', Arial, sans-serif;
+            font-size: 11px;
+            color: #1d4ed8;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>{{ meet.name }} · Teacher allocations</h1>
+        <div class="meet-meta">
+            {{ meet.date|date:"F j, Y" }}{% if meet.location %} · {{ meet.location }}{% endif %}
+        </div>
+    </header>
+
+    <table>
+        <thead>
+            <tr>
+                <th scope="col">Event</th>
+                <th scope="col">Teacher</th>
+                <th scope="col">Results link</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in allocations %}
+                <tr>
+                    <td>{{ item.event.name }}</td>
+                    <td>{% if item.teacher %}{{ item.teacher }}{% else %}Unassigned{% endif %}</td>
+                    <td class="url">{{ item.url }}</td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="3">No events are available for this meet.</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

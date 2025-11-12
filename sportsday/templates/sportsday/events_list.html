@@ -17,6 +17,26 @@
                 <a href="{% url 'sportsday:event-create' %}?meet={{ active_meet.slug }}" class="inline-flex items-center gap-2 rounded-full bg-sky-500/10 px-4 py-2 text-sky-200 hover:bg-sky-500/20">Add event</a>
                 <a href="{% url 'sportsday:events-generate' active_meet.slug %}" class="inline-flex items-center gap-2 rounded-full border border-dashed border-sky-500/40 px-4 py-2 text-sky-200 hover:border-sky-500 hover:text-sky-100">Bulk generate</a>
                 <a href="{% url 'sportsday:entries-bulk' active_meet.slug %}" class="inline-flex items-center gap-2 rounded-full border border-dashed border-emerald-500/40 px-4 py-2 text-emerald-200 hover:border-emerald-500 hover:text-emerald-100">Bulk assign entries</a>
+                <form method="get" target="_blank" class="flex items-center gap-2" data-export-form>
+                    <input type="hidden" name="meet" value="{{ active_meet.slug }}" />
+                    <select
+                        data-export-select
+                        class="rounded-full border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-200"
+                    >
+                        <option value="">Export programme…</option>
+                        <option value="{% url 'sportsday:export-events-overview' %}">Event directory</option>
+                        <option value="{% url 'sportsday:export-teacher-allocations' %}">Teacher allocations</option>
+                        <option value="{% url 'sportsday:export-event-schedule' %}">Event schedule</option>
+                    </select>
+                    <button
+                        type="submit"
+                        data-export-submit
+                        class="inline-flex items-center gap-2 rounded-full border border-slate-700 px-4 py-2 text-slate-300 hover:border-sky-500/40 hover:text-sky-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled
+                    >
+                        Go
+                    </button>
+                </form>
             {% endif %}
         </div>
     </div>
@@ -181,6 +201,34 @@
 </section>
 <script>
     document.addEventListener("DOMContentLoaded", () => {
+        const exportForm = document.querySelector("[data-export-form]");
+        if (exportForm) {
+            const select = exportForm.querySelector("[data-export-select]");
+            const submit = exportForm.querySelector("[data-export-submit]");
+            const updateState = () => {
+                if (submit) {
+                    submit.disabled = !(select && select.value);
+                }
+            };
+            updateState();
+            if (select) {
+                select.addEventListener("change", updateState);
+            }
+            exportForm.addEventListener("submit", (event) => {
+                if (!select || !select.value) {
+                    event.preventDefault();
+                    return;
+                }
+                const meetInput = exportForm.querySelector('input[name="meet"]');
+                const targetUrl = new URL(select.value, window.location.origin);
+                const meetValue = meetInput && meetInput.value ? meetInput.value.trim() : "";
+                if (meetValue) {
+                    targetUrl.searchParams.set("meet", meetValue);
+                }
+                exportForm.action = targetUrl.toString();
+            });
+        }
+
         const container = document.querySelector("[data-quick-edit-container]");
         if (!container) {
             return;

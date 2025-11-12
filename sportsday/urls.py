@@ -65,6 +65,13 @@ urlpatterns = [
     path("events/<int:pk>/qr/", views.event_results_qr, name="event-results-qr"),
     path("leaderboards/", views.leaderboards, name="leaderboards"),
     path("leaderboards/panel/", views.leaderboards_panel_fragment, name="leaderboards-panel-fragment"),
+    path("exports/events/overview/", views.export_events_overview, name="export-events-overview"),
+    path(
+        "exports/events/teacher-allocations/",
+        views.export_teacher_allocations,
+        name="export-teacher-allocations",
+    ),
+    path("exports/events/schedule/", views.export_event_schedule, name="export-event-schedule"),
     path("exports/students.csv", views.export_students_csv, name="export-students-csv"),
     path("exports/teachers.csv", views.export_teachers_csv, name="export-teachers-csv"),
     path("exports/startlists.csv", views.export_startlists_csv, name="export-startlists-csv"),

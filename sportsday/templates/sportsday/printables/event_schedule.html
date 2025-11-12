@@ -1,0 +1,123 @@
+{% load tz %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>{{ meet.name }} · Event schedule</title>
+    <style>
+        @import url('https://fonts.cdnfonts.com/css/gotham');
+        @page {
+            size: A4 portrait;
+            margin: 15mm;
+        }
+        body {
+            font-family: 'Gotham Book', 'Gotham', 'Helvetica Neue', Arial, sans-serif;
+            color: #0f172a;
+            background: #ffffff;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        h1 {
+            font-family: 'Gotham', 'Gotham Bold', 'Gotham Medium', sans-serif;
+            margin: 0 0 3mm;
+            font-size: 26px;
+        }
+        .meet-meta {
+            color: #475569;
+            font-size: 12px;
+            margin-bottom: 8mm;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+        th, td {
+            border: 1px solid #cbd5f5;
+            padding: 6px 8px;
+            text-align: left;
+        }
+        th {
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-size: 11px;
+            background: #e0f2fe;
+        }
+        tbody tr:nth-child(even) {
+            background: #f8fafc;
+        }
+        .section-title {
+            margin-top: 12mm;
+            margin-bottom: 2mm;
+            font-size: 16px;
+            font-family: 'Gotham', 'Gotham Bold', 'Gotham Medium', sans-serif;
+        }
+        .empty {
+            font-style: italic;
+            color: #64748b;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>{{ meet.name }} · Event schedule</h1>
+        <div class="meet-meta">
+            {{ meet.date|date:"F j, Y" }}{% if meet.location %} · {{ meet.location }}{% endif %}
+        </div>
+    </header>
+
+    <section>
+        <h2 class="section-title">Timeline</h2>
+        {% if scheduled_events %}
+            <table>
+                <thead>
+                    <tr>
+                        <th scope="col">Time</th>
+                        <th scope="col">Event</th>
+                        <th scope="col">Division</th>
+                        <th scope="col">Location</th>
+                        <th scope="col">Teachers</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in scheduled_events %}
+                        <tr>
+                            <td>{% localtime on %}{{ item.event.schedule_dt|date:"H:i" }}{% endlocaltime %}</td>
+                            <td>{{ item.event.name }}</td>
+                            <td>{{ item.event.division_label }}</td>
+                            <td>{% if item.event.location %}{{ item.event.location }}{% else %}—{% endif %}</td>
+                            <td>{{ item.teachers }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="empty">No schedule has been set for this meet.</p>
+        {% endif %}
+    </section>
+
+    {% if unscheduled_events %}
+        <section>
+            <h2 class="section-title">Unscheduled events</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th scope="col">Event</th>
+                        <th scope="col">Division</th>
+                        <th scope="col">Teachers</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in unscheduled_events %}
+                        <tr>
+                            <td>{{ item.event.name }}</td>
+                            <td>{{ item.event.division_label }}</td>
+                            <td>{{ item.teachers }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+    {% endif %}
+</body>
+</html>
