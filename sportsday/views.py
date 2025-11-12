@@ -25,7 +25,6 @@ from django.http import (
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_POST
-from django.utils import timezone
 
 from . import forms, models, qr, services
 
@@ -1544,15 +1543,10 @@ def event_list(request: HttpRequest) -> HttpResponse:
 
     meet_options = models.Meet.objects.order_by("name")
     teacher_options = models.Teacher.objects.order_by("last_name", "first_name")
-    meet_slug = request.POST.get("meet") if request.method == "POST" else request.GET.get("meet")
+    meet_slug = request.GET.get("meet")
     if not meet_slug and meet_options.exists():
         meet_slug = meet_options.first().slug
     active_meet = models.Meet.objects.filter(slug=meet_slug).first() if meet_slug else None
-
-    if request.method == "POST" and request.POST.get("quick_edit") == "1":
-        redirect_response = _process_quick_edit_form(request, active_meet)
-        if redirect_response is not None:
-            return redirect_response
 
     events = models.Event.objects.none()
     query = request.GET.get("q")
@@ -1599,91 +1593,6 @@ def event_list(request: HttpRequest) -> HttpResponse:
     }
 
     return render(request, "sportsday/events_list.html", context)
-
-
-def _process_quick_edit_form(
-    request: HttpRequest, active_meet: models.Meet | None
-) -> HttpResponse | None:
-    """Handle inline updates from the quick edit table."""
-
-    if not request.user.is_staff:
-        messages.error(request, "You do not have permission to quick edit events.")
-    elif not active_meet:
-        messages.error(request, "Select a meet before using quick edit.")
-    else:
-        updated_count = 0
-        for event_id in request.POST.getlist("event_ids"):
-            try:
-                event = active_meet.events.get(pk=int(event_id))
-            except (ValueError, models.Event.DoesNotExist):
-                continue
-
-            lock_reason = _event_lock_reason(event)
-            if lock_reason:
-                messages.error(request, f"{event.name}: {lock_reason}")
-                continue
-
-            changed = False
-
-            teacher_ids: list[int] = []
-            for value in request.POST.getlist(f"teachers_{event.pk}"):
-                try:
-                    teacher_ids.append(int(value))
-                except (TypeError, ValueError):
-                    continue
-
-            existing_teachers = set(
-                event.assigned_teachers.values_list("pk", flat=True)
-            )
-            if set(teacher_ids) != existing_teachers:
-                event.assigned_teachers.set(teacher_ids)
-                changed = True
-
-            schedule_raw = (request.POST.get(f"schedule_{event.pk}") or "").strip()
-            if schedule_raw:
-                schedule_candidate = schedule_raw.replace("T", " ")
-                try:
-                    parsed_dt = datetime.strptime(schedule_candidate, "%Y-%m-%d %H:%M")
-                except ValueError:
-                    messages.error(
-                        request,
-                        f"{event.name}: Invalid date and time. Use YYYY-MM-DD HH:MM.",
-                    )
-                else:
-                    if timezone.is_naive(parsed_dt):
-                        parsed_dt = timezone.make_aware(
-                            parsed_dt, timezone.get_current_timezone()
-                        )
-                    if event.schedule_dt != parsed_dt:
-                        event.schedule_dt = parsed_dt
-                        event.save(update_fields=["schedule_dt"])
-                        changed = True
-            else:
-                if event.schedule_dt is not None:
-                    event.schedule_dt = None
-                    event.save(update_fields=["schedule_dt"])
-                    changed = True
-
-            if changed:
-                updated_count += 1
-
-        if updated_count:
-            messages.success(
-                request,
-                f"Updated {updated_count} event{'s' if updated_count != 1 else ''}.",
-            )
-
-    params: dict[str, str] = {}
-    for key in ("meet", "q", "teacher"):
-        value = (request.POST.get(key) or "").strip()
-        if value:
-            params[key] = value
-
-    url = reverse("sportsday:events")
-    if params:
-        url = f"{url}?{urlencode(params)}"
-
-    return redirect(url)
 
 
 def event_create(request: HttpRequest) -> HttpResponse:
