@@ -13,7 +13,7 @@ from urllib.parse import urlencode
 from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.db import transaction
-from django.db.models import Count, Max, Min, Prefetch, Q
+from django.db.models import Count, F, Max, Min, Prefetch, Q
 from django.http import Http404, HttpRequest, HttpResponse, HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -25,6 +25,9 @@ from . import forms, models, qr, services
 
 
 LOCKED_STATUS_CODE = 423
+
+
+SCHEDULE_ORDERING = (F("schedule_dt").asc(nulls_last=True), "name")
 
 
 def _event_lock_reason(event: models.Event) -> str | None:
@@ -1034,7 +1037,7 @@ def meet_detail(request: HttpRequest, slug: str) -> HttpResponse:
     """Meet hub with schedule cards and quick links."""
 
     meet = get_object_or_404(models.Meet.objects.prefetch_related("events", "events__assigned_teachers"), slug=slug)
-    highlight_event = meet.events.order_by("schedule_dt", "name").first()
+    highlight_event = meet.events.order_by(*SCHEDULE_ORDERING).first()
     mobile_nav, mobile_nav_active = _build_meet_mobile_nav(meet, active="start")
     entries_total = models.Entry.objects.filter(event__meet=meet).count()
     students_total = meet.participating_students().count()
@@ -1058,7 +1061,7 @@ def meet_schedule_fragment(request: HttpRequest, slug: str) -> HttpResponse:
     """HTMX fragment summarising the meet schedule."""
 
     meet = get_object_or_404(models.Meet.objects.prefetch_related("events", "events__assigned_teachers"), slug=slug)
-    events = list(meet.events.select_related("sport_type").order_by("schedule_dt", "name"))
+    events = list(meet.events.select_related("sport_type").order_by(*SCHEDULE_ORDERING))
     teachers_assigned = models.Teacher.objects.filter(events__meet=meet).distinct().count()
 
     def bucket(event: models.Event) -> str:
@@ -1121,7 +1124,7 @@ def meet_people_fragment(request: HttpRequest, slug: str) -> HttpResponse:
     )
     teacher_assignments = []
     for teacher in teachers:
-        events = list(teacher.events.filter(meet=meet).order_by("schedule_dt", "name"))
+        events = list(teacher.events.filter(meet=meet).order_by(*SCHEDULE_ORDERING))
         if events:
             label = ", ".join(e.name for e in events[:3])
             if len(events) > 3:
@@ -1655,7 +1658,7 @@ def event_list(request: HttpRequest) -> HttpResponse:
             .select_related("sport_type", "meet")
             .prefetch_related("assigned_teachers")
             .annotate(entries_total=Count("entries", distinct=True))
-            .order_by("schedule_dt", "name")
+            .order_by(*SCHEDULE_ORDERING)
         )
         if query:
             events = events.filter(
@@ -2058,7 +2061,7 @@ def events_table_fragment(request: HttpRequest) -> HttpResponse:
     events = models.Event.objects.select_related("sport_type", "meet")
     if meet_slug:
         events = events.filter(meet__slug=meet_slug)
-    events = events.order_by("schedule_dt", "name")[:10]
+    events = events.order_by(*SCHEDULE_ORDERING)[:10]
     return render(request, "sportsday/partials/events_table.html", {"events": events})
 
 
@@ -3056,7 +3059,7 @@ def export_events_overview(request: HttpRequest) -> HttpResponse:
     events = (
         meet.events.select_related("sport_type")
         .prefetch_related("assigned_teachers", entries_prefetch)
-        .order_by("schedule_dt", "name")
+        .order_by(*SCHEDULE_ORDERING)
     )
 
     payload: list[dict[str, object]] = []
@@ -3088,7 +3091,7 @@ def export_teacher_allocations(request: HttpRequest) -> HttpResponse:
     events = (
         meet.events.select_related("sport_type")
         .prefetch_related("assigned_teachers")
-        .order_by("schedule_dt", "name")
+        .order_by(*SCHEDULE_ORDERING)
     )
 
     allocations: list[dict[str, object]] = []
@@ -3114,7 +3117,7 @@ def export_event_schedule(request: HttpRequest) -> HttpResponse:
     events = (
         meet.events.select_related("sport_type")
         .prefetch_related("assigned_teachers")
-        .order_by("schedule_dt", "name")
+        .order_by(*SCHEDULE_ORDERING)
     )
 
     scheduled: list[dict[str, object]] = []
