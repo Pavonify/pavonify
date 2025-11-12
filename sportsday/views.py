@@ -14,7 +14,7 @@ from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import Count, Max, Min, Prefetch, Q
-from django.http import HttpRequest, HttpResponse, HttpResponseBadRequest
+from django.http import Http404, HttpRequest, HttpResponse, HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -1622,6 +1622,15 @@ def _user_can_quick_edit(user) -> bool:
     return True
 
 
+def _meet_from_request(request: HttpRequest) -> models.Meet:
+    """Return the meet referenced by the current request."""
+
+    slug = (request.GET.get("meet") or "").strip()
+    if not slug:
+        raise Http404("Meet not specified.")
+    return get_object_or_404(models.Meet, slug=slug)
+
+
 def event_list(request: HttpRequest) -> HttpResponse:
     """List events for a meet with management shortcuts."""
 
@@ -3029,6 +3038,104 @@ def event_start_list_autoseed(request: HttpRequest, pk: int) -> HttpResponse:
         search_query=search_query,
         locked_reason=_event_lock_reason(event),
     )
+
+
+def export_events_overview(request: HttpRequest) -> HttpResponse:
+    """Printable directory containing each event with assigned marshals."""
+
+    meet = _meet_from_request(request)
+    entries_prefetch = Prefetch(
+        "entries",
+        queryset=(
+            models.Entry.objects.filter(round_no=1)
+            .select_related("student")
+            .order_by("student__last_name", "student__first_name", "pk")
+        ),
+        to_attr="export_entries",
+    )
+    events = (
+        meet.events.select_related("sport_type")
+        .prefetch_related("assigned_teachers", entries_prefetch)
+        .order_by("schedule_dt", "name")
+    )
+
+    payload: list[dict[str, object]] = []
+    for event in events:
+        teachers = list(event.assigned_teachers.all())
+        participants: list[models.Student] = []
+        seen: set[int] = set()
+        for entry in getattr(event, "export_entries", []):
+            if entry.student_id in seen or entry.student is None:
+                continue
+            seen.add(entry.student_id)
+            participants.append(entry.student)
+        payload.append(
+            {
+                "event": event,
+                "teachers": teachers,
+                "participants": participants,
+            }
+        )
+
+    context = {"meet": meet, "events_payload": payload}
+    return render(request, "sportsday/printables/events_overview.html", context)
+
+
+def export_teacher_allocations(request: HttpRequest) -> HttpResponse:
+    """Printable teacher allocation list for the selected meet."""
+
+    meet = _meet_from_request(request)
+    events = (
+        meet.events.select_related("sport_type")
+        .prefetch_related("assigned_teachers")
+        .order_by("schedule_dt", "name")
+    )
+
+    allocations: list[dict[str, object]] = []
+    for event in events:
+        event_url = request.build_absolute_uri(
+            reverse("sportsday:manage-event", kwargs={"event_id": event.pk})
+        )
+        teachers = list(event.assigned_teachers.all())
+        if teachers:
+            for teacher in teachers:
+                allocations.append({"event": event, "teacher": teacher, "url": event_url})
+        else:
+            allocations.append({"event": event, "teacher": None, "url": event_url})
+
+    context = {"meet": meet, "allocations": allocations}
+    return render(request, "sportsday/printables/teacher_allocations.html", context)
+
+
+def export_event_schedule(request: HttpRequest) -> HttpResponse:
+    """Printable day schedule ordered by event time."""
+
+    meet = _meet_from_request(request)
+    events = (
+        meet.events.select_related("sport_type")
+        .prefetch_related("assigned_teachers")
+        .order_by("schedule_dt", "name")
+    )
+
+    scheduled: list[dict[str, object]] = []
+    unscheduled: list[dict[str, object]] = []
+    for event in events:
+        teachers = ", ".join(str(teacher) for teacher in event.assigned_teachers.all()) or "Unassigned"
+        item = {
+            "event": event,
+            "teachers": teachers,
+        }
+        if event.schedule_dt:
+            scheduled.append(item)
+        else:
+            unscheduled.append(item)
+
+    context = {
+        "meet": meet,
+        "scheduled_events": scheduled,
+        "unscheduled_events": unscheduled,
+    }
+    return render(request, "sportsday/printables/event_schedule.html", context)
 
 
 def export_students_csv(request: HttpRequest) -> HttpResponse:
