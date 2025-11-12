@@ -2,170 +2,233 @@
 <!DOCTYPE html>
 <html lang="en" class="h-full">
 <head>
-    <meta charset="utf-8">
-    <title>{% block title %}Sports Day{% endblock %}</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href="https://fonts.cdnfonts.com/css/gotham">
-    <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
-    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
-    <script src="https://unpkg.com/htmx.org/dist/ext/sortable.js"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        midnight: '#001844',
-                        dusk: '#1e293b',
-                        dawn: '#f8fafc',
-                        ink: '#000000',
-                        sky: '#0369a1',
-                    }
-                }
-            }
+  <meta charset="utf-8">
+  <title>{% block title %}Sports Day{% endblock %}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- Preconnect for faster font loading -->
+  <link rel="preconnect" href="https://fonts.cdnfonts.com" crossorigin>
+
+  <!-- Explicit, upright Gotham faces (Book normal + Book Italic).
+       Add Medium/Bold below if you decide to use them. -->
+  <style>
+    @font-face{
+      font-family: 'Gotham';
+      src: url('https://fonts.cdnfonts.com/s/14898/Gotham-Book.woff2') format('woff2'),
+           url('https://fonts.cdnfonts.com/s/14898/Gotham-Book.woff') format('woff');
+      font-weight: 400;
+      font-style: normal;
+      font-display: swap;
+    }
+    @font-face{
+      font-family: 'Gotham';
+      src: url('https://fonts.cdnfonts.com/s/14898/Gotham-BookItalic.woff2') format('woff2'),
+           url('https://fonts.cdnfonts.com/s/14898/Gotham-BookItalic.woff') format('woff');
+      font-weight: 400;
+      font-style: italic;
+      font-display: swap;
+    }
+  </style>
+
+  <!-- Tailwind (CDN for now; use CLI/PostCSS in production) -->
+  <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+
+  <!-- HTMX + sortable extension -->
+  <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+  <script src="https://unpkg.com/htmx.org/dist/ext/sortable.js"></script>
+
+  <!-- Tailwind config -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            midnight: '#001844',
+            dusk: '#1e293b',
+            dawn: '#f8fafc',
+            ink: '#000000',
+            sky: '#0369a1',
+          }
         }
-    </script>
-    <style>
-        :root {
-            --sd-bg: #f4f7fb;
-            --sd-surface: #ffffff;
-            --sd-surface-muted: #f1f5f9;
-            --sd-border: #d6e3f3;
-            --sd-heading: #001844;
-            --sd-text: #000000;
-            --sd-text-muted: #475569;
-        }
-        body,
-        .sunlight-theme {
-            font-family: 'Gotham Book', 'Gotham', 'Helvetica Neue', Arial, sans-serif;
-            font-style: normal;
-        }
-        body.sunlight-theme {
-            background: var(--sd-bg);
-            color: var(--sd-text);
-        }
-        h1,
-        h2,
-        h3,
-        h4,
-        h5,
-        h6 {
-            font-family: 'Gotham', 'Gotham Bold', 'Gotham Medium', 'Gotham Book', sans-serif;
-            color: var(--sd-heading);
-            letter-spacing: 0.01em;
-            font-style: normal;
-        }
-        .sunlight-theme .bg-slate-900,
-        .sunlight-theme .bg-slate-900\/40,
-        .sunlight-theme .bg-slate-900\/60,
-        .sunlight-theme .bg-slate-900\/70,
-        .sunlight-theme .bg-slate-800,
-        .sunlight-theme .bg-slate-800\/40,
-        .sunlight-theme .bg-slate-800\/60,
-        .sunlight-theme .bg-slate-950\/40,
-        .sunlight-theme .bg-slate-950\/60,
-        .sunlight-theme .bg-slate-950\/70,
-        .sunlight-theme .bg-slate-700,
-        .sunlight-theme .bg-slate-700\/40,
-        .sunlight-theme .bg-slate-700\/60,
-        .sunlight-theme .bg-dusk,
-        .sunlight-theme .bg-dusk\/80,
-        .sunlight-theme .bg-dusk\/95 {
-            background-color: var(--sd-surface) !important;
-        }
-        .sunlight-theme .border-slate-800,
-        .sunlight-theme .border-slate-700,
-        .sunlight-theme .border-slate-600 {
-            border-color: var(--sd-border) !important;
-        }
-        .sunlight-theme .divide-slate-800,
-        .sunlight-theme .divide-slate-700 {
-            --tw-divide-color: var(--sd-border) !important;
-        }
-        .sunlight-theme .text-slate-100,
-        .sunlight-theme .text-slate-200,
-        .sunlight-theme .text-slate-300,
-        .sunlight-theme .text-slate-400 {
-            color: var(--sd-heading) !important;
-        }
-        .sunlight-theme .text-slate-500,
-        .sunlight-theme .text-slate-600 {
-            color: var(--sd-text-muted) !important;
-        }
-        .sunlight-theme .text-sky-200,
-        .sunlight-theme .text-sky-300 {
-            color: #0369a1 !important;
-        }
-        .sunlight-theme .shadow-slate-900\/40 {
-            box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12) !important;
-        }
-        .sunlight-theme input,
-        .sunlight-theme select,
-        .sunlight-theme textarea {
-            background-color: var(--sd-surface) !important;
-            color: var(--sd-text) !important;
-            border-color: var(--sd-border) !important;
-        }
-        .sunlight-theme input:focus,
-        .sunlight-theme select:focus,
-        .sunlight-theme textarea:focus {
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.2);
-            border-color: #0ea5e9 !important;
-        }
-        .sunlight-theme input::placeholder,
-        .sunlight-theme textarea::placeholder {
-            color: #94a3b8 !important;
-        }
-        .sunlight-theme .bg-slate-900\/80 {
-            background-color: var(--sd-surface-muted) !important;
-        }
-    </style>
-    {% block extra_head %}{% endblock %}
+      }
+    }
+  </script>
+
+  <!-- Theme tokens + base typography -->
+  <style>
+    :root {
+      --sd-bg: #f4f7fb;
+      --sd-surface: #ffffff;
+      --sd-surface-muted: #f1f5f9;
+      --sd-border: #d6e3f3;
+      --sd-heading: #001844;
+      --sd-text: #000000;
+      --sd-text-muted: #475569;
+    }
+
+    /* Prevent synthetic italics/weights when a face is missing */
+    html { font-synthesis: none; }
+
+    /* Global font stack with safe fallbacks */
+    body,
+    .sunlight-theme {
+      font-family: 'Gotham', 'Helvetica Neue', Arial, sans-serif;
+      font-style: normal;
+      -webkit-text-size-adjust: 100%;
+    }
+
+    body.sunlight-theme {
+      background: var(--sd-bg);
+      color: var(--sd-text);
+    }
+
+    h1,h2,h3,h4,h5,h6 {
+      font-family: 'Gotham', 'Helvetica Neue', Arial, sans-serif;
+      color: var(--sd-heading);
+      letter-spacing: 0.01em;
+      font-style: normal;
+    }
+
+    /* Sunlight palette overrides for dark-ish Tailwind utility classes */
+    .sunlight-theme .bg-slate-900,
+    .sunlight-theme .bg-slate-900\/40,
+    .sunlight-theme .bg-slate-900\/60,
+    .sunlight-theme .bg-slate-900\/70,
+    .sunlight-theme .bg-slate-800,
+    .sunlight-theme .bg-slate-800\/40,
+    .sunlight-theme .bg-slate-800\/60,
+    .sunlight-theme .bg-slate-950\/40,
+    .sunlight-theme .bg-slate-950\/60,
+    .sunlight-theme .bg-slate-950\/70,
+    .sunlight-theme .bg-slate-700,
+    .sunlight-theme .bg-slate-700\/40,
+    .sunlight-theme .bg-slate-700\/60,
+    .sunlight-theme .bg-dusk,
+    .sunlight-theme .bg-dusk\/80,
+    .sunlight-theme .bg-dusk\/95 { background-color: var(--sd-surface) !important; }
+
+    .sunlight-theme .border-slate-800,
+    .sunlight-theme .border-slate-700,
+    .sunlight-theme .border-slate-600 { border-color: var(--sd-border) !important; }
+
+    .sunlight-theme .divide-slate-800,
+    .sunlight-theme .divide-slate-700 { --tw-divide-color: var(--sd-border) !important; }
+
+    .sunlight-theme .text-slate-100,
+    .sunlight-theme .text-slate-200,
+    .sunlight-theme .text-slate-300,
+    .sunlight-theme .text-slate-400 { color: var(--sd-heading) !important; }
+
+    .sunlight-theme .text-slate-500,
+    .sunlight-theme .text-slate-600 { color: var(--sd-text-muted) !important; }
+
+    .sunlight-theme .text-sky-200,
+    .sunlight-theme .text-sky-300 { color: #0369a1 !important; }
+
+    .sunlight-theme .shadow-slate-900\/40 {
+      box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12) !important;
+    }
+
+    .sunlight-theme input,
+    .sunlight-theme select,
+    .sunlight-theme textarea {
+      background-color: var(--sd-surface) !important;
+      color: var(--sd-text) !important;
+      border-color: var(--sd-border) !important;
+    }
+    .sunlight-theme input:focus,
+    .sunlight-theme select:focus,
+    .sunlight-theme textarea:focus {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.2);
+      border-color: #0ea5e9 !important;
+    }
+    .sunlight-theme input::placeholder,
+    .sunlight-theme textarea::placeholder { color: #94a3b8 !important; }
+
+    .sunlight-theme .bg-slate-900\/80 { background-color: var(--sd-surface-muted) !important; }
+  </style>
+
+  {% block extra_head %}{% endblock %}
 </head>
+
 <body class="sunlight-theme bg-dawn text-ink min-h-full flex flex-col">
-    <header class="bg-white/90 backdrop-blur border-b border-slate-200 sticky top-0 z-30 shadow-sm">
-        <div class="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex flex-wrap items-center justify-between gap-3">
-            <div class="flex items-center gap-3">
-                <img
-                    src="data:image/jpeg;base64,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"
-                    alt="Harrow International Bengaluru logo"
-                    class="h-10 w-10 object-contain"
-                />
-                <div>
-                    <a href="{% url 'sportsday:dashboard' %}" class="text-lg font-semibold tracking-wide text-ink">Harrow Bengaluru Sports Day</a>
-                    {% if active_meet %}
-                        <p class="text-xs text-slate-600">Active meet: {{ active_meet.name }}</p>
-                    {% endif %}
-                </div>
+  <header class="bg-white/90 backdrop-blur border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <img
+          src="{% static 'img/hib-logo.png' %}"
+          alt="Harrow International Bengaluru logo"
+          class="h-10 w-10 object-contain"
+          loading="lazy"
+          decoding="async"
+        />
+        <div>
+          <a href="{% url 'sportsday:dashboard' %}" class="text-lg font-semibold tracking-wide text-ink">
+            Harrow Bengaluru Sports Day
+          </a>
+          {% if active_meet %}
+            <p class="text-xs text-slate-600">Active meet: {{ active_meet.name }}</p>
+          {% endif %}
+        </div>
+      </div>
+
+      {% with url_name=request.resolver_match.url_name %}
+      <nav class="hidden md:flex items-center gap-2 text-sm" aria-label="Primary">
+        <a href="{% url 'sportsday:dashboard' %}"
+           class="px-3 py-2 rounded-md transition {% if url_name == 'dashboard' %}bg-sky/10 text-sky-700 font-semibold{% else %}hover:bg-slate-200{% endif %}"
+           {% if url_name == 'dashboard' %}aria-current="page"{% endif %}>Dashboard</a>
+
+        <a href="{% url 'sportsday:meet-list' %}"
+           class="px-3 py-2 rounded-md transition {% if url_name in 'meet-list,meet-detail,meet-create,meet-update' %}bg-sky/10 text-sky-700 font-semibold{% else %}hover:bg-slate-200{% endif %}"
+           {% if url_name in 'meet-list,meet-detail,meet-create,meet-update' %}aria-current="page"{% endif %}>Meets</a>
+
+        <a href="{% url 'sportsday:students' %}{% if active_meet %}?meet={{ active_meet.slug }}{% endif %}"
+           class="px-3 py-2 rounded-md transition {% if url_name == 'students' %}bg-sky/10 text-sky-700 font-semibold{% else %}hover:bg-slate-200{% endif %}"
+           {% if url_name == 'students' %}aria-current="page"{% endif %}>Students</a>
+
+        <a href="{% url 'sportsday:teachers' %}"
+           class="px-3 py-2 rounded-md transition {% if url_name == 'teachers' %}bg-sky/10 text-sky-700 font-semibold{% else %}hover:bg-slate-200{% endif %}"
+           {% if url_name == 'teachers' %}aria-current="page"{% endif %}>Teachers</a>
+
+        <a href="{% url 'sportsday:sport-types' %}"
+           class="px-3 py-2 rounded-md transition {% if url_name == 'sport-types' %}bg-sky/10 text-sky-700 font-semibold{% else %}hover:bg-slate-200{% endif %}"
+           {% if url_name == 'sport-types' %}aria-current="page"{% endif %}>Sports</a>
+
+        <a href="{% url 'sportsday:events' %}{% if active_meet %}?meet={{ active_meet.slug }}{% endif %}"
+           class="px-3 py-2 rounded-md transition {% if url_name in 'events,event-detail' %}bg-sky/10 text-sky-700 font-semibold{% else %}hover:bg-slate-200{% endif %}"
+           {% if url_name in 'events,event-detail' %}aria-current="page"{% endif %}>Events</a>
+
+        <a href="{% url 'sportsday:leaderboards' %}{% if active_meet %}?meet={{ active_meet.slug }}{% endif %}"
+           class="px-3 py-2 rounded-md transition {% if url_name == 'leaderboards' %}bg-sky/10 text-sky-700 font-semibold{% else %}hover:bg-slate-200{% endif %}"
+           {% if url_name == 'leaderboards' %}aria-current="page"{% endif %}>Leaderboards</a>
+      </nav>
+      {% endwith %}
+    </div>
+  </header>
+
+  <main class="flex-1 w-full">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+      {% if messages %}
+        <div class="space-y-3">
+          {% for message in messages %}
+            <div class="rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm text-ink shadow">
+              {{ message }}
             </div>
-            {% with url_name=request.resolver_match.url_name %}
-                <nav class="hidden md:flex items-center gap-2 text-sm">
-                    <a href="{% url 'sportsday:dashboard' %}" class="px-3 py-2 rounded-md transition {% if url_name == 'dashboard' %}bg-sky/10 text-sky-700 font-semibold{% else %}hover:bg-slate-200{% endif %}">Dashboard</a>
-                    <a href="{% url 'sportsday:meet-list' %}" class="px-3 py-2 rounded-md transition {% if url_name == 'meet-list' or url_name == 'meet-detail' or url_name == 'meet-create' or url_name == 'meet-update' %}bg-sky/10 text-sky-700 font-semibold{% else %}hover:bg-slate-200{% endif %}">Meets</a>
-                    <a href="{% url 'sportsday:students' %}{% if active_meet %}?meet={{ active_meet.slug }}{% endif %}" class="px-3 py-2 rounded-md transition {% if url_name == 'students' %}bg-sky/10 text-sky-700 font-semibold{% else %}hover:bg-slate-200{% endif %}">Students</a>
-                    <a href="{% url 'sportsday:teachers' %}" class="px-3 py-2 rounded-md transition {% if url_name == 'teachers' %}bg-sky/10 text-sky-700 font-semibold{% else %}hover:bg-slate-200{% endif %}">Teachers</a>
-                    <a href="{% url 'sportsday:sport-types' %}" class="px-3 py-2 rounded-md transition {% if url_name == 'sport-types' %}bg-sky/10 text-sky-700 font-semibold{% else %}hover:bg-slate-200{% endif %}">Sports</a>
-                    <a href="{% url 'sportsday:events' %}{% if active_meet %}?meet={{ active_meet.slug }}{% endif %}" class="px-3 py-2 rounded-md transition {% if url_name == 'events' or url_name == 'event-detail' %}bg-sky/10 text-sky-700 font-semibold{% else %}hover:bg-slate-200{% endif %}">Events</a>
-                    <a href="{% url 'sportsday:leaderboards' %}{% if active_meet %}?meet={{ active_meet.slug }}{% endif %}" class="px-3 py-2 rounded-md transition {% if url_name == 'leaderboards' %}bg-sky/10 text-sky-700 font-semibold{% else %}hover:bg-slate-200{% endif %}">Leaderboards</a>
-                </nav>
-            {% endwith %}
+          {% endfor %}
         </div>
-    </header>
-    <main class="flex-1 w-full">
-        <div class="max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-            {% if messages %}
-                <div class="space-y-3">
-                    {% for message in messages %}
-                        <div class="rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm text-ink shadow">{{ message }}</div>
-                    {% endfor %}
-                </div>
-            {% endif %}
-            {% block content %}{% endblock %}
-        </div>
-    </main>
-    {% block mobile_nav %}{% endblock %}
-    <footer class="bg-white border-t border-slate-200">
-        <div class="max-w-6xl mx-auto px-4 sm:px-6 py-4 text-xs text-slate-600">&copy; {% now "Y" %} Pavonify Sports Day</div>
-    </footer>
+      {% endif %}
+
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+
+  {% block mobile_nav %}{% endblock %}
+
+  <footer class="bg-white border-t border-slate-200">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 py-4 text-xs text-slate-600">
+      &copy; {% now "Y" %} Pavonify Sports Day
+    </div>
+  </footer>
 </body>
 </html>
