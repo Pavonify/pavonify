@@ -7,6 +7,7 @@ from typing import Iterable
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
+from django.db.models import F
 
 
 def _grade_key(value: str) -> tuple[int, str]:
@@ -149,7 +150,7 @@ class Event(models.Model):
     is_locked = models.BooleanField(default=False)
 
     class Meta:
-        ordering = ("schedule_dt", "name")
+        ordering = (F("schedule_dt").asc(nulls_last=True), "name")
 
     def __str__(self) -> str:
         return f"{self.meet.name}: {self.name}"
