@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>{{ meet.name }} · Live results ticker</title>
+    <style>
+        @import url('https://fonts.cdnfonts.com/css/gotham');
+        :root {
+            color-scheme: light dark;
+        }
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            margin: 0;
+            font-family: 'Gotham Book', 'Gotham', 'Helvetica Neue', Arial, sans-serif;
+            background: #f1f5f9;
+            color: #0f172a;
+        }
+        a {
+            color: inherit;
+        }
+        .refresh-bar {
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px 24px;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 24px;
+            background: #0f172a;
+            color: #e2e8f0;
+            box-shadow: 0 4px 16px rgba(15, 23, 42, 0.35);
+        }
+        .refresh-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .refresh-group label {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+        .refresh-select {
+            appearance: none;
+            border: 1px solid rgba(148, 163, 184, 0.6);
+            border-radius: 999px;
+            background: rgba(15, 23, 42, 0.65);
+            color: #e2e8f0;
+            padding: 6px 14px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .refresh-button {
+            border: 1px solid rgba(148, 163, 184, 0.6);
+            background: rgba(148, 163, 184, 0.15);
+            color: #e2e8f0;
+            border-radius: 999px;
+            padding: 6px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.2s ease, border-color 0.2s ease;
+        }
+        .refresh-button:hover {
+            background: rgba(148, 163, 184, 0.3);
+            border-color: rgba(226, 232, 240, 0.9);
+        }
+        .refresh-countdown {
+            font-size: 13px;
+            color: rgba(226, 232, 240, 0.85);
+        }
+        .page-container {
+            max-width: 960px;
+            margin: 24px auto 48px;
+            padding: 0 24px 24px;
+        }
+        .page-header {
+            margin-bottom: 24px;
+        }
+        .page-header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-family: 'Gotham', 'Gotham Bold', 'Gotham Medium', sans-serif;
+        }
+        .page-header .meta {
+            margin-top: 6px;
+            font-size: 14px;
+            color: #475569;
+        }
+        .event-block {
+            background: #ffffff;
+            border-radius: 20px;
+            padding: 20px 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+            border: 1px solid rgba(148, 163, 184, 0.25);
+        }
+        .event-block h2 {
+            margin: 0;
+            font-size: 22px;
+            font-family: 'Gotham', 'Gotham Medium', sans-serif;
+        }
+        .event-meta,
+        .event-teachers {
+            margin-top: 8px;
+            font-size: 14px;
+            color: #475569;
+        }
+        .event-meta span {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .event-meta strong {
+            font-family: 'Gotham', 'Gotham Medium', sans-serif;
+            color: #0f172a;
+            font-weight: 600;
+        }
+        .event-meta span + span {
+            margin-left: 12px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 16px;
+            font-size: 14px;
+        }
+        th,
+        td {
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            padding: 10px 12px;
+            text-align: left;
+        }
+        th {
+            background: #e0f2fe;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-size: 12px;
+            color: #0f172a;
+        }
+        tbody tr:nth-child(odd) {
+            background: rgba(241, 245, 249, 0.4);
+        }
+        .empty {
+            margin-top: 16px;
+            font-style: italic;
+            color: #64748b;
+        }
+        @media (prefers-color-scheme: dark) {
+            body {
+                background: #020617;
+                color: #e2e8f0;
+            }
+            .page-header .meta {
+                color: #94a3b8;
+            }
+            .event-block {
+                background: rgba(15, 23, 42, 0.75);
+                border-color: rgba(148, 163, 184, 0.25);
+                box-shadow: 0 8px 24px rgba(2, 6, 23, 0.6);
+            }
+            .event-meta,
+            .event-teachers {
+                color: #cbd5f5;
+            }
+            .event-meta strong {
+                color: #e2e8f0;
+            }
+            table {
+                background: rgba(15, 23, 42, 0.6);
+            }
+            th {
+                background: rgba(14, 165, 233, 0.2);
+                color: #e0f2fe;
+            }
+            td {
+                border-color: rgba(148, 163, 184, 0.3);
+            }
+            tbody tr:nth-child(odd) {
+                background: rgba(15, 23, 42, 0.45);
+            }
+            .empty {
+                color: #94a3b8;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="refresh-bar">
+        <div class="refresh-group">
+            <label>
+                Auto refresh
+                <select class="refresh-select" data-refresh-select data-default-interval="{{ refresh_default }}">
+                    <option value="0">Off</option>
+                    <option value="15">Every 15 seconds</option>
+                    <option value="30" {% if refresh_default == 30 %}selected{% endif %}>Every 30 seconds</option>
+                    <option value="45">Every 45 seconds</option>
+                    <option value="60">Every 60 seconds</option>
+                    <option value="120">Every 2 minutes</option>
+                </select>
+            </label>
+            <button type="button" class="refresh-button" data-refresh-now>Refresh now</button>
+            <span class="refresh-countdown" data-refresh-countdown>Auto refresh off</span>
+        </div>
+        <div class="refresh-group" style="justify-content: flex-end;">
+            <span class="refresh-countdown">Last updated {{ generated_at|date:"F j, Y · H:i:s" }}</span>
+        </div>
+    </div>
+    <main class="page-container">
+        <header class="page-header">
+            <h1>{{ meet.name }}</h1>
+            <div class="meta">
+                {{ meet.date|date:"F j, Y" }}{% if meet.location %} · {{ meet.location }}{% endif %}
+            </div>
+        </header>
+        {% for item in events_payload %}
+            <section class="event-block">
+                <h2>{{ item.event.name }}</h2>
+                <div class="event-meta">
+                    <span><strong>Time:</strong>
+                        {% if item.event.schedule_dt %}
+                            {{ item.event.schedule_dt|date:"H:i" }}
+                        {% else %}
+                            Unscheduled
+                        {% endif %}
+                    </span>
+                    <span><strong>Division:</strong> {{ item.event.division_label }}</span>
+                    <span><strong>Sport:</strong> {{ item.event.sport_type.label }}</span>
+                    {% if item.event.location %}
+                        <span><strong>Location:</strong> {{ item.event.location }}</span>
+                    {% endif %}
+                </div>
+                <div class="event-teachers">
+                    Marshall{% if item.teachers|length != 1 %}s{% endif %}: {% if item.teachers %}{{ item.teachers|join:", " }}{% else %}Unassigned{% endif %}
+                </div>
+                {% if item.results %}
+                    <table>
+                        <thead>
+                            <tr>
+                                <th scope="col">Rank</th>
+                                <th scope="col">Participant</th>
+                                <th scope="col">House</th>
+                                <th scope="col">Grade</th>
+                                <th scope="col">Performance</th>
+                                <th scope="col">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in item.results %}
+                                <tr>
+                                    <td>{% if row.rank %}{{ row.rank }}{% else %}—{% endif %}</td>
+                                    <td>{{ row.student_name }}</td>
+                                    <td>{{ row.house }}</td>
+                                    <td>{{ row.grade }}</td>
+                                    <td>{{ row.performance }}</td>
+                                    <td>{{ row.status }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <p class="empty">Event not Started Yet.</p>
+                {% endif %}
+            </section>
+        {% empty %}
+            <p>No events are scheduled for this meet.</p>
+        {% endfor %}
+    </main>
+    <script>
+        (function () {
+            const select = document.querySelector('[data-refresh-select]');
+            if (!select) {
+                return;
+            }
+            const storageKey = 'sportsday:resultsTicker:interval';
+            const defaultInterval = parseInt(select.dataset.defaultInterval || '30', 10) || 30;
+            const countdown = document.querySelector('[data-refresh-countdown]');
+            const refreshButton = document.querySelector('[data-refresh-now]');
+            let reloadTimeout = null;
+            let countdownInterval = null;
+
+            const hasOption = (value) => Array.from(select.options).some((option) => option.value === value);
+
+            const applyInterval = () => {
+                if (reloadTimeout) {
+                    clearTimeout(reloadTimeout);
+                    reloadTimeout = null;
+                }
+                if (countdownInterval) {
+                    clearInterval(countdownInterval);
+                    countdownInterval = null;
+                }
+                const parsed = parseInt(select.value, 10);
+                if (!parsed) {
+                    if (countdown) {
+                        countdown.textContent = 'Auto refresh off';
+                    }
+                    return;
+                }
+                let remaining = parsed;
+                if (countdown) {
+                    countdown.textContent = `Next refresh in ${remaining}s`;
+                }
+                countdownInterval = setInterval(() => {
+                    remaining -= 1;
+                    if (remaining <= 0) {
+                        window.location.reload();
+                        return;
+                    }
+                    if (countdown) {
+                        countdown.textContent = `Next refresh in ${remaining}s`;
+                    }
+                }, 1000);
+                reloadTimeout = setTimeout(() => {
+                    window.location.reload();
+                }, parsed * 1000);
+            };
+
+            const stored = localStorage.getItem(storageKey);
+            if (stored && hasOption(stored)) {
+                select.value = stored;
+            } else {
+                select.value = hasOption(String(defaultInterval)) ? String(defaultInterval) : select.value;
+            }
+
+            select.addEventListener('change', () => {
+                localStorage.setItem(storageKey, select.value);
+                applyInterval();
+            });
+
+            if (refreshButton) {
+                refreshButton.addEventListener('click', () => {
+                    window.location.reload();
+                });
+            }
+
+            applyInterval();
+        })();
+    </script>
+</body>
+</html>

@@ -76,6 +76,7 @@ urlpatterns = [
     path("exports/teachers.csv", views.export_teachers_csv, name="export-teachers-csv"),
     path("exports/startlists.csv", views.export_startlists_csv, name="export-startlists-csv"),
     path("exports/results.csv", views.export_results_csv, name="export-results-csv"),
+    path("exports/results/ticker/", views.export_results_ticker, name="export-results-ticker"),
     path("exports/leaderboard.csv", views.export_leaderboard_csv, name="export-leaderboard-csv"),
     path("meets/template/<str:kind>/", views.meet_download_template, name="meet-template"),
 ]

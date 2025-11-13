@@ -48,6 +48,35 @@ def _format_decimal(value: Decimal | None) -> str:
     return f"{value.quantize(Decimal('0.01'))}"
 
 
+def _format_result_value(event: models.Event, value: Decimal | None) -> str:
+    """Return a human readable performance string for an event result."""
+
+    if value is None:
+        return ""
+
+    archetype = getattr(event.sport_type, "archetype", "")
+    unit = (event.measure_unit or "").strip()
+
+    if archetype == models.SportType.Archetype.TRACK_TIME:
+        minutes = int(value // Decimal(60))
+        seconds = (value - Decimal(minutes) * Decimal(60)).quantize(Decimal("0.001"))
+        seconds_text = format(seconds, ".3f")
+        if minutes:
+            seconds_text = seconds_text.zfill(6)
+            display = f"{minutes}:{seconds_text}"
+        else:
+            display = seconds_text
+        return f"{display} {unit}".strip()
+
+    if archetype == models.SportType.Archetype.FIELD_COUNT:
+        display = f"{int(value)}"
+    else:
+        quantized = value.quantize(Decimal("0.001"))
+        display = format(quantized.normalize(), "f")
+
+    return f"{display} {unit}".strip()
+
+
 def _grade_sort_key(grade: str) -> tuple[int, str]:
     stripped = (grade or "").strip()
     if stripped.isdigit():
@@ -3305,6 +3334,80 @@ def export_results_csv(request: HttpRequest) -> HttpResponse:
             ]
         )
     return response
+
+
+def export_results_ticker(request: HttpRequest) -> HttpResponse:
+    """Printable ticker-style view of live event results."""
+
+    meet = _meet_from_request(request)
+    results_prefetch = Prefetch(
+        "entries",
+        queryset=(
+            models.Entry.objects.filter(
+                round_no=F("event__rounds_total"),
+                result__isnull=False,
+            )
+            .select_related("student", "result")
+            .order_by(
+                "result__rank",
+                "student__last_name",
+                "student__first_name",
+                "pk",
+            )
+        ),
+        to_attr="result_entries",
+    )
+
+    events = (
+        meet.events.select_related("sport_type")
+        .prefetch_related("assigned_teachers", results_prefetch)
+        .order_by(*SCHEDULE_ORDERING)
+    )
+
+    events_payload: list[dict[str, object]] = []
+    for event in events:
+        teacher_labels = [str(teacher) for teacher in event.assigned_teachers.all()]
+        entries = [
+            entry
+            for entry in getattr(event, "result_entries", [])
+            if getattr(entry, "result", None) is not None
+        ]
+        entries.sort(
+            key=lambda entry: (
+                entry.result.rank if entry.result.rank is not None else 9999,
+                (entry.student.last_name or "").lower(),
+                (entry.student.first_name or "").lower(),
+            )
+        )
+        rows = []
+        for entry in entries:
+            result = entry.result
+            rows.append(
+                {
+                    "rank": result.rank,
+                    "student_name": f"{entry.student.first_name} {entry.student.last_name}",
+                    "house": entry.student.house or "—",
+                    "grade": entry.student.grade or "—",
+                    "performance": _format_result_value(event, result.best_value),
+                    "status": entry.get_status_display(),
+                    "finalized": result.finalized,
+                }
+            )
+        events_payload.append(
+            {
+                "event": event,
+                "teachers": teacher_labels,
+                "results": rows,
+            }
+        )
+
+    context = {
+        "meet": meet,
+        "events_payload": events_payload,
+        "generated_at": timezone.localtime(),
+        "refresh_default": 30,
+    }
+    return render(request, "sportsday/printables/results_ticker.html", context)
 
 
 def export_leaderboard_csv(request: HttpRequest) -> HttpResponse:
