@@ -1,0 +1,20 @@
+{% if students %}
+    <ul class="max-h-56 w-full rounded-md border border-slate-200 bg-white text-sm shadow-lg shadow-slate-200/70">
+        {% for student in students %}
+            <li
+                class="px-3 py-2 text-slate-800 hover:bg-slate-100"
+                data-suggestion-option
+                data-student-id="{{ student.pk }}"
+                data-value="{{ student.pk }}"
+                data-label="{{ student.first_name }} {{ student.last_name }}"
+            >
+                <div class="font-medium">{{ student.first_name }} {{ student.last_name }}</div>
+                <div class="text-xs text-slate-500">{{ student.grade }} · {{ student.house }}</div>
+            </li>
+        {% endfor %}
+    </ul>
+{% elif message %}
+    <div class="max-h-56 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-xs text-slate-500 shadow-lg shadow-slate-200/70">
+        {{ message }}
+    </div>
+{% endif %}
