@@ -1,8 +1,13 @@
-{% with helper=message|default:helper_text %}
-    {% if helper %}
-        <p class="px-3 py-2 text-xs text-slate-500">{{ helper }}</p>
-    {% endif %}
-{% endwith %}
+{# sportsday/partials/quick_assignments_student_suggestions.html #}
+
+{# Show message if present, otherwise helper_text #}
+{% if message %}
+    <p class="px-3 py-2 text-xs text-slate-500">{{ message }}</p>
+{% elif helper_text %}
+    <p class="px-3 py-2 text-xs text-slate-500">{{ helper_text }}</p>
+{% endif %}
+
+{# Render student results #}
 {% if students %}
     {% for student in students %}
         <div
@@ -12,10 +17,14 @@
             data-id="{{ student.pk }}"
             data-label="{{ student.first_name }} {{ student.last_name }}"
         >
-            <span class="block font-medium">{{ student.first_name }} {{ student.last_name }}</span>
-            <span class="block text-xs text-slate-500">{{ student.grade }} · {{ student.house }}</span>
+            <span class="block font-medium">
+                {{ student.first_name }} {{ student.last_name }}
+            </span>
+            <span class="block text-xs text-slate-500">
+                {{ student.grade }}{% if student.house %} · {{ student.house }}{% endif %}
+            </span>
         </div>
     {% endfor %}
-{% elif not (message or helper_text) %}
+{% else %}
     <p class="px-3 py-2 text-xs text-slate-500">No students found.</p>
 {% endif %}
