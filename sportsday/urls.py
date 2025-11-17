@@ -27,6 +27,22 @@ urlpatterns = [
     path("teachers/table/", views.teachers_table_fragment, name="teachers-table-fragment"),
     path("sports/", views.sport_type_admin, name="sport-types"),
     path("events/", views.event_list, name="events"),
+    path("events/quick/", views.quick_assignments, name="quick-assignments"),
+    path(
+        "events/quick/students/",
+        views.quick_assignment_student_search,
+        name="quick-assignments-students",
+    ),
+    path(
+        "events/quick/events/",
+        views.quick_assignment_event_search,
+        name="quick-assignments-events",
+    ),
+    path(
+        "events/quick/undo/",
+        views.quick_assignments_undo,
+        name="quick-assignments-undo",
+    ),
     path("events/new/", views.event_create, name="event-create"),
     path("events/table/", views.events_table_fragment, name="events-table-fragment"),
     path("events/<int:pk>/edit/", views.event_update, name="event-update"),
