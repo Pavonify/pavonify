@@ -1,0 +1,19 @@
+{% if events %}
+    <ul class="max-h-56 w-full rounded-md border border-slate-200 bg-white text-sm shadow-lg shadow-slate-200/70">
+        {% for event in events %}
+            <li
+                class="px-3 py-2 text-slate-800 hover:bg-slate-100"
+                data-suggestion-option
+                data-value="{{ event.pk }}"
+                data-label="{{ event.name }}"
+            >
+                <div class="font-medium">{{ event.name }}</div>
+                <div class="text-xs text-slate-500">{{ event.meet.name }} · {{ event.grade_min }}{% if event.grade_min != event.grade_max %}–{{ event.grade_max }}{% endif %} · {{ event.get_gender_limit_display }}</div>
+            </li>
+        {% endfor %}
+    </ul>
+{% elif helper_text %}
+    <div class="max-h-56 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-xs text-slate-500 shadow-lg shadow-slate-200/70">
+        {{ helper_text }}
+    </div>
+{% endif %}
