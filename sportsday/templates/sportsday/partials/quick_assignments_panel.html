@@ -7,6 +7,7 @@
         method="post"
         class="flex flex-col gap-3 lg:flex-row lg:items-end"
         data-quick-form
+        id="quick-assignment-form"
         hx-post="{% url 'sportsday:quick-assignments' %}{% if active_meet %}?meet={{ active_meet.slug }}{% endif %}"
         hx-target="#quick-assignments-panel"
         hx-swap="outerHTML"
