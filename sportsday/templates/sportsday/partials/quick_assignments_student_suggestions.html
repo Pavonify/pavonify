@@ -1,0 +1,21 @@
+{% with helper=message|default:helper_text %}
+    {% if helper %}
+        <p class="px-3 py-2 text-xs text-slate-500">{{ helper }}</p>
+    {% endif %}
+{% endwith %}
+{% if students %}
+    {% for student in students %}
+        <div
+            class="suggestion-option px-3 py-2 text-sm text-slate-800 hover:bg-slate-100 cursor-pointer"
+            tabindex="0"
+            data-type="student"
+            data-id="{{ student.pk }}"
+            data-label="{{ student.first_name }} {{ student.last_name }}"
+        >
+            <span class="block font-medium">{{ student.first_name }} {{ student.last_name }}</span>
+            <span class="block text-xs text-slate-500">{{ student.grade }} · {{ student.house }}</span>
+        </div>
+    {% endfor %}
+{% elif not (message or helper_text) %}
+    <p class="px-3 py-2 text-xs text-slate-500">No students found.</p>
+{% endif %}

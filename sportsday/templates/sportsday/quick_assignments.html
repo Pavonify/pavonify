@@ -1,0 +1,265 @@
+{% extends "sportsday/base.html" %}
+{% block title %}Sports Day · Quick Add/Remove{% endblock %}
+{% block content %}
+<section class="space-y-6">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+            <p class="text-sm uppercase tracking-widest text-slate-400">Quick Add/Remove</p>
+            <h1 class="text-2xl font-semibold">Keyboard assignments</h1>
+            <p class="text-sm text-slate-400">
+                Quickly add or remove students from events with the keyboard.
+            </p>
+        </div>
+        <div class="flex flex-wrap gap-2 text-sm">
+            <a href="{% url 'sportsday:events' %}{% if active_meet %}?meet={{ active_meet.slug }}{% endif %}"
+               class="inline-flex items-center gap-2 rounded-full border border-slate-700 px-4 py-2 text-slate-300 hover:border-sky-500/40 hover:text-sky-200">
+                Back to events
+            </a>
+        </div>
+    </div>
+
+    {% include "sportsday/partials/quick_assignments_panel.html" %}
+</section>
+
+<script>
+    (function () {
+        const suggestionConfigs = {
+            student: {
+                inputSelector: '#student-input',
+                hiddenSelector: '#student-id',
+                containerSelector: '#student-suggestions',
+                nextFocusSelector: '#event-input',
+                relatedInputSelector: '#event-input',
+            },
+            event: {
+                inputSelector: '#event-input',
+                hiddenSelector: '#event-id',
+                containerSelector: '#event-suggestions',
+                nextFocusSelector: '#event-input',
+            },
+        };
+
+        const highlightState = {
+            student: -1,
+            event: -1,
+        };
+
+        const getPanel = () => document.getElementById('quick-assignments-panel');
+
+        const getElements = (type) => {
+            const config = suggestionConfigs[type];
+            if (!config) {
+                return {};
+            }
+            return {
+                input: document.querySelector(config.inputSelector),
+                hidden: document.querySelector(config.hiddenSelector),
+                container: document.querySelector(config.containerSelector),
+                nextFocus: config.nextFocusSelector
+                    ? document.querySelector(config.nextFocusSelector)
+                    : null,
+                related: config.relatedInputSelector
+                    ? document.querySelector(config.relatedInputSelector)
+                    : null,
+            };
+        };
+
+        const getOptions = (type) => {
+            const { container } = getElements(type);
+            if (!container) {
+                return [];
+            }
+            return Array.from(container.querySelectorAll('.suggestion-option'));
+        };
+
+        const resetHighlight = (type) => {
+            highlightState[type] = -1;
+            getOptions(type).forEach((option) => option.classList.remove('bg-slate-100'));
+        };
+
+        const setHighlight = (type, newIndex) => {
+            const options = getOptions(type);
+            if (!options.length) {
+                highlightState[type] = -1;
+                return;
+            }
+            if (newIndex < 0) {
+                newIndex = options.length - 1;
+            } else if (newIndex >= options.length) {
+                newIndex = 0;
+            }
+            highlightState[type] = newIndex;
+            options.forEach((option, index) => {
+                option.classList.toggle('bg-slate-100', index === newIndex);
+            });
+            options[newIndex]?.scrollIntoView({ block: 'nearest' });
+        };
+
+        const triggerRelatedInput = (related) => {
+            if (!related) {
+                return;
+            }
+            if (window.htmx && typeof window.htmx.trigger === 'function') {
+                window.htmx.trigger(related, 'keyup');
+            } else {
+                related.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true }));
+            }
+        };
+
+        const applySelection = (option) => {
+            if (!option) {
+                return;
+            }
+            const type = option.dataset.type;
+            const { input, hidden, container, nextFocus, related } = getElements(type);
+            if (hidden) {
+                hidden.value = option.dataset.id || '';
+            }
+            if (input) {
+                input.value = option.dataset.label || '';
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+            if (container) {
+                container.innerHTML = '';
+            }
+            resetHighlight(type);
+            if (type === 'student') {
+                const eventHidden = document.querySelector('#event-id');
+                if (eventHidden) {
+                    eventHidden.value = '';
+                }
+            }
+            if (nextFocus) {
+                nextFocus.focus();
+                nextFocus.select?.();
+            }
+            triggerRelatedInput(related);
+        };
+
+        const bindAutocompleteInput = (type) => {
+            const { input, container } = getElements(type);
+            if (!input || input.dataset.autocompleteBound === 'true') {
+                return;
+            }
+            input.dataset.autocompleteBound = 'true';
+            input.addEventListener('keydown', (event) => {
+                if (event.key === 'ArrowDown') {
+                    event.preventDefault();
+                    setHighlight(type, highlightState[type] + 1);
+                } else if (event.key === 'ArrowUp') {
+                    event.preventDefault();
+                    setHighlight(type, highlightState[type] - 1);
+                } else if (event.key === 'Enter' && !event.shiftKey) {
+                    const options = getOptions(type);
+                    const option = options[highlightState[type]];
+                    if (option) {
+                        event.preventDefault();
+                        applySelection(option);
+                    }
+                } else if (event.key === 'Escape') {
+                    if (container) {
+                        container.innerHTML = '';
+                    }
+                    resetHighlight(type);
+                } else {
+                    resetHighlight(type);
+                }
+            });
+        };
+
+        const bindAutocompleteInputs = () => {
+            Object.keys(suggestionConfigs).forEach((type) => bindAutocompleteInput(type));
+        };
+
+        const initModeLabel = (form) => {
+            const modeSelect = form.querySelector('[data-mode-select]');
+            const label = form.querySelector('[data-mode-label]');
+            if (!modeSelect || !label) {
+                return;
+            }
+            modeSelect.addEventListener('change', () => {
+                label.textContent = modeSelect.value === 'remove' ? 'from' : 'to';
+                const eventHidden = form.querySelector('#event-id');
+                if (eventHidden) {
+                    eventHidden.value = '';
+                }
+                const eventInput = form.querySelector('#event-input');
+                if (eventInput) {
+                    eventInput.value = '';
+                    eventInput.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true }));
+                }
+            });
+        };
+
+        const setInitialFocus = (panel) => {
+            const focusTarget = panel.getAttribute('data-focus-target');
+            const selector = focusTarget === 'event' ? '[data-focus="event"]' : '[data-focus="student"]';
+            const focusEl = panel.querySelector(selector) || panel.querySelector('[data-focus]');
+            if (focusEl) {
+                focusEl.focus();
+                focusEl.select?.();
+            }
+        };
+
+        const initPanel = () => {
+            const panel = getPanel();
+            if (!panel) {
+                return;
+            }
+            const form = panel.querySelector('[data-quick-form]');
+            if (!form) {
+                return;
+            }
+            bindAutocompleteInputs();
+            initModeLabel(form);
+            setInitialFocus(panel);
+        };
+
+        document.addEventListener('pointerdown', (event) => {
+            const option = event.target.closest('.suggestion-option');
+            if (!option) {
+                return;
+            }
+            event.preventDefault();
+            applySelection(option);
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key !== 'Enter' || !event.shiftKey) {
+                return;
+            }
+            const hasActiveSuggestion = Object.values(highlightState).some((index) => index >= 0);
+            if (hasActiveSuggestion) {
+                return;
+            }
+            const panel = getPanel();
+            const form = panel?.querySelector('[data-quick-form]');
+            if (form) {
+                event.preventDefault();
+                form.requestSubmit();
+            }
+        });
+
+        document.addEventListener('htmx:afterSwap', (event) => {
+            if (!event.target) {
+                return;
+            }
+            if (event.target.id === 'quick-assignments-panel') {
+                Object.keys(highlightState).forEach((type) => {
+                    highlightState[type] = -1;
+                });
+                initPanel();
+                return;
+            }
+            Object.entries(suggestionConfigs).forEach(([type, config]) => {
+                const id = config.containerSelector.replace('#', '');
+                if (event.target.id === id) {
+                    resetHighlight(type);
+                }
+            });
+        });
+
+        document.addEventListener('DOMContentLoaded', initPanel);
+    })();
+</script>
+{% endblock %}
