@@ -23,243 +23,252 @@
 
 <script>
     (function () {
-        const suggestionConfigs = {
-            student: {
-                inputSelector: '#student-input',
-                hiddenSelector: '#student-id',
-                containerSelector: '#student-suggestions',
-                nextFocusSelector: '#event-input',
-                relatedInputSelector: '#event-input',
-            },
-            event: {
-                inputSelector: '#event-input',
-                hiddenSelector: '#event-id',
-                containerSelector: '#event-suggestions',
-                nextFocusSelector: '#event-input',
-            },
+        const suggestionWidgets = new Map();
+        let globalsBound = false;
+        let pendingFormReset = false;
+
+        const getHighlightIndex = (container) => {
+            const value = container?.dataset?.highlightIndex ?? '-1';
+            const parsed = parseInt(value, 10);
+            return Number.isNaN(parsed) ? -1 : parsed;
         };
 
-        const highlightState = {
-            student: -1,
-            event: -1,
-        };
-
-        const getPanel = () => document.getElementById('quick-assignments-panel');
-
-        const getElements = (type) => {
-            const config = suggestionConfigs[type];
-            if (!config) {
-                return {};
-            }
-            return {
-                input: document.querySelector(config.inputSelector),
-                hidden: document.querySelector(config.hiddenSelector),
-                container: document.querySelector(config.containerSelector),
-                nextFocus: config.nextFocusSelector
-                    ? document.querySelector(config.nextFocusSelector)
-                    : null,
-                related: config.relatedInputSelector
-                    ? document.querySelector(config.relatedInputSelector)
-                    : null,
-            };
-        };
-
-        const getOptions = (type) => {
-            const { container } = getElements(type);
+        const setHighlightIndex = (container, index) => {
             if (!container) {
-                return [];
-            }
-            return Array.from(container.querySelectorAll('.suggestion-option'));
-        };
-
-        const resetHighlight = (type) => {
-            highlightState[type] = -1;
-            getOptions(type).forEach((option) => option.classList.remove('bg-slate-100'));
-        };
-
-        const setHighlight = (type, newIndex) => {
-            const options = getOptions(type);
-            if (!options.length) {
-                highlightState[type] = -1;
                 return;
             }
-            if (newIndex < 0) {
-                newIndex = options.length - 1;
-            } else if (newIndex >= options.length) {
-                newIndex = 0;
+            container.dataset.highlightIndex = String(index);
+        };
+
+        const clearActiveClass = (container) => {
+            if (!container) {
+                return;
             }
-            highlightState[type] = newIndex;
-            options.forEach((option, index) => {
-                option.classList.toggle('bg-slate-100', index === newIndex);
+            container.querySelectorAll('.suggestion-option').forEach((option) => {
+                option.classList.remove('bg-slate-100');
             });
-            options[newIndex]?.scrollIntoView({ block: 'nearest' });
         };
 
-        const triggerRelatedInput = (related) => {
-            if (!related) {
-                return;
-            }
-            if (window.htmx && typeof window.htmx.trigger === 'function') {
-                window.htmx.trigger(related, 'keyup');
-            } else {
-                related.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true }));
-            }
-        };
+        const createSuggestionWidget = ({ inputId, containerId, hiddenId, onSelect }) => {
+            const input = document.getElementById(inputId);
+            const container = document.getElementById(containerId);
+            const hidden = document.getElementById(hiddenId);
 
-        const applySelection = (option) => {
-            if (!option) {
-                return;
+            if (!input || !container || !hidden) {
+                return null;
             }
-            const type = option.dataset.type;
-            const { input, hidden, container, nextFocus, related } = getElements(type);
-            if (hidden) {
-                hidden.value = option.dataset.id || '';
-            }
-            if (input) {
-                input.value = option.dataset.label || '';
-                input.dispatchEvent(new Event('input', { bubbles: true }));
-            }
-            if (container) {
-                container.innerHTML = '';
-            }
-            resetHighlight(type);
-            if (type === 'student') {
-                const eventHidden = document.querySelector('#event-id');
-                if (eventHidden) {
-                    eventHidden.value = '';
+
+            const widget = {
+                resetHighlight() {
+                    setHighlightIndex(container, -1);
+                    clearActiveClass(container);
+                },
+            };
+
+            setHighlightIndex(container, -1);
+
+            const getOptions = () => Array.from(container.querySelectorAll('.suggestion-option'));
+
+            const moveHighlight = (delta) => {
+                const options = getOptions();
+                if (!options.length) {
+                    widget.resetHighlight();
+                    return;
                 }
-            }
-            if (nextFocus) {
-                nextFocus.focus();
-                nextFocus.select?.();
-            }
-            triggerRelatedInput(related);
-        };
+                let index = getHighlightIndex(container);
+                index = Number.isNaN(index) ? -1 : index;
+                index += delta;
+                if (index < 0) {
+                    index = options.length - 1;
+                } else if (index >= options.length) {
+                    index = 0;
+                }
+                setHighlightIndex(container, index);
+                options.forEach((option, optionIndex) => {
+                    option.classList.toggle('bg-slate-100', optionIndex === index);
+                });
+                options[index].scrollIntoView({ block: 'nearest' });
+            };
 
-        const bindAutocompleteInput = (type) => {
-            const { input, container } = getElements(type);
-            if (!input || input.dataset.autocompleteBound === 'true') {
-                return;
-            }
-            input.dataset.autocompleteBound = 'true';
+            const selectOption = (option) => {
+                if (!option) {
+                    return;
+                }
+                input.value = option.dataset.label || '';
+                hidden.value = option.dataset.id || '';
+                container.innerHTML = '';
+                widget.resetHighlight();
+                if (typeof onSelect === 'function') {
+                    onSelect();
+                }
+            };
+
             input.addEventListener('keydown', (event) => {
                 if (event.key === 'ArrowDown') {
                     event.preventDefault();
-                    setHighlight(type, highlightState[type] + 1);
-                } else if (event.key === 'ArrowUp') {
+                    moveHighlight(1);
+                    return;
+                }
+                if (event.key === 'ArrowUp') {
                     event.preventDefault();
-                    setHighlight(type, highlightState[type] - 1);
-                } else if (event.key === 'Enter' && !event.shiftKey) {
-                    const options = getOptions(type);
-                    const option = options[highlightState[type]];
+                    moveHighlight(-1);
+                    return;
+                }
+                if (event.key === 'Enter' && !event.shiftKey) {
+                    const options = getOptions();
+                    const index = getHighlightIndex(container);
+                    const option = index >= 0 ? options[index] : null;
                     if (option) {
                         event.preventDefault();
-                        applySelection(option);
+                        selectOption(option);
                     }
-                } else if (event.key === 'Escape') {
-                    if (container) {
-                        container.innerHTML = '';
-                    }
-                    resetHighlight(type);
-                } else {
-                    resetHighlight(type);
+                    return;
                 }
+                widget.resetHighlight();
             });
-        };
 
-        const bindAutocompleteInputs = () => {
-            Object.keys(suggestionConfigs).forEach((type) => bindAutocompleteInput(type));
-        };
-
-        const initModeLabel = (form) => {
-            const modeSelect = form.querySelector('[data-mode-select]');
-            const label = form.querySelector('[data-mode-label]');
-            if (!modeSelect || !label) {
-                return;
-            }
-            modeSelect.addEventListener('change', () => {
-                label.textContent = modeSelect.value === 'remove' ? 'from' : 'to';
-                const eventHidden = form.querySelector('#event-id');
-                if (eventHidden) {
-                    eventHidden.value = '';
-                }
-                const eventInput = form.querySelector('#event-input');
-                if (eventInput) {
-                    eventInput.value = '';
-                    eventInput.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true }));
-                }
+            input.addEventListener('input', () => {
+                widget.resetHighlight();
             });
-        };
 
-        const setInitialFocus = (panel) => {
-            const focusTarget = panel.getAttribute('data-focus-target');
-            const selector = focusTarget === 'event' ? '[data-focus="event"]' : '[data-focus="student"]';
-            const focusEl = panel.querySelector(selector) || panel.querySelector('[data-focus]');
-            if (focusEl) {
-                focusEl.focus();
-                focusEl.select?.();
-            }
-        };
-
-        const initPanel = () => {
-            const panel = getPanel();
-            if (!panel) {
-                return;
-            }
-            const form = panel.querySelector('[data-quick-form]');
-            if (!form) {
-                return;
-            }
-            bindAutocompleteInputs();
-            initModeLabel(form);
-            setInitialFocus(panel);
-        };
-
-        document.addEventListener('pointerdown', (event) => {
-            const option = event.target.closest('.suggestion-option');
-            if (!option) {
-                return;
-            }
-            event.preventDefault();
-            applySelection(option);
-        });
-
-        document.addEventListener('keydown', (event) => {
-            if (event.key !== 'Enter' || !event.shiftKey) {
-                return;
-            }
-            const hasActiveSuggestion = Object.values(highlightState).some((index) => index >= 0);
-            if (hasActiveSuggestion) {
-                return;
-            }
-            const panel = getPanel();
-            const form = panel?.querySelector('[data-quick-form]');
-            if (form) {
+            container.addEventListener('mousedown', (event) => {
+                const option = event.target.closest('.suggestion-option');
+                if (!option) {
+                    return;
+                }
                 event.preventDefault();
-                form.requestSubmit();
-            }
-        });
+                selectOption(option);
+            });
 
-        document.addEventListener('htmx:afterSwap', (event) => {
-            if (!event.target) {
+            suggestionWidgets.set(containerId, widget);
+            return widget;
+        };
+
+        const initQuickAssignmentUI = () => {
+            suggestionWidgets.clear();
+            createSuggestionWidget({
+                inputId: 'student-input',
+                containerId: 'student-suggestions',
+                hiddenId: 'student-id',
+                onSelect: () => {
+                    const eventInput = document.getElementById('event-input');
+                    if (eventInput) {
+                        eventInput.focus();
+                        if (typeof eventInput.select === 'function') {
+                            eventInput.select();
+                        }
+                    }
+                },
+            });
+
+            createSuggestionWidget({
+                inputId: 'event-input',
+                containerId: 'event-suggestions',
+                hiddenId: 'event-id',
+                onSelect: () => {
+                    const eventInput = document.getElementById('event-input');
+                    if (eventInput) {
+                        eventInput.focus();
+                        if (typeof eventInput.select === 'function') {
+                            eventInput.select();
+                        }
+                    }
+                },
+            });
+        };
+
+        const clearQuickAssignmentFields = () => {
+            const studentInput = document.getElementById('student-input');
+            const eventInput = document.getElementById('event-input');
+            const studentId = document.getElementById('student-id');
+            const eventId = document.getElementById('event-id');
+            const studentSuggestions = document.getElementById('student-suggestions');
+            const eventSuggestions = document.getElementById('event-suggestions');
+
+            if (studentInput) {
+                studentInput.value = '';
+            }
+            if (studentId) {
+                studentId.value = '';
+            }
+            if (eventInput) {
+                eventInput.value = '';
+            }
+            if (eventId) {
+                eventId.value = '';
+            }
+            if (studentSuggestions) {
+                studentSuggestions.innerHTML = '';
+            }
+            if (eventSuggestions) {
+                eventSuggestions.innerHTML = '';
+            }
+
+            suggestionWidgets.get('student-suggestions')?.resetHighlight();
+            suggestionWidgets.get('event-suggestions')?.resetHighlight();
+
+            if (studentInput) {
+                studentInput.focus();
+            }
+        };
+
+        const bindGlobalListeners = () => {
+            if (globalsBound) {
                 return;
             }
-            if (event.target.id === 'quick-assignments-panel') {
-                Object.keys(highlightState).forEach((type) => {
-                    highlightState[type] = -1;
-                });
-                initPanel();
-                return;
-            }
-            Object.entries(suggestionConfigs).forEach(([type, config]) => {
-                const id = config.containerSelector.replace('#', '');
-                if (event.target.id === id) {
-                    resetHighlight(type);
+            globalsBound = true;
+
+            document.addEventListener('keydown', (event) => {
+                if (event.key !== 'Enter' || !event.shiftKey) {
+                    return;
+                }
+                const form = document.getElementById('quick-assignment-form');
+                if (!form) {
+                    return;
+                }
+                const submitButton = form.querySelector('button[type="submit"], input[type="submit"]');
+                if (!submitButton) {
+                    return;
+                }
+                event.preventDefault();
+                submitButton.click();
+            });
+
+            document.body.addEventListener('htmx:afterRequest', (event) => {
+                const form = document.getElementById('quick-assignment-form');
+                if (!form || event.detail?.elt !== form) {
+                    return;
+                }
+                const status = event.detail?.xhr?.status ?? 0;
+                if (status >= 200 && status < 300) {
+                    pendingFormReset = true;
+                    clearQuickAssignmentFields();
                 }
             });
-        });
 
-        document.addEventListener('DOMContentLoaded', initPanel);
+            document.body.addEventListener('htmx:afterSwap', (event) => {
+                const targetId = event.target?.id;
+                if (!targetId) {
+                    return;
+                }
+                const widget = suggestionWidgets.get(targetId);
+                if (widget) {
+                    widget.resetHighlight();
+                }
+                if (targetId === 'quick-assignments-panel') {
+                    initQuickAssignmentUI();
+                    if (pendingFormReset) {
+                        clearQuickAssignmentFields();
+                        pendingFormReset = false;
+                    }
+                }
+            });
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initQuickAssignmentUI();
+            bindGlobalListeners();
+        });
     })();
 </script>
 {% endblock %}
