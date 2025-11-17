@@ -5,6 +5,7 @@ import csv
 import io
 from collections import Counter, defaultdict
 from datetime import datetime, timedelta
+from uuid import uuid4
 from decimal import Decimal
 from types import SimpleNamespace
 from typing import Iterable
@@ -28,6 +29,162 @@ LOCKED_STATUS_CODE = 423
 
 
 SCHEDULE_ORDERING = (F("schedule_dt").asc(nulls_last=True), "name")
+
+
+QUICK_ASSIGNMENT_LOG_SESSION_KEY = "sportsday.quick-assignments.log"
+QUICK_ASSIGNMENT_LOG_LIMIT = 50
+
+
+def _quick_assignment_user_label(user) -> str:
+    """Return a readable label for the acting staff member."""
+
+    if hasattr(user, "get_full_name"):
+        full_name = (user.get_full_name() or "").strip()
+        if full_name:
+            return full_name
+    username = getattr(user, "get_username", lambda: "")()
+    return (username or getattr(user, "username", "") or "Staff")
+
+
+def _get_quick_assignment_log(request: HttpRequest) -> list[dict[str, object]]:
+    """Return the per-session quick assignment log."""
+
+    entries = request.session.get(QUICK_ASSIGNMENT_LOG_SESSION_KEY, [])
+    if isinstance(entries, list):
+        return [entry for entry in entries if isinstance(entry, dict)]
+    return []
+
+
+def _save_quick_assignment_log(request: HttpRequest, entries: list[dict[str, object]]) -> None:
+    """Persist the quick assignment log back to the session."""
+
+    request.session[QUICK_ASSIGNMENT_LOG_SESSION_KEY] = entries[:QUICK_ASSIGNMENT_LOG_LIMIT]
+    request.session.modified = True
+
+
+def _append_quick_assignment_log(
+    request: HttpRequest,
+    *,
+    action: str,
+    student: models.Student,
+    event: models.Event,
+    entry_id: int | None,
+    entry_snapshot: dict[str, object] | None = None,
+) -> None:
+    """Store a change in the per-session log for undo support."""
+
+    payload = {
+        "id": str(uuid4()),
+        "timestamp": timezone.now().isoformat(),
+        "action": action,
+        "student_id": student.pk,
+        "student_name": str(student),
+        "event_id": event.pk,
+        "event_name": event.name,
+        "user_name": _quick_assignment_user_label(request.user),
+        "entry_id": entry_id,
+        "entry_snapshot": entry_snapshot or {},
+        "undone": False,
+    }
+
+    entries = _get_quick_assignment_log(request)
+    entries.insert(0, payload)
+    _save_quick_assignment_log(request, entries)
+
+
+def _hydrate_quick_assignment_log(entries: list[dict[str, object]]) -> list[dict[str, object]]:
+    """Attach parsed timestamps so templates can render nicely."""
+
+    hydrated: list[dict[str, object]] = []
+    for entry in entries:
+        data = entry.copy()
+        timestamp = data.get("timestamp")
+        if isinstance(timestamp, str):
+            try:
+                data["timestamp_obj"] = datetime.fromisoformat(timestamp)
+            except ValueError:
+                data["timestamp_obj"] = None
+        undo_timestamp = data.get("undo_timestamp")
+        if isinstance(undo_timestamp, str):
+            try:
+                data["undo_timestamp_obj"] = datetime.fromisoformat(undo_timestamp)
+            except ValueError:
+                data["undo_timestamp_obj"] = None
+        hydrated.append(data)
+    return hydrated
+
+
+def _extract_quick_assignment_form_state(request: HttpRequest) -> dict[str, str]:
+    """Return the persisted form state for the quick assignment console."""
+
+    data = request.POST if request.method == "POST" else request.GET
+    mode = (data.get("mode") or "add").lower()
+    if mode not in {"add", "remove"}:
+        mode = "add"
+    student_query = (data.get("student_query") or data.get("q") or "").strip()
+    return {
+        "mode": mode,
+        "student_query": student_query,
+        "student_id": (data.get("student_id") or "").strip(),
+        "event_query": (data.get("event_query") or "").strip(),
+        "event_id": (data.get("event_id") or "").strip(),
+    }
+
+
+def _resolve_quick_assignment_student(form_state: dict[str, str]) -> models.Student | None:
+    """Fetch the selected student from the current form state."""
+
+    student_id = form_state.get("student_id") or ""
+    if not student_id:
+        return None
+    try:
+        student = models.Student.objects.get(pk=int(student_id))
+    except (ValueError, models.Student.DoesNotExist):
+        form_state["student_id"] = ""
+        return None
+    if not form_state.get("student_query"):
+        form_state["student_query"] = str(student)
+    return student
+
+
+def _resolve_quick_assignment_event(form_state: dict[str, str]) -> models.Event | None:
+    """Fetch the selected event from the current form state."""
+
+    event_id = form_state.get("event_id") or ""
+    if not event_id:
+        return None
+    try:
+        return models.Event.objects.select_related("meet", "sport_type").get(pk=int(event_id))
+    except (ValueError, models.Event.DoesNotExist):
+        form_state["event_id"] = ""
+        return None
+
+
+def _build_quick_assignment_panel_context(
+    request: HttpRequest,
+    *,
+    form_state: dict[str, str],
+    selected_student: models.Student | None,
+    focus_target: str,
+    error_message: str | None,
+    info_message: str | None,
+    active_meet: models.Meet | None,
+    student_error_message: str | None = None,
+) -> dict[str, object]:
+    """Bundle all context needed to render the quick assignment panel."""
+
+    return {
+        "form_state": form_state,
+        "selected_student": selected_student,
+        "focus_target": focus_target,
+        "error_message": error_message,
+        "info_message": info_message,
+        "active_meet": active_meet,
+        "log_entries": _hydrate_quick_assignment_log(_get_quick_assignment_log(request)),
+        "student_error_message": student_error_message,
+        "student_helper_text": "Type at least two characters to search.",
+        "event_helper_text": "Start typing to search for events.",
+    }
 
 
 def _event_lock_reason(event: models.Event) -> str | None:
@@ -1809,6 +1966,269 @@ def _process_quick_edit_form(
         url = f"{url}?{urlencode(params)}"
 
     return redirect(url)
+
+
+def quick_assignments(request: HttpRequest) -> HttpResponse:
+    """Keyboard-first console to add or remove students from events."""
+
+    meet_slug = request.GET.get("meet") or request.POST.get("meet")
+    active_meet = None
+    if meet_slug:
+        active_meet = models.Meet.objects.filter(slug=meet_slug).first()
+
+    form_state = _extract_quick_assignment_form_state(request)
+    selected_student = _resolve_quick_assignment_student(form_state)
+    selected_event = _resolve_quick_assignment_event(form_state)
+    focus_target = "event" if selected_student else "student"
+    error_message = None
+    info_message = None
+    student_error_message = None
+
+    if request.method == "POST":
+        if not selected_student:
+            student_error_message = "Select a student before submitting."
+            focus_target = "student"
+        elif not selected_event:
+            error_message = "Select an event before submitting."
+            focus_target = "event"
+        else:
+            lock_reason = _event_lock_reason(selected_event)
+            if lock_reason:
+                error_message = lock_reason
+            elif form_state["mode"] == "remove":
+                entry = models.Entry.objects.filter(
+                    event=selected_event, student=selected_student
+                ).first()
+                if not entry:
+                    error_message = "That student is not currently in this event."
+                else:
+                    entry_snapshot = {
+                        "round_no": entry.round_no,
+                        "heat": entry.heat,
+                        "lane_or_order": entry.lane_or_order,
+                        "status": entry.status,
+                    }
+                    entry_pk = entry.pk
+                    entry.delete()
+                    _append_quick_assignment_log(
+                        request,
+                        action="remove",
+                        student=selected_student,
+                        event=selected_event,
+                        entry_id=entry_pk,
+                        entry_snapshot=entry_snapshot,
+                    )
+                    info_message = f"Removed {selected_student} from {selected_event.name}."
+                    form_state["event_query"] = ""
+                    form_state["event_id"] = ""
+                    selected_event = None
+                    focus_target = "event"
+            else:
+                entry, created = models.Entry.objects.get_or_create(
+                    event=selected_event, student=selected_student
+                )
+                if not created:
+                    error_message = "That student is already assigned to this event."
+                else:
+                    _append_quick_assignment_log(
+                        request,
+                        action="add",
+                        student=selected_student,
+                        event=selected_event,
+                        entry_id=entry.pk,
+                    )
+                    info_message = f"Added {selected_student} to {selected_event.name}."
+                    form_state["event_query"] = ""
+                    form_state["event_id"] = ""
+                    selected_event = None
+                    focus_target = "event"
+
+    panel_context = _build_quick_assignment_panel_context(
+        request,
+        form_state=form_state,
+        selected_student=selected_student,
+        focus_target=focus_target,
+        error_message=error_message,
+        info_message=info_message,
+        active_meet=active_meet,
+        student_error_message=student_error_message,
+    )
+
+    if request.headers.get("HX-Request") == "true":
+        return render(request, "sportsday/partials/quick_assignments_panel.html", panel_context)
+
+    context = panel_context.copy()
+    context["active_meet"] = active_meet
+    return render(request, "sportsday/quick_assignments.html", context)
+
+
+def quick_assignment_student_search(request: HttpRequest) -> HttpResponse:
+    """Return student suggestions for the quick assignment console."""
+
+    query = (request.GET.get("q") or request.GET.get("student_query") or "").strip()
+    helper_text = None
+    students = models.Student.objects.none()
+
+    if len(query) < 2:
+        helper_text = "Type at least two characters to search."
+    else:
+        students = (
+            models.Student.objects.filter(
+                Q(first_name__icontains=query)
+                | Q(last_name__icontains=query)
+                | Q(preferred_name__icontains=query)
+            )
+            .order_by("last_name", "first_name")[:20]
+        )
+        if not students:
+            helper_text = f"No students match \"{query}\"."
+
+    return render(
+        request,
+        "sportsday/partials/quick_assignments_student_suggestions.html",
+        {"students": students, "query": query, "helper_text": helper_text},
+    )
+
+
+def quick_assignment_event_search(request: HttpRequest) -> HttpResponse:
+    """Return event suggestions tailored to the selected student."""
+
+    query = (request.GET.get("event_query") or "").strip()
+    mode = (request.GET.get("mode") or "add").lower()
+    if mode not in {"add", "remove"}:
+        mode = "add"
+
+    student: models.Student | None = None
+    student_id = (request.GET.get("student_id") or "").strip()
+    if student_id:
+        try:
+            student = models.Student.objects.get(pk=int(student_id))
+        except (ValueError, models.Student.DoesNotExist):
+            student = None
+
+    events = models.Event.objects.none()
+    helper_text = None
+    limit = 12
+
+    if mode == "remove" and not student:
+        helper_text = "Select a student to see the events they are entered in."
+    elif not query:
+        helper_text = "Start typing to search events."
+    else:
+        events_qs = models.Event.objects.filter(name__icontains=query).select_related(
+            "meet", "sport_type"
+        )
+        meet_slug = (request.GET.get("meet") or "").strip()
+        if meet_slug:
+            events_qs = events_qs.filter(meet__slug=meet_slug)
+        if student and mode == "remove":
+            events_qs = events_qs.filter(entries__student=student).distinct()
+            events = events_qs.order_by("name")[:limit]
+        elif student and mode == "add":
+            existing_ids = set(
+                models.Entry.objects.filter(student=student).values_list("event_id", flat=True)
+            )
+            filtered: list[models.Event] = []
+            for event in events_qs.order_by("name")[: 4 * limit]:
+                if event.pk in existing_ids:
+                    continue
+                if not event.grade_allows(student.grade):
+                    continue
+                if not event.gender_allows(student.gender):
+                    continue
+                filtered.append(event)
+                if len(filtered) >= limit:
+                    break
+            events = filtered
+            if not events:
+                helper_text = "No eligible events match this search."
+        else:
+            events = events_qs.order_by("name")[:limit]
+
+    return render(
+        request,
+        "sportsday/partials/quick_assignments_event_suggestions.html",
+        {
+            "events": events,
+            "helper_text": helper_text,
+            "mode": mode,
+            "student": student,
+            "query": query,
+        },
+    )
+
+
+def quick_assignments_undo(request: HttpRequest) -> HttpResponse:
+    """Undo a previous add/remove action from the live changelog."""
+
+    meet_slug = request.POST.get("meet") or request.GET.get("meet")
+    active_meet = None
+    if meet_slug:
+        active_meet = models.Meet.objects.filter(slug=meet_slug).first()
+
+    form_state = _extract_quick_assignment_form_state(request)
+    selected_student = _resolve_quick_assignment_student(form_state)
+    focus_target = "event" if selected_student else "student"
+    error_message = None
+    info_message = None
+
+    change_id = (request.POST.get("change_id") or "").strip()
+    entries = _get_quick_assignment_log(request)
+    target = next((entry for entry in entries if entry.get("id") == change_id), None)
+    if not target:
+        error_message = "That change could not be found."
+    elif target.get("undone"):
+        error_message = "This change has already been undone."
+    else:
+        student = models.Student.objects.filter(pk=target.get("student_id")).first()
+        event = models.Event.objects.filter(pk=target.get("event_id")).first()
+        if not student or not event:
+            error_message = "The student or event no longer exists."
+        else:
+            if target.get("action") == "add":
+                deleted = models.Entry.objects.filter(
+                    pk=target.get("entry_id"), event=event, student=student
+                ).delete()[0]
+                if not deleted:
+                    error_message = "The entry has already been removed."
+                else:
+                    info_message = f"Undo complete: removed {student} from {event.name}."
+            else:
+                snapshot = target.get("entry_snapshot") or {}
+                defaults = {
+                    "round_no": snapshot.get("round_no") or 1,
+                    "heat": snapshot.get("heat") or 1,
+                    "lane_or_order": snapshot.get("lane_or_order"),
+                    "status": snapshot.get(
+                        "status", models.Entry.Status.CONFIRMED
+                    ),
+                }
+                entry, created = models.Entry.objects.get_or_create(
+                    event=event, student=student, defaults=defaults
+                )
+                if not created:
+                    for field, value in defaults.items():
+                        setattr(entry, field, value)
+                    entry.save(update_fields=list(defaults.keys()))
+                target["entry_id"] = entry.pk
+                info_message = f"Undo complete: restored {student} to {event.name}."
+
+            if not error_message:
+                target["undone"] = True
+                target["undo_timestamp"] = timezone.now().isoformat()
+                _save_quick_assignment_log(request, entries)
+
+    panel_context = _build_quick_assignment_panel_context(
+        request,
+        form_state=form_state,
+        selected_student=selected_student,
+        focus_target=focus_target,
+        error_message=error_message,
+        info_message=info_message,
+        active_meet=active_meet,
+        student_error_message=None,
+    )
+    return render(request, "sportsday/partials/quick_assignments_panel.html", panel_context)
 
 
 def event_create(request: HttpRequest) -> HttpResponse:
