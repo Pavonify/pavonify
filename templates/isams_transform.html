@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>iSAMS Reporting Transformer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-slate-100 min-h-screen">
+    <div class="max-w-4xl mx-auto p-6">
+      <div class="bg-white shadow rounded-lg p-6 space-y-6">
+        <header class="space-y-2">
+          <h1 class="text-2xl font-semibold text-slate-900">iSAMS Reporting Transformer</h1>
+          <p class="text-slate-600 text-sm">
+            Turn wide iSAMS Excel exports into a clean long-format CSV ready for Power BI dashboards.
+          </p>
+        </header>
+
+        {% if error_message %}
+        <div class="rounded-md bg-red-50 p-4 text-sm text-red-700">
+          {{ error_message }}
+        </div>
+        {% endif %}
+
+        {% if stage == "preview" %}
+        <div class="space-y-4">
+          <div class="flex flex-wrap gap-2 text-sm">
+            <span class="px-3 py-1 rounded-full bg-slate-100 text-slate-700 border">Academic Year: {{ academic_year|default:"N/A" }}</span>
+            <span class="px-3 py-1 rounded-full bg-slate-100 text-slate-700 border">Reporting Cycle: {{ reporting_cycle|default:"N/A" }}</span>
+          </div>
+          <p class="text-slate-600 text-sm">
+            Detected <strong>{{ subject_codes|length }}</strong> unique subjects and <strong>{{ metrics|length }}</strong>
+            unique metrics. Adjust subject display names and deselect any metrics you do not want to export.
+          </p>
+
+          <form method="post" class="space-y-6">
+            {% csrf_token %}
+            <input type="hidden" name="stage" value="transform" />
+            <input type="hidden" name="subject_count" value="{{ subject_count }}" />
+
+            <div>
+              <h2 class="text-lg font-semibold text-slate-900 mb-3">Subject names</h2>
+              <div class="overflow-x-auto">
+                <table class="min-w-full text-sm border border-slate-200 rounded-md">
+                  <thead class="bg-slate-50 text-left text-slate-600">
+                    <tr>
+                      <th class="px-4 py-2 border-b">Subject code</th>
+                      <th class="px-4 py-2 border-b">Subject name</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y">
+                    {% for subject in subject_codes %}
+                    <tr>
+                      <td class="px-4 py-2 font-medium text-slate-800">
+                        {{ subject.code }}
+                        <input type="hidden" name="subject_code_{{ subject.index }}" value="{{ subject.code }}" />
+                      </td>
+                      <td class="px-4 py-2">
+                        <input
+                          type="text"
+                          name="subject_name_{{ subject.index }}"
+                          value="{{ subject.display_name }}"
+                          class="w-full rounded border-slate-300 focus:border-slate-500 focus:ring-slate-500"
+                        />
+                      </td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div>
+              <h2 class="text-lg font-semibold text-slate-900 mb-3">Metrics to include</h2>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                {% for metric in metrics %}
+                <label class="flex items-center gap-2 rounded border border-slate-200 px-3 py-2">
+                  <input type="checkbox" name="metrics" value="{{ metric }}" checked class="rounded border-slate-300" />
+                  <span class="text-slate-700">{{ metric }}</span>
+                </label>
+                {% endfor %}
+              </div>
+            </div>
+
+            <div class="flex justify-end">
+              <button type="submit" class="inline-flex items-center px-4 py-2 bg-slate-900 text-white rounded-md hover:bg-slate-800">
+                Transform and download CSV
+              </button>
+            </div>
+          </form>
+        </div>
+        {% else %}
+        <form method="post" enctype="multipart/form-data" class="space-y-4">
+          {% csrf_token %}
+          <input type="hidden" name="stage" value="preview" />
+
+          <div>
+            <label for="academic_year" class="block text-sm font-medium text-slate-700">Academic Year</label>
+            <input
+              type="text"
+              id="academic_year"
+              name="academic_year"
+              placeholder="2023-24"
+              class="mt-1 w-full rounded border-slate-300 focus:border-slate-500 focus:ring-slate-500"
+              required
+            />
+          </div>
+
+          <div>
+            <label for="reporting_cycle" class="block text-sm font-medium text-slate-700">Reporting Cycle</label>
+            <input
+              type="text"
+              id="reporting_cycle"
+              name="reporting_cycle"
+              placeholder="S1 Midterm"
+              class="mt-1 w-full rounded border-slate-300 focus:border-slate-500 focus:ring-slate-500"
+              required
+            />
+          </div>
+
+          <div>
+            <label for="report_file" class="block text-sm font-medium text-slate-700">iSAMS Excel file (.xlsx)</label>
+            <input
+              type="file"
+              id="report_file"
+              name="report_file"
+              accept=".xlsx"
+              class="mt-1 block w-full text-sm text-slate-700"
+              required
+            />
+          </div>
+
+          <div class="flex justify-end">
+            <button type="submit" class="inline-flex items-center px-4 py-2 bg-slate-900 text-white rounded-md hover:bg-slate-800">
+              Upload and preview
+            </button>
+          </div>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+  </body>
+</html>

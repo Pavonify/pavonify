@@ -31,10 +31,12 @@ from learning.webhooks import stripe_webhook
 from learning.api.enrichment import EnrichmentPreviewAPI, EnrichmentConfirmAPI
 from learning.api import schools as school_api
 from live.views import teacher_live_console
+from lang_platform.views import isams_transform_view
 handler404 = custom_404_view
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('isams-transform/', isams_transform_view, name='isams_transform'),
     path('teacher-dashboard/', views.teacher_dashboard, name='teacher_dashboard'),
     path('teacher-dashboard/live-competition/', teacher_live_console, name='live_teacher_console'),
     path('register-teacher/', views.register_teacher, name='register_teacher'),
