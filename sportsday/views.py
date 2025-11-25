@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import csv
 import io
+import json
+import re
 from collections import Counter, defaultdict
 from datetime import datetime, timedelta
 from uuid import uuid4
@@ -1371,6 +1373,7 @@ def events_generate(request: HttpRequest, slug: str) -> HttpResponse:
     )
     form = forms.EventGenerationForm(request.POST or None, grades=grade_options)
     summary: dict[str, object] | None = None
+    payload_json: str | None = None
     generated: list[models.Event] = []
 
     if request.method == "POST" and form.is_valid():
@@ -1396,6 +1399,277 @@ def events_generate(request: HttpRequest, slug: str) -> HttpResponse:
         "active_meet": meet,
     }
     return render(request, "sportsday/events_generate.html", context)
+
+
+def events_import(request: HttpRequest, slug: str) -> HttpResponse:
+    """Bulk create events for a meet from a CSV file."""
+
+    meet = get_object_or_404(models.Meet, slug=slug)
+    form = forms.EventImportForm(request.POST or None, request.FILES or None)
+    preview: list[dict[str, object]] | None = None
+    summary: dict[str, object] | None = None
+    errors: list[str] = []
+    payload_json: str | None = None
+
+    if request.method == "POST":
+        payload = request.POST.get("payload")
+        if payload:
+            summary = _persist_imported_events(payload, meet)
+        elif form.is_valid():
+            preview, errors = _parse_event_import_csv(
+                form.cleaned_data["csv_file"], meet, capacity_override=form.cleaned_data.get("capacity_override")
+            )
+            if preview:
+                payload_json = json.dumps(
+                    [
+                        {
+                            "name": row["name"],
+                            "grade_min": row["grade_min"],
+                            "grade_max": row["grade_max"],
+                            "gender_limit": row["gender_limit"],
+                            "schedule_dt": row["schedule_dt"].isoformat() if row["schedule_dt"] else None,
+                            "sport_type_id": row["sport_type"].pk,
+                            "capacity": row.get("capacity"),
+                        }
+                        for row in preview
+                    ]
+                )
+            if not preview and not errors:
+                errors.append("No rows found in the CSV file.")
+
+    context = {
+        "meet": meet,
+        "form": form,
+        "preview": preview,
+        "payload_json": payload_json,
+        "errors": errors,
+        "summary": summary,
+        "active_meet": meet,
+    }
+    return render(request, "sportsday/events_import.html", context)
+
+
+def _parse_event_import_csv(upload, meet: models.Meet, *, capacity_override: int | None = None) -> tuple[list[dict[str, object]], list[str]]:
+    try:
+        data = upload.read().decode("utf-8-sig")
+    except UnicodeDecodeError:
+        upload.seek(0)
+        data = upload.read().decode("latin-1")
+    reader = csv.DictReader(io.StringIO(data))
+    preview: list[dict[str, object]] = []
+    errors: list[str] = []
+
+    if not reader.fieldnames:
+        errors.append("CSV file has no headers.")
+        return preview, errors
+
+    header_map = {header.strip().lower(): header for header in reader.fieldnames if header}
+    required_headers = {"event", "grade", "m/f", "time"}
+    missing_headers = required_headers - set(header_map)
+    if missing_headers:
+        errors.append(f"Missing columns: {', '.join(sorted(missing_headers))}")
+        return preview, errors
+
+    for line_number, row in enumerate(reader, start=2):
+        if not any(row.values()):
+            continue
+        name = (row.get(header_map["event"]) or "").strip()
+        grade_label = (row.get(header_map["grade"]) or "").strip()
+        gender_value = (row.get(header_map["m/f"]) or "").strip()
+        time_value = (row.get(header_map["time"]) or "").strip()
+
+        if not name:
+            errors.append(f"Row {line_number}: event name is required")
+            continue
+        grade_bounds = _parse_grade_bounds(grade_label)
+        if grade_bounds is None:
+            errors.append(f"Row {line_number}: could not interpret grade '{grade_label}'")
+            continue
+        gender_limit = _parse_gender(gender_value)
+        if gender_limit is None:
+            errors.append(f"Row {line_number}: gender must be M or F")
+            continue
+        schedule_dt = _parse_meet_time(meet, time_value)
+        if time_value and schedule_dt is None:
+            errors.append(f"Row {line_number}: could not parse time '{time_value}'")
+            continue
+        sport_type = _resolve_sport_type(name)
+        if sport_type is None:
+            errors.append(
+                f"Row {line_number}: no sport type found for '{name}'. Please create a sport type first."
+            )
+            continue
+
+        grade_min, grade_max, connector = grade_bounds
+        formatted_grade = _format_grade_label(grade_min, grade_max, connector)
+        event_name = f"{name} {formatted_grade} {gender_limit}".strip()
+        preview.append(
+            {
+                "name": event_name,
+                "grade_min": grade_min,
+                "grade_max": grade_max,
+                "grade_connector": connector,
+                "gender_limit": gender_limit,
+                "schedule_dt": schedule_dt,
+                "time_input": time_value,
+                "sport_type": sport_type,
+                "capacity": capacity_override or sport_type.default_capacity,
+            }
+        )
+    upload.close()
+    return preview, errors
+
+
+def _parse_grade_bounds(raw: str) -> tuple[str, str, str] | None:
+    text = (raw or "").strip()
+    if not text:
+        return None
+    normalised = text.lower()
+    numbers = [part for part in re.split(r"[^0-9]+", text) if part]
+    if not numbers:
+        return None
+    connector = "range" if " to " in normalised or "-" in normalised else "list"
+    grade_min = f"G{numbers[0]}" if numbers[0].isdigit() else numbers[0]
+    grade_max = f"G{numbers[-1]}" if numbers[-1].isdigit() else numbers[-1]
+    return grade_min, grade_max, connector
+
+
+def _format_grade_label(grade_min: str, grade_max: str, connector: str) -> str:
+    """Build a readable grade label for event names."""
+
+    if grade_min == grade_max:
+        return grade_min
+    glue = " to " if connector == "range" else " & "
+    compact_max = grade_max[1:] if grade_min.startswith("G") and grade_max.startswith("G") else grade_max
+    return f"{grade_min}{glue}{compact_max}"
+
+
+def _parse_gender(raw: str) -> str | None:
+    value = (raw or "").strip().upper()
+    if value in {models.Event.GenderLimit.MALE, "MALE", "M"}:
+        return models.Event.GenderLimit.MALE
+    if value in {models.Event.GenderLimit.FEMALE, "FEMALE", "F"}:
+        return models.Event.GenderLimit.FEMALE
+    if value in {models.Event.GenderLimit.MIXED, "X", "MIXED", "OPEN"}:
+        return models.Event.GenderLimit.MIXED
+    return None
+
+
+def _parse_meet_time(meet: models.Meet, value: str) -> datetime | None:
+    if not value:
+        return None
+    time_text = value.strip()
+    if re.fullmatch(r"\d{4}", time_text):
+        time_text = f"{time_text[:2]}:{time_text[2:]}"
+    try:
+        parsed_time = datetime.strptime(time_text, "%H:%M").time()
+    except ValueError:
+        return None
+    combined = datetime.combine(meet.date, parsed_time)
+    if timezone.is_naive(combined):
+        return timezone.make_aware(combined)
+    return combined
+
+
+def _resolve_sport_type(name: str) -> models.SportType | None:
+    cleaned = (name or "").strip()
+    if not cleaned:
+        return None
+
+    field_map = {
+        "LJ": "Long jump",
+        "SP": "Shot putt",
+        "HJ": "High jump",
+        "JAV": "Javelin",
+        "TB": "Tennis ball throw",
+        "SB": "Speed bounce",
+    }
+
+    def _find_by_keys(keys: Iterable[str]) -> models.SportType | None:
+        for key in keys:
+            match = models.SportType.objects.filter(label__iexact=key).first()
+            if match:
+                return match
+            match = models.SportType.objects.filter(key__iexact=key).first()
+            if match:
+                return match
+        return None
+
+    upper_name = cleaned.upper()
+    if upper_name in field_map:
+        mapped = field_map[upper_name]
+        sport_type = _find_by_keys([mapped, upper_name, cleaned])
+        if sport_type:
+            return sport_type
+
+    distance_match = re.match(r"^(\d+)", cleaned)
+    if distance_match:
+        distance = distance_match.group(1)
+        candidates = [f"{distance}m", f"{distance} m", distance]
+        sport_type = _find_by_keys(candidates)
+        if sport_type:
+            return sport_type
+
+    return _find_by_keys([cleaned])
+
+
+def _persist_imported_events(payload: str, meet: models.Meet) -> dict[str, object]:
+    created = skipped = 0
+    errors: list[str] = []
+    try:
+        rows = json.loads(payload)
+    except json.JSONDecodeError:
+        return {"created": 0, "skipped": 0, "errors": ["Import payload was invalid."]}
+
+    teacher = (
+        models.Teacher.objects.filter(first_name__iexact="Matthew", last_name__iexact="McClune").first()
+        or models.Teacher.objects.create(first_name="Matthew", last_name="McClune")
+    )
+
+    for index, row in enumerate(rows, start=1):
+        sport_type = models.SportType.objects.filter(pk=row.get("sport_type_id")).first()
+        if not sport_type:
+            errors.append(f"Row {index}: sport type could not be found")
+            continue
+        schedule_dt = None
+        if row.get("schedule_dt"):
+            try:
+                parsed_dt = datetime.fromisoformat(row["schedule_dt"])
+                schedule_dt = timezone.make_aware(parsed_dt) if timezone.is_naive(parsed_dt) else parsed_dt
+            except (TypeError, ValueError):
+                errors.append(f"Row {index}: invalid schedule time")
+                continue
+
+        existing = models.Event.objects.filter(
+            meet=meet,
+            name=row.get("name", ""),
+            grade_min=row.get("grade_min", ""),
+            grade_max=row.get("grade_max", ""),
+            gender_limit=row.get("gender_limit", ""),
+        ).first()
+        if existing:
+            skipped += 1
+            continue
+
+        capacity = row.get("capacity")
+        event = models.Event(
+            meet=meet,
+            sport_type=sport_type,
+            name=row.get("name", "").strip(),
+            grade_min=row.get("grade_min", ""),
+            grade_max=row.get("grade_max", ""),
+            gender_limit=row.get("gender_limit", models.Event.GenderLimit.MIXED),
+            measure_unit=sport_type.default_unit,
+            capacity=capacity if capacity else sport_type.default_capacity,
+            attempts=sport_type.default_attempts,
+            rounds_total=1,
+            schedule_dt=schedule_dt,
+        )
+        event.save()
+        if teacher:
+            event.assigned_teachers.add(teacher)
+        created += 1
+    return {"created": created, "skipped": skipped, "errors": errors}
 
 
 def entries_bulk(request: HttpRequest, slug: str) -> HttpResponse:
