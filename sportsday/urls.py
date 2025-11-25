@@ -16,6 +16,7 @@ urlpatterns = [
     path("meets/<slug:slug>/lock/", views.meet_toggle_lock, name="meet-toggle-lock"),
     path("meets/<slug:slug>/delete/", views.meet_delete, name="meet-delete"),
     path("meets/<slug:slug>/events/generate/", views.events_generate, name="events-generate"),
+    path("meets/<slug:slug>/events/import/", views.events_import, name="events-import"),
     path("meets/<slug:slug>/entries/bulk/", views.entries_bulk, name="entries-bulk"),
     path("students/upload/", views.students_upload, name="students-upload"),
     path("students/", views.student_list, name="students"),
