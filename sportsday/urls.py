@@ -8,6 +8,7 @@ app_name = "sportsday"
 urlpatterns = [
     path("", views.dashboard, name="dashboard"),
     path("meets/", views.meet_list, name="meet-list"),
+    path("meets/sync-events/", views.meet_sync_event_dates, name="meet-sync-events"),
     path("meets/new/", views.meet_create, name="meet-create"),
     path("meets/<slug:slug>/edit/", views.meet_update, name="meet-update"),
     path("meets/<slug:slug>/", views.meet_detail, name="meet-detail"),
