@@ -1577,7 +1577,7 @@ def _resolve_sport_type(name: str) -> models.SportType | None:
         return None
 
     field_map = {
-        "LJ": "Long jump",
+        "LJ": "Standing Long jump",
         "SP": "Shot put",
         "HJ": "High jump",
         "JAV": "Javelin",
