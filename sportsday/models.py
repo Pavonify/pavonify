@@ -10,14 +10,59 @@ from django.db import models
 from django.db.models import F
 
 
-def _grade_key(value: str) -> tuple[int, str]:
-    """Return a sortable key for grade strings such as G6 or Year 7."""
+GRADE_ALIASES: dict[str, str] = {
+    "NURSERY": "NUR",
+    "NURS": "NUR",
+    "NUR": "NUR",
+    "UKG": "UKG",
+    "KG": "UKG",
+    "KINDERGARTEN": "UKG",
+    "PAR": "PAR",
+    "PARENT": "PAR",
+    "PARENTS": "PAR",
+    "ALL": "ALL",
+}
+
+GRADE_ORDER: list[str] = [
+    "NUR",
+    "UKG",
+    *[f"G{i}" for i in range(1, 13)],
+    "PAR",
+    "ALL",
+]
+
+GRADE_RANK = {label: index for index, label in enumerate(GRADE_ORDER)}
+
+
+def normalise_grade_label(value: str) -> str:
+    """Normalise grade labels (e.g. nursery, UKG, numbered grades)."""
 
     text = (value or "").strip()
-    digits = "".join(ch for ch in text if ch.isdigit())
+    if not text:
+        return ""
+
+    upper = text.upper()
+    if upper in GRADE_ALIASES:
+        upper = GRADE_ALIASES[upper]
+
+    digits = "".join(ch for ch in upper if ch.isdigit())
     if digits:
-        return (int(digits), text.lower())
-    return (0, text.lower())
+        return f"G{int(digits)}"
+    return upper
+
+
+def _grade_key(value: str) -> tuple[int, str]:
+    """Return a sortable key for grade strings such as G6 or nursery labels."""
+
+    normalised = normalise_grade_label(value)
+    rank = GRADE_RANK.get(normalised)
+    if rank is not None:
+        return (rank, normalised.lower())
+
+    digits = "".join(ch for ch in normalised if ch.isdigit())
+    if digits:
+        return (int(digits), normalised.lower())
+    return (0, normalised.lower())
 
 
 class Student(models.Model):
@@ -163,6 +208,9 @@ class Event(models.Model):
 
     def grade_allows(self, grade: str) -> bool:
         """Return True when the provided grade is within the event division."""
+
+        if any(normalise_grade_label(value) == "ALL" for value in (self.grade_min, self.grade_max)):
+            return True
 
         minimum = _grade_key(self.grade_min)
         maximum = _grade_key(self.grade_max)

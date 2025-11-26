@@ -352,10 +352,7 @@ class EventConfigForm(forms.ModelForm):
         return event
 
     def _normalise_grade(self, grade: str) -> tuple[int, str]:
-        digits = "".join(char for char in grade if char.isdigit())
-        if digits:
-            return (int(digits), "")
-        return (0, grade.lower())
+        return models._grade_key(grade)
 
 
 class StudentUploadForm(forms.Form):
@@ -478,7 +475,8 @@ class EventGenerationForm(forms.Form):
             models.Student.objects.values_list("grade", flat=True).distinct().order_by("grade")
         )
         if not grade_options:
-            grade_options = [f"G{i}" for i in range(3, 13)]
+            grade_options = ["NUR", "UKG", *[f"G{i}" for i in range(1, 13)]]
+        grade_options = sorted(grade_options, key=models._grade_key)
         self.fields["grades"].choices = [(grade, grade) for grade in grade_options]
         self.fields["genders"].choices = models.Event.GenderLimit.choices
         select_class = LIGHT_TEXT_INPUT_CLASSES
@@ -628,16 +626,18 @@ class StartListAddForm(forms.Form):
         return cleaned_data
 
     def _grade_in_range(self, grade: str, minimum: str, maximum: str) -> bool:
+        if any(models.normalise_grade_label(value) == "ALL" for value in (minimum, maximum)):
+            return True
+
         minimum_key = self._normalise_grade(minimum)
         maximum_key = self._normalise_grade(maximum)
         candidate_key = self._normalise_grade(grade)
+        if minimum_key > maximum_key:
+            minimum_key, maximum_key = maximum_key, minimum_key
         return minimum_key <= candidate_key <= maximum_key
 
     def _normalise_grade(self, grade: str) -> tuple[int, str]:
-        digits = "".join(char for char in grade if char.isdigit())
-        if digits:
-            return (int(digits), "")
-        return (0, grade.lower())
+        return models._grade_key(grade)
 
 
 class BaseResultForm(forms.Form):

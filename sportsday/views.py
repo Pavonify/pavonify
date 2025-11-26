@@ -237,20 +237,13 @@ def _format_result_value(event: models.Event, value: Decimal | None) -> str:
 
 
 def _grade_sort_key(grade: str) -> tuple[int, str]:
-    stripped = (grade or "").strip()
-    if stripped.isdigit():
-        return int(stripped), stripped
-    return (999, stripped or "—")
+    return models._grade_key(grade)
 
 
 def _grade_option_sort_key(grade: str) -> tuple[int, str]:
     """Sort helper that keeps numeric grade labels ordered naturally."""
 
-    text = (grade or "").strip()
-    digits = "".join(ch for ch in text if ch.isdigit())
-    if digits:
-        return int(digits), text.lower()
-    return (999, text.lower())
+    return models._grade_key(grade)
 
 
 def _event_form_grade_choices(
@@ -1553,13 +1546,21 @@ def _parse_grade_bounds(raw: str) -> tuple[str, str, str] | None:
     text = (raw or "").strip()
     if not text:
         return None
-    normalised = text.lower()
-    numbers = [part for part in re.split(r"[^0-9]+", text) if part]
-    if not numbers:
+    tokens = [part for part in re.split(r"[^A-Za-z0-9]+", text) if part]
+    if not tokens:
         return None
-    connector = "range" if " to " in normalised or "-" in normalised else "list"
-    grade_min = f"G{numbers[0]}" if numbers[0].isdigit() else numbers[0]
-    grade_max = f"G{numbers[-1]}" if numbers[-1].isdigit() else numbers[-1]
+    connector = "range" if re.search(r"\bto\b|-", text.lower()) else "list"
+    grade_labels: list[str] = []
+    for token in tokens:
+        label = models.normalise_grade_label(token)
+        if label:
+            grade_labels.append(label)
+
+    if not grade_labels:
+        return None
+
+    grade_min = grade_labels[0]
+    grade_max = grade_labels[-1]
     return grade_min, grade_max, connector
 
 
