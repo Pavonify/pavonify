@@ -69,6 +69,7 @@
             <a href="{% url 'sportsday:events' %}?meet={{ meet.slug }}" class="inline-flex items-center gap-2 rounded-full bg-sky-500/10 px-4 py-2 text-sky-200 hover:bg-sky-500/20">Manage events</a>
             <a href="{% url 'sportsday:events-generate' meet.slug %}" class="inline-flex items-center gap-2 rounded-full border border-dashed border-sky-500/40 px-4 py-2 text-sky-200 hover:border-sky-500 hover:text-sky-100">Bulk generate events</a>
             <a href="{% url 'sportsday:entries-bulk' meet.slug %}" class="inline-flex items-center gap-2 rounded-full border border-dashed border-emerald-500/40 px-4 py-2 text-emerald-200 hover:border-emerald-500 hover:text-emerald-100">Bulk assign entries</a>
+            <a href="{% url 'sportsday:event-reassign' %}" class="inline-flex items-center gap-2 rounded-full border border-slate-700 px-4 py-2 text-slate-300 hover:border-sky-500/40 hover:text-sky-200">Move events between meets</a>
         </div>
     </section>
 
