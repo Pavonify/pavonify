@@ -1586,7 +1586,7 @@ def _resolve_sport_type(name: str) -> models.SportType | None:
         "SACK": "Sack Race",
         "Bean": "Beanbag Race",
         "HOOP": "Hoop Relay",
-        "TR&B": "Tennis Racket",
+        "TR&B": "Tennis Racket & Ball Race",
         "OBR": "Obstacle Race"
     }
 
