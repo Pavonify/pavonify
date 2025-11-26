@@ -150,7 +150,7 @@ class Event(models.Model):
     is_locked = models.BooleanField(default=False)
 
     class Meta:
-        ordering = (F("schedule_dt").asc(nulls_last=True), "name")
+        ordering = (F("schedule_dt").asc(nulls_last=True), "pk")
 
     def __str__(self) -> str:
         return f"{self.meet.name}: {self.name}"
