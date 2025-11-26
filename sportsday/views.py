@@ -1578,11 +1578,16 @@ def _resolve_sport_type(name: str) -> models.SportType | None:
 
     field_map = {
         "LJ": "Long jump",
-        "SP": "Shot putt",
+        "SP": "Shot put",
         "HJ": "High jump",
         "JAV": "Javelin",
         "TB": "Tennis ball throw",
         "SB": "Speed bounce",
+        "SACK": "Sack Race",
+        "Bean": "Beanbag Race",
+        "HOOP": "Hoop Relay",
+        "TR&B": "Tennis Racket",
+        "OBR": "Obstacle Race"
     }
 
     def _find_by_keys(keys: Iterable[str]) -> models.SportType | None:
