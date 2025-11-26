@@ -2099,6 +2099,61 @@ def _meet_from_request(request: HttpRequest) -> models.Meet:
     return get_object_or_404(models.Meet, slug=slug)
 
 
+def event_reassign(request: HttpRequest) -> HttpResponse:
+    """Open access page to quickly move events between meets."""
+
+    events = models.Event.objects.select_related("meet", "sport_type").order_by(
+        "meet__name", "name"
+    )
+
+    if request.method == "POST":
+        updated = 0
+        for event in events:
+            raw_meet_id = (request.POST.get(f"meet_{event.pk}") or "").strip()
+            if not raw_meet_id:
+                continue
+
+            try:
+                new_meet_id = int(raw_meet_id)
+            except ValueError:
+                messages.error(request, f"{event.name}: enter a valid meet id.")
+                continue
+
+            if new_meet_id == event.meet_id:
+                continue
+
+            target_meet = models.Meet.objects.filter(pk=new_meet_id).first()
+            if not target_meet:
+                messages.error(request, f"{event.name}: meet id {new_meet_id} was not found.")
+                continue
+
+            lock_reason = _event_lock_reason(event)
+            if lock_reason:
+                messages.error(request, f"{event.name}: {lock_reason}")
+                continue
+
+            if target_meet.is_locked:
+                messages.error(
+                    request,
+                    f"{event.name}: {target_meet.name} is locked. Unlock it before moving events.",
+                )
+                continue
+
+            event.meet = target_meet
+            event.save(update_fields=["meet"])
+            updated += 1
+
+        if updated:
+            messages.success(request, f"Updated {updated} event{'s' if updated != 1 else ''}.")
+        return redirect("sportsday:event-reassign")
+
+    context = {
+        "events": events,
+        "active_meet": None,
+    }
+    return render(request, "sportsday/events_reassign.html", context)
+
+
 def event_list(request: HttpRequest) -> HttpResponse:
     """List events for a meet with management shortcuts."""
 
