@@ -30,7 +30,7 @@ from . import forms, models, qr, services
 LOCKED_STATUS_CODE = 423
 
 
-SCHEDULE_ORDERING = (F("schedule_dt").asc(nulls_last=True), "name")
+SCHEDULE_ORDERING = (F("schedule_dt").asc(nulls_last=True), "pk")
 
 
 QUICK_ASSIGNMENT_LOG_SESSION_KEY = "sportsday.quick-assignments.log"
