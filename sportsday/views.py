@@ -1927,7 +1927,7 @@ def teachers_upload(request: HttpRequest) -> HttpResponse:
 def student_list(request: HttpRequest) -> HttpResponse:
     """Directory of students with event tallies."""
 
-    meet_options = models.Meet.objects.order_by("name")
+    meet_options = models.Meet.objects.order_by("-date", "name")
     houses = models.Student.objects.values_list("house", flat=True).distinct().order_by("house")
     filters = _student_filters(request)
     meet_slug = filters.get("meet")
@@ -2157,7 +2157,7 @@ def event_reassign(request: HttpRequest) -> HttpResponse:
 def event_list(request: HttpRequest) -> HttpResponse:
     """List events for a meet with management shortcuts."""
 
-    meet_options = models.Meet.objects.order_by("name")
+    meet_options = models.Meet.objects.order_by("-date", "name")
     teacher_options = models.Teacher.objects.order_by("last_name", "first_name")
     meet_slug = request.POST.get("meet") if request.method == "POST" else request.GET.get("meet")
     if not meet_slug and meet_options.exists():
