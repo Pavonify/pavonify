@@ -1,9 +1,11 @@
+from datetime import datetime, time
 from decimal import Decimal
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
 
 from django.urls import reverse
+from django.utils import timezone
 
 from sportsday import models
 
@@ -92,6 +94,23 @@ class SportsdayViewsTests(TestCase):
         response = self.client.get(reverse("sportsday:meet-detail", kwargs={"slug": self.meet.slug}))
         self.assertContains(response, "Meet hub")
         self.assertContains(response, self.meet.name)
+
+    def test_sync_event_dates_aligns_schedule(self):
+        scheduled_dt = timezone.make_aware(datetime(2025, 5, 2, 10, 30))
+        self.event.schedule_dt = scheduled_dt
+        self.event.save(update_fields=["schedule_dt"])
+
+        response = self.client.post(reverse("sportsday:meet-sync-events"))
+
+        self.assertRedirects(response, reverse("sportsday:meet-list"))
+        self.event.refresh_from_db()
+        meet_date = (
+            self.meet.date
+            if hasattr(self.meet.date, "year")
+            else datetime.fromisoformat(str(self.meet.date)).date()
+        )
+        self.assertEqual(self.event.schedule_dt.date(), meet_date)
+        self.assertEqual(self.event.schedule_dt.timetz(), time(10, 30, tzinfo=scheduled_dt.tzinfo))
 
     def test_event_start_list_fragment(self):
         response = self.client.get(reverse("sportsday:event-start-list-fragment", kwargs={"pk": self.event.pk}))

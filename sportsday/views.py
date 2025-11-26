@@ -1023,6 +1023,35 @@ def meet_list(request: HttpRequest) -> HttpResponse:
     return render(request, template, {"cards": cards, "active_meet": None})
 
 
+@require_POST
+def meet_sync_event_dates(request: HttpRequest) -> HttpResponse:
+    """Align all scheduled events so their dates match the parent meet date."""
+
+    events = models.Event.objects.select_related("meet").filter(schedule_dt__isnull=False)
+    updated = 0
+
+    for event in events:
+        schedule_dt = event.schedule_dt
+        meet_date = event.meet.date
+        if not schedule_dt or schedule_dt.date() == meet_date:
+            continue
+
+        new_dt = datetime.combine(meet_date, schedule_dt.timetz())
+        event.schedule_dt = new_dt
+        event.save(update_fields=["schedule_dt"])
+        updated += 1
+
+    if updated:
+        messages.success(
+            request,
+            f"Synced {updated} event{'s' if updated != 1 else ''} to their meet dates.",
+        )
+    else:
+        messages.info(request, "All scheduled events already match their meet dates.")
+
+    return redirect("sportsday:meet-list")
+
+
 def meet_create(request: HttpRequest) -> HttpResponse:
     """Create a new meet from a single form."""
 
