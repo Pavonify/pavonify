@@ -21,7 +21,11 @@
                         {% for option in meet_options %}
                             <option
                                 value="{{ option.slug }}"
-                                {% if option.slug == request.GET.meet or (not request.GET.meet and active_meet and option.slug == active_meet.slug) %}selected{% endif %}
+                                {% if option.slug == request.GET.meet %}
+                                    selected
+                                {% elif not request.GET.meet and active_meet and option.slug == active_meet.slug %}
+                                    selected
+                                {% endif %}
                             >
                                 {{ option.name }}
                             </option>
@@ -73,7 +77,15 @@
             <select name="meet" class="w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-200">
                 <option value="">Select a meet</option>
                 {% for option in meet_options %}
-                    <option value="{{ option.slug }}" {% if option.slug == request.GET.meet or (not request.GET.meet and active_meet and option.slug == active_meet.slug) %}selected{% endif %}>{{ option.name }}</option>
+                    <option value="{{ option.slug }}"
+                        {% if option.slug == request.GET.meet %}
+                            selected
+                        {% elif not request.GET.meet and active_meet and option.slug == active_meet.slug %}
+                            selected
+                        {% endif %}
+                    >
+                        {{ option.name }}
+                    </option>
                 {% endfor %}
             </select>
         </label>
