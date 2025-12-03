@@ -1818,10 +1818,16 @@ def entries_bulk(request: HttpRequest, slug: str) -> HttpResponse:
         ]
         slot_count = max(event.capacity, len(existing_entries))
         assigned_values = [
-            f"{entry.student.pk} · {entry.student.first_name} {entry.student.last_name}"
+            {
+                "id": entry.student.pk,
+                "label": f"{entry.student.first_name} {entry.student.last_name}",
+            }
             for entry in existing_entries
         ]
-        slot_values = [assigned_values[i] if i < len(assigned_values) else "" for i in range(slot_count)]
+        slot_values = [
+            assigned_values[i] if i < len(assigned_values) else None
+            for i in range(slot_count)
+        ]
         event_rows.append(
             {
                 "event": event,
@@ -1830,21 +1836,12 @@ def entries_bulk(request: HttpRequest, slug: str) -> HttpResponse:
                 "slot_count": slot_count,
                 "fill_count": len(existing_entries),
                 "assigned_values": assigned_values,
-                "slot_range": range(slot_count),
                 "slot_values": slot_values,
             }
         )
-
-    max_slot_count = max((row["slot_count"] for row in event_rows), default=0)
-    for row in event_rows:
-        padding = max_slot_count - row["slot_count"]
-        row["slot_range"] = range(row["slot_count"])
-        row["padding_range"] = range(padding if padding > 0 else 0)
     context = {
         "meet": meet,
         "event_rows": event_rows,
-        "max_slot_count": max_slot_count,
-        "slot_range": range(max_slot_count),
         "summary": summary,
         "active_meet": meet,
     }
