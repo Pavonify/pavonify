@@ -17,7 +17,12 @@ from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import Count, F, Max, Min, Prefetch, Q
-from django.http import Http404, HttpRequest, HttpResponse, HttpResponseBadRequest
+from django.http import (
+    Http404,
+    HttpRequest,
+    HttpResponse,
+    HttpResponseBadRequest,
+)
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -35,6 +40,82 @@ SCHEDULE_ORDERING = (F("schedule_dt").asc(nulls_last=True), "pk")
 
 QUICK_ASSIGNMENT_LOG_SESSION_KEY = "sportsday.quick-assignments.log"
 QUICK_ASSIGNMENT_LOG_LIMIT = 50
+
+EVENT_BACKUP_HEADERS = [
+    "event_name",
+    "sport_type",
+    "grade_min",
+    "grade_max",
+    "gender_limit",
+    "measure_unit",
+    "capacity",
+    "attempts",
+    "rounds_total",
+    "knockout_qualifiers",
+    "schedule",
+    "location",
+    "notes",
+    "is_locked",
+    "teacher_refs",
+    "entry_student_ref",
+    "entry_student_first_name",
+    "entry_student_last_name",
+    "entry_student_grade",
+    "entry_round",
+    "entry_heat",
+    "entry_lane_or_order",
+    "entry_status",
+    "result_best_value",
+    "result_rank",
+    "result_tiebreak",
+    "result_finalized",
+]
+
+
+def _teacher_reference(teacher: models.Teacher) -> str:
+    """Return a stable identifier for a teacher for backup files."""
+
+    return teacher.external_id or f"id:{teacher.pk}"
+
+
+def _student_reference(student: models.Student) -> str:
+    """Return a stable identifier for a student for backup files."""
+
+    return student.external_id or f"id:{student.pk}"
+
+
+def _parse_bool(value) -> bool:
+    """Interpret various truthy representations from CSV uploads."""
+
+    return str(value).strip().lower() in {"1", "true", "yes", "y"}
+
+
+def _parse_int(value: str | None, default: int | None = None) -> int | None:
+    try:
+        return int(value) if value not in ("", None) else default
+    except (TypeError, ValueError):
+        return default
+
+
+def _parse_decimal(value: str | None) -> Decimal | None:
+    if value in ("", None):
+        return None
+    try:
+        return Decimal(str(value))
+    except (ArithmeticError, ValueError):
+        return None
+
+
+def _parse_datetime(value: str | None) -> datetime | None:
+    if not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if timezone.is_naive(parsed):
+        parsed = timezone.make_aware(parsed, timezone.get_current_timezone())
+    return parsed
 
 
 def _quick_assignment_user_label(user) -> str:
@@ -2354,6 +2435,7 @@ def event_list(request: HttpRequest) -> HttpResponse:
         "mobile_nav": mobile_nav,
         "mobile_nav_active": mobile_nav_active,
         "can_quick_edit": _user_can_quick_edit(request.user),
+        "backup_form": forms.EventBackupUploadForm(),
     }
 
     return render(request, "sportsday/events_list.html", context)
@@ -4034,6 +4116,375 @@ def export_events_overview(request: HttpRequest) -> HttpResponse:
 
     context = {"meet": meet, "events_payload": payload}
     return render(request, "sportsday/printables/events_overview.html", context)
+
+
+def events_backup_download(request: HttpRequest, slug: str) -> HttpResponse:
+    """Download a CSV backup containing events, entries, and results."""
+
+    meet = get_object_or_404(models.Meet, slug=slug)
+    entries_prefetch = Prefetch(
+        "entries",
+        queryset=(
+            models.Entry.objects.select_related("student", "result")
+            .order_by("round_no", "heat", "lane_or_order", "pk")
+        ),
+        to_attr="backup_entries",
+    )
+    events = (
+        meet.events.select_related("sport_type")
+        .prefetch_related("assigned_teachers", entries_prefetch)
+        .order_by(*SCHEDULE_ORDERING)
+    )
+
+    response = HttpResponse(content_type="text/csv")
+    response["Content-Disposition"] = (
+        f'attachment; filename="meet-backup-{meet.slug}.csv"'
+    )
+    writer = csv.writer(response)
+    writer.writerow(EVENT_BACKUP_HEADERS)
+
+    for event in events:
+        teacher_refs = ";".join(_teacher_reference(teacher) for teacher in event.assigned_teachers.all())
+        entries = list(getattr(event, "backup_entries", []))
+        base_row = [
+            event.name,
+            event.sport_type.key,
+            event.grade_min,
+            event.grade_max,
+            event.gender_limit,
+            event.measure_unit,
+            event.capacity,
+            event.attempts,
+            event.rounds_total,
+            event.knockout_qualifiers,
+            event.schedule_dt.isoformat() if event.schedule_dt else "",
+            event.location,
+            event.notes,
+            "1" if event.is_locked else "0",
+            teacher_refs,
+        ]
+        if not entries:
+            writer.writerow(base_row + ["" for _ in EVENT_BACKUP_HEADERS[len(base_row) :]])
+            continue
+        for entry in entries:
+            student = entry.student
+            result = getattr(entry, "result", None)
+            row = base_row + [
+                _student_reference(student),
+                student.first_name,
+                student.last_name,
+                student.grade,
+                entry.round_no,
+                entry.heat,
+                entry.lane_or_order or "",
+                entry.status,
+                str(result.best_value) if result and result.best_value is not None else "",
+                result.rank if result else "",
+                json.dumps(result.tiebreak) if result and result.tiebreak else "",
+                "1" if result and result.finalized else "",
+            ]
+            writer.writerow(row)
+    return response
+
+
+@require_POST
+def events_backup_upload(request: HttpRequest, slug: str) -> HttpResponse:
+    """Restore a meet's events, entries, and results from a backup CSV."""
+
+    meet = get_object_or_404(models.Meet, slug=slug)
+    form = forms.EventBackupUploadForm(request.POST, request.FILES)
+    if not form.is_valid():
+        for field, errors in form.errors.items():
+            for error in errors:
+                messages.error(request, error if field == "__all__" else f"{field}: {error}")
+        return redirect(f"{reverse('sportsday:events')}?meet={meet.slug}")
+
+    parsed_events, errors = _parse_event_backup_csv(form.cleaned_data["csv_file"])
+    if errors:
+        for error in errors:
+            messages.error(request, error)
+        return redirect(f"{reverse('sportsday:events')}?meet={meet.slug}")
+
+    summary, restore_errors = _restore_event_backup(meet, parsed_events)
+    if restore_errors:
+        for error in restore_errors:
+            messages.warning(request, error)
+        if summary["events"] == 0:
+            return redirect(f"{reverse('sportsday:events')}?meet={meet.slug}")
+
+    messages.success(
+        request,
+        (
+            f"Backup restored for {meet.name}: "
+            f"{summary['events']} events, {summary['entries']} entries, {summary['results']} results."
+        ),
+    )
+    return redirect(f"{reverse('sportsday:events')}?meet={meet.slug}")
+
+
+def _parse_event_backup_csv(upload) -> tuple[list[dict[str, object]], list[str]]:
+    try:
+        data = upload.read().decode("utf-8-sig")
+    except UnicodeDecodeError:
+        upload.seek(0)
+        data = upload.read().decode("latin-1")
+    reader = csv.DictReader(io.StringIO(data))
+    errors: list[str] = []
+    events: dict[str, dict[str, object]] = {}
+
+    if not reader.fieldnames:
+        return [], ["CSV file has no headers."]
+
+    header_map = {header.strip().lower(): header for header in reader.fieldnames if header}
+    missing_headers = {"event_name", "sport_type", "grade_min", "grade_max", "gender_limit"} - set(header_map)
+    if missing_headers:
+        return [], [f"Missing columns: {', '.join(sorted(missing_headers))}"]
+
+    for line_number, row in enumerate(reader, start=2):
+        name = (row.get(header_map["event_name"]) or "").strip()
+        if not name:
+            errors.append(f"Row {line_number}: event_name is required")
+            continue
+        sport_key = (row.get(header_map["sport_type"]) or "").strip()
+        if not sport_key:
+            errors.append(f"Row {line_number}: sport_type is required for {name}")
+            continue
+        gender_value = (row.get(header_map["gender_limit"]) or "").strip().upper()
+        if gender_value not in dict(models.Event.GenderLimit.choices):
+            errors.append(f"Row {line_number}: gender_limit must be one of {', '.join(models.Event.GenderLimit.values)}")
+            continue
+
+        if name in events:
+            event_payload = events[name]
+            if sport_key != event_payload["sport_type"]:
+                errors.append(
+                    f"Row {line_number}: sport_type for {name} does not match earlier rows."
+                )
+                continue
+            if gender_value != event_payload["gender_limit"]:
+                errors.append(
+                    f"Row {line_number}: gender_limit for {name} does not match earlier rows."
+                )
+                continue
+        else:
+            event_payload = events.setdefault(
+                name,
+                {
+                    "name": name,
+                    "sport_type": sport_key,
+                    "grade_min": row.get(header_map["grade_min"], "").strip(),
+                    "grade_max": row.get(header_map["grade_max"], "").strip(),
+                    "gender_limit": gender_value,
+                    "measure_unit": (row.get(header_map.get("measure_unit", "")) or "").strip(),
+                    "capacity": _parse_int(row.get(header_map.get("capacity", ""))) or None,
+                    "attempts": _parse_int(row.get(header_map.get("attempts", ""))) or None,
+                    "rounds_total": _parse_int(row.get(header_map.get("rounds_total", "")), 1) or 1,
+                    "knockout_qualifiers": (row.get(header_map.get("knockout_qualifiers", "")) or "").strip(),
+                    "schedule_dt": _parse_datetime(row.get(header_map.get("schedule", ""))),
+                    "location": (row.get(header_map.get("location", "")) or "").strip(),
+                    "notes": row.get(header_map.get("notes", ""), ""),
+                    "is_locked": _parse_bool(row.get(header_map.get("is_locked", ""))),
+                    "teacher_refs": [],
+                    "entries": [],
+                },
+            )
+
+        teacher_tokens = (row.get(header_map.get("teacher_refs", "")) or "").split(";")
+        for token in teacher_tokens:
+            cleaned = token.strip()
+            if cleaned and cleaned not in event_payload["teacher_refs"]:
+                event_payload["teacher_refs"].append(cleaned)
+
+        student_ref = (row.get(header_map.get("entry_student_ref", "")) or "").strip()
+        student_first = (row.get(header_map.get("entry_student_first_name", "")) or "").strip()
+        student_last = (row.get(header_map.get("entry_student_last_name", "")) or "").strip()
+        student_grade = (row.get(header_map.get("entry_student_grade", "")) or "").strip()
+        entry_present = any([student_ref, student_first, student_last, student_grade])
+        if not entry_present:
+            continue
+
+        status_value = (row.get(header_map.get("entry_status", "")) or models.Entry.Status.CONFIRMED).strip()
+        if status_value not in models.Entry.Status.values:
+            status_value = models.Entry.Status.CONFIRMED
+
+        result_best = _parse_decimal(row.get(header_map.get("result_best_value", "")))
+        result_rank = _parse_int(row.get(header_map.get("result_rank", "")))
+        raw_tiebreak = row.get(header_map.get("result_tiebreak", ""))
+        tiebreak: dict[str, object] = {}
+        if raw_tiebreak:
+            try:
+                maybe_json = json.loads(raw_tiebreak)
+                if isinstance(maybe_json, dict):
+                    tiebreak = maybe_json
+            except json.JSONDecodeError:
+                tiebreak = {}
+
+        entry_payload = {
+            "student_ref": student_ref,
+            "first_name": student_first,
+            "last_name": student_last,
+            "grade": student_grade,
+            "round_no": _parse_int(row.get(header_map.get("entry_round", "")), 1) or 1,
+            "heat": _parse_int(row.get(header_map.get("entry_heat", "")), 1) or 1,
+            "lane_or_order": _parse_int(row.get(header_map.get("entry_lane_or_order", ""))),
+            "status": status_value,
+            "result": None,
+        }
+        if result_best is not None or result_rank is not None or raw_tiebreak or _parse_bool(row.get(header_map.get("result_finalized", ""))):
+            entry_payload["result"] = {
+                "best_value": result_best,
+                "rank": result_rank,
+                "tiebreak": tiebreak,
+                "finalized": _parse_bool(row.get(header_map.get("result_finalized", ""))),
+            }
+
+        event_payload["entries"].append(entry_payload)
+    upload.close()
+    return list(events.values()), errors
+
+
+def _restore_event_backup(
+    meet: models.Meet, events: list[dict[str, object]]
+) -> tuple[dict[str, int], list[str]]:
+    summary = {"events": 0, "entries": 0, "results": 0}
+    errors: list[str] = []
+
+    known_sports = set(models.SportType.objects.values_list("key", flat=True))
+    missing_sports = {payload["sport_type"] for payload in events} - known_sports
+    if missing_sports:
+        return summary, [
+            "Missing sport types: " + ", ".join(sorted(missing_sports)) + ". Create them before restoring."
+        ]
+
+    with transaction.atomic():
+        meet.events.all().delete()
+
+        for payload in events:
+            sport_type = models.SportType.objects.filter(key=payload["sport_type"]).first()
+            if not sport_type:
+                errors.append(
+                    f"Skipping {payload['name']}: sport type '{payload['sport_type']}' was not found."
+                )
+                continue
+
+            event = models.Event.objects.create(
+                meet=meet,
+                sport_type=sport_type,
+                name=payload["name"],
+                grade_min=payload["grade_min"],
+                grade_max=payload["grade_max"],
+                gender_limit=payload["gender_limit"],
+                measure_unit=payload.get("measure_unit") or sport_type.default_unit,
+                capacity=payload.get("capacity") or sport_type.default_capacity,
+                attempts=payload.get("attempts") or sport_type.default_attempts,
+                rounds_total=payload.get("rounds_total") or 1,
+                knockout_qualifiers=payload.get("knockout_qualifiers", ""),
+                schedule_dt=payload.get("schedule_dt"),
+                location=payload.get("location", ""),
+                notes=payload.get("notes", ""),
+                is_locked=bool(payload.get("is_locked")),
+            )
+            summary["events"] += 1
+
+            teacher_ids: list[int] = []
+            for ref in payload.get("teacher_refs", []):
+                teacher = _resolve_teacher_reference(ref)
+                if teacher:
+                    teacher_ids.append(teacher.pk)
+                else:
+                    errors.append(f"{event.name}: teacher '{ref}' was not found.")
+            if teacher_ids:
+                event.assigned_teachers.set(teacher_ids)
+
+            for entry_payload in payload.get("entries", []):
+                student = _resolve_student_reference(entry_payload)
+                if not student:
+                    label = entry_payload.get("student_ref") or f"{entry_payload.get('first_name', '')} {entry_payload.get('last_name', '')}".strip()
+                    errors.append(f"{event.name}: student '{label or 'Unknown'}' was not found. Skipping entry.")
+                    continue
+
+                entry = models.Entry(
+                    event=event,
+                    student=student,
+                    round_no=entry_payload.get("round_no") or 1,
+                    heat=entry_payload.get("heat") or 1,
+                    lane_or_order=entry_payload.get("lane_or_order"),
+                    status=entry_payload.get("status", models.Entry.Status.CONFIRMED),
+                )
+                try:
+                    entry.full_clean()
+                except ValidationError as exc:
+                    message = "; ".join(
+                        sum((list(messages_list) for messages_list in exc.message_dict.values()), [])
+                    )
+                    errors.append(f"{event.name}: {student} – {message}")
+                    continue
+                entry.save()
+                summary["entries"] += 1
+
+                result_payload = entry_payload.get("result")
+                if result_payload:
+                    result = models.Result.objects.create(
+                        entry=entry,
+                        best_value=result_payload.get("best_value"),
+                        rank=result_payload.get("rank"),
+                        tiebreak=result_payload.get("tiebreak") or {},
+                        finalized=bool(result_payload.get("finalized")),
+                    )
+                    summary["results"] += 1
+
+    return summary, errors
+
+
+def _resolve_teacher_reference(reference: str) -> models.Teacher | None:
+    ref = (reference or "").strip()
+    if not ref:
+        return None
+    teacher = models.Teacher.objects.filter(external_id=ref).first()
+    if teacher:
+        return teacher
+    if ref.lower().startswith("id:"):
+        try:
+            pk = int(ref.split(":", 1)[1])
+        except (TypeError, ValueError):
+            pk = None
+        if pk:
+            teacher = models.Teacher.objects.filter(pk=pk).first()
+            if teacher:
+                return teacher
+    return None
+
+
+def _resolve_student_reference(payload: dict[str, object]) -> models.Student | None:
+    ref = (payload.get("student_ref") or "").strip()
+    first_name = (payload.get("first_name") or "").strip()
+    last_name = (payload.get("last_name") or "").strip()
+    grade = (payload.get("grade") or "").strip()
+
+    if ref:
+        student = models.Student.objects.filter(external_id=ref).first()
+        if student:
+            return student
+        if ref.lower().startswith("id:"):
+            try:
+                pk = int(ref.split(":", 1)[1])
+            except (TypeError, ValueError):
+                pk = None
+            if pk:
+                student = models.Student.objects.filter(pk=pk).first()
+                if student:
+                    return student
+
+    queryset = models.Student.objects.all()
+    if first_name and last_name and grade:
+        student = queryset.filter(
+            first_name__iexact=first_name, last_name__iexact=last_name, grade=grade
+        ).first()
+        if student:
+            return student
+    if first_name and last_name:
+        return queryset.filter(first_name__iexact=first_name, last_name__iexact=last_name).first()
+    return None
 
 
 def export_teacher_allocations(request: HttpRequest) -> HttpResponse:

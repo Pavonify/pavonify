@@ -559,6 +559,26 @@ class EventImportForm(forms.Form):
             existing = widget.attrs.get("class", "")
             widget.attrs["class"] = f"{existing} {text_class}".strip()
 
+
+class EventBackupUploadForm(forms.Form):
+    """Upload a full-meet backup to recreate events and results."""
+
+    csv_file = forms.FileField(label="Backup CSV")
+
+    def clean_csv_file(self):
+        upload = self.cleaned_data["csv_file"]
+        if upload and not upload.name.lower().endswith(".csv"):
+            raise ValidationError("Please upload a CSV file.")
+        return upload
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        text_class = LIGHT_TEXT_INPUT_CLASSES
+        for field_name in self.fields:
+            widget = self.fields[field_name].widget
+            existing = widget.attrs.get("class", "")
+            widget.attrs["class"] = f"{existing} {text_class}".strip()
+
 class StartListAddForm(forms.Form):
     """Allow coordinators to add a student to an event start list."""
 
