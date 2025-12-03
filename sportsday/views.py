@@ -941,6 +941,96 @@ def _build_leaderboard_summaries(records: list[services.ScoringRecord]):
     }
 
 
+def _build_student_totals(records: list[services.ScoringRecord]):
+    totals: dict[int, dict[str, object]] = {}
+    for record in records:
+        student = record.student
+        if student.pk not in totals:
+            totals[student.pk] = {
+                "student": student,
+                "house": record.house,
+                "grade": record.grade,
+                "gender": (student.gender or "").strip(),
+                "points": Decimal("0"),
+                "participation": Decimal("0"),
+                "events": set(),
+            }
+        entry = totals[student.pk]
+        entry["points"] += record.points
+        entry["participation"] += record.participation
+        entry["events"].add(record.event.pk)
+
+    def _sort_key(item: dict[str, object]):
+        student = item["student"]
+        return (
+            -(item["points"] + item["participation"]),
+            -len(item["events"]),
+            getattr(student, "last_name", ""),
+            getattr(student, "first_name", ""),
+        )
+
+    rows: list[dict[str, object]] = []
+    for entry in totals.values():
+        total_points = entry["points"] + entry["participation"]
+        rows.append(
+            {
+                **entry,
+                "events": len(entry["events"]),
+                "total": total_points,
+            }
+        )
+
+    rows.sort(key=_sort_key)
+    return rows
+
+
+def _gender_bucket(label: str) -> str:
+    gender = (label or "").strip().upper()
+    if gender.startswith("M"):
+        return "boy"
+    if gender.startswith("F"):
+        return "girl"
+    return "other"
+
+
+def _top_students_by_grade_and_house(student_totals: list[dict[str, object]]):
+    leaders: dict[tuple[str, str], dict[str, dict[str, object] | None]] = defaultdict(
+        lambda: {"boy": None, "girl": None}
+    )
+
+    def _ranking_key(candidate: dict[str, object]):
+        student = candidate["student"]
+        return (
+            candidate["total"],
+            candidate["events"],
+            getattr(student, "last_name", "").lower(),
+            getattr(student, "first_name", "").lower(),
+        )
+
+    for entry in student_totals:
+        bucket = _gender_bucket(entry.get("gender", ""))
+        if bucket not in {"boy", "girl"}:
+            continue
+        key = (entry["grade"], entry["house"])
+        current = leaders[key][bucket]
+        if current is None or _ranking_key(entry) > _ranking_key(current):
+            leaders[key][bucket] = entry
+
+    rows: list[dict[str, object]] = []
+    for (grade, house), gender_map in leaders.items():
+        rows.append(
+            {
+                "grade": grade,
+                "house": house,
+                "boy": gender_map["boy"],
+                "girl": gender_map["girl"],
+            }
+        )
+
+    rows.sort(key=lambda item: (_grade_sort_key(item["grade"]), item["house"]))
+    return rows
+
+
 def _build_meet_mobile_nav(meet: models.Meet, active: str = "start") -> tuple[list[dict[str, str]], str]:
     """Return the mobile nav definition for meet-scoped pages."""
 
@@ -5133,11 +5223,52 @@ def _compute_leaderboard(
         return rows, columns, "Live preview", "Real data will appear once results flow in."
 
     if meet is None and not preview:
-        columns = [
-            {"label": "House"},
-            {"label": "Points", "align": "text-right"},
-            {"label": "Athletes", "align": "text-right"},
-        ]
+        if view_mode == "grade":
+            columns = [
+                {"label": "Grade"},
+                {"label": "House"},
+                {"label": "Points", "align": "text-right"},
+                {"label": "Athletes", "align": "text-right"},
+            ]
+        elif view_mode == "event":
+            columns = [
+                {"label": "Event"},
+                {"label": "Leading house"},
+                {"label": "Points", "align": "text-right"},
+                {"label": "Entries", "align": "text-right"},
+            ]
+        elif view_mode == "participation":
+            columns = [
+                {"label": "House"},
+                {"label": "Participation pts", "align": "text-right"},
+                {"label": "Entries", "align": "text-right"},
+                {"label": "Athletes", "align": "text-right"},
+                {"label": "Events", "align": "text-right"},
+            ]
+        elif view_mode == "athletes":
+            columns = [
+                {"label": "Athlete"},
+                {"label": "Grade"},
+                {"label": "House"},
+                {"label": "Gender"},
+                {"label": "Events", "align": "text-right"},
+                {"label": "Points", "align": "text-right"},
+                {"label": "Participation", "align": "text-right"},
+                {"label": "Total", "align": "text-right"},
+            ]
+        elif view_mode == "division-leaders":
+            columns = [
+                {"label": "Grade"},
+                {"label": "House"},
+                {"label": "Top boy"},
+                {"label": "Top girl"},
+            ]
+        else:
+            columns = [
+                {"label": "House"},
+                {"label": "Points", "align": "text-right"},
+                {"label": "Athletes", "align": "text-right"},
+            ]
         return [], columns, "Select a meet", "Choose a meet to see real scoring data."
 
     summaries = _build_leaderboard_summaries(records)
@@ -5198,6 +5329,61 @@ def _compute_leaderboard(
         ]
         heading = "Participation"
         subheading = "Bonus points for turning up and showing up."
+    elif view_mode == "athletes":
+        student_totals = _build_student_totals(records)
+        rows = [
+            [
+                {"value": item["student"]},
+                {"value": item["grade"]},
+                {"value": item["house"]},
+                {"value": item["gender"].title() or "—"},
+                {"value": item["events"], "align": "text-right"},
+                {"value": _format_decimal(item["points"]), "align": "text-right"},
+                {"value": _format_decimal(item["participation"]), "align": "text-right"},
+                {"value": _format_decimal(item["total"]), "align": "text-right"},
+            ]
+            for item in student_totals
+        ]
+        columns = [
+            {"label": "Athlete"},
+            {"label": "Grade"},
+            {"label": "House"},
+            {"label": "Gender"},
+            {"label": "Events", "align": "text-right"},
+            {"label": "Points", "align": "text-right"},
+            {"label": "Participation", "align": "text-right"},
+            {"label": "Total", "align": "text-right"},
+        ]
+        heading = "Athlete scorecards"
+        subheading = "Individual totals, including participation bonuses."
+    elif view_mode == "division-leaders":
+        student_totals = _build_student_totals(records)
+        leaderboard_rows = _top_students_by_grade_and_house(student_totals)
+
+        def _display(entry: dict[str, object] | None) -> str:
+            if not entry:
+                return "—"
+            events = entry["events"]
+            event_suffix = "event" if events == 1 else "events"
+            return f"{entry['student']} · {_format_decimal(entry['total'])} pts ({events} {event_suffix})"
+
+        rows = [
+            [
+                {"value": item["grade"]},
+                {"value": item["house"]},
+                {"value": _display(item["boy"]), "align": "text-left"},
+                {"value": _display(item["girl"]), "align": "text-left"},
+            ]
+            for item in leaderboard_rows
+        ]
+        columns = [
+            {"label": "Grade"},
+            {"label": "House"},
+            {"label": "Top boy"},
+            {"label": "Top girl"},
+        ]
+        heading = "Top boy & girl by house"
+        subheading = "Quickly spot the standouts in each grade and house."
     else:
         rows = [
             [
