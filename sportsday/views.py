@@ -2921,35 +2921,62 @@ def event_participants(request: HttpRequest, pk: int) -> HttpResponse:
             for message_text in errors:
                 messages.error(request, message_text)
         else:
-            for entry in assigned_entries:
-                if entry.student_id not in selected_set:
-                    entry.delete()
+            savepoint_id = transaction.savepoint()
 
-            assigned_entries = list(
-                event.entries.filter(round_no=round_no)
-                .select_related("student")
-                .order_by("lane_or_order", "heat", "student__last_name", "student__first_name")
-            )
-            assigned_lookup = {entry.student_id: entry for entry in assigned_entries}
-            ordered_entries: list[models.Entry] = []
+            def _extend_errors_from_validation(exc: ValidationError) -> None:
+                message_dict = getattr(exc, "message_dict", {})
+                if message_dict:
+                    for messages_list in message_dict.values():
+                        errors.extend(messages_list)
+                else:
+                    errors.extend(exc.messages or [str(exc)])
 
-            for student_id in selected_ids:
-                student = students_map.get(student_id)
-                if not student:
-                    continue
-                entry = assigned_lookup.get(student_id)
-                if entry is None:
-                    entry = models.Entry.objects.create(
-                        event=event,
-                        student=student,
-                        round_no=round_no,
-                        heat=1,
-                    )
-                ordered_entries.append(entry)
+            try:
+                for entry in assigned_entries:
+                    if entry.student_id not in selected_set:
+                        entry.delete()
 
-            _apply_lane_assignments(event, ordered_entries)
-            messages.success(request, "Updated event participants.")
-            return redirect("sportsday:event-participants", pk=event.pk)
+                assigned_entries = list(
+                    event.entries.filter(round_no=round_no)
+                    .select_related("student")
+                    .order_by("lane_or_order", "heat", "student__last_name", "student__first_name")
+                )
+                assigned_lookup = {entry.student_id: entry for entry in assigned_entries}
+                ordered_entries: list[models.Entry] = []
+
+                for student_id in selected_ids:
+                    student = students_map.get(student_id)
+                    if not student:
+                        continue
+                    entry = assigned_lookup.get(student_id)
+                    if entry is None:
+                        entry = models.Entry(
+                            event=event,
+                            student=student,
+                            round_no=round_no,
+                            heat=1,
+                        )
+                    try:
+                        entry.save()
+                    except ValidationError as exc:
+                        _extend_errors_from_validation(exc)
+                        raise
+                    ordered_entries.append(entry)
+
+                _apply_lane_assignments(event, ordered_entries)
+            except ValidationError:
+                transaction.savepoint_rollback(savepoint_id)
+                assigned_entries = list(
+                    event.entries.filter(round_no=round_no)
+                    .select_related("student")
+                    .order_by("lane_or_order", "heat", "student__last_name", "student__first_name")
+                )
+                for message_text in dict.fromkeys(errors):
+                    messages.error(request, message_text)
+            else:
+                transaction.savepoint_commit(savepoint_id)
+                messages.success(request, "Updated event participants.")
+                return redirect("sportsday:event-participants", pk=event.pk)
 
     context = {
         "event": event,
