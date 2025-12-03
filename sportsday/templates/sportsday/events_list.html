@@ -236,6 +236,41 @@
             </div>
         {% endif %}
     </div>
+
+    {% if active_meet %}
+        <section class="rounded-2xl border border-slate-800 bg-slate-900/60 p-6">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <h2 class="text-lg font-semibold text-slate-100">Meet backup</h2>
+                    <p class="text-sm text-slate-400">Download a full backup of events for {{ active_meet.name }} or restore from a CSV.</p>
+                </div>
+                <div class="flex flex-wrap items-center gap-3">
+                    <a
+                        href="{% url 'sportsday:events-backup-download' active_meet.slug %}"
+                        class="inline-flex items-center gap-2 rounded-full bg-slate-100 px-4 py-2 text-sm font-medium text-ink shadow hover:bg-white"
+                    >
+                        Download Back Up
+                    </a>
+                    <form
+                        method="post"
+                        action="{% url 'sportsday:events-backup-upload' active_meet.slug %}"
+                        enctype="multipart/form-data"
+                        class="flex flex-wrap items-center gap-2 text-sm"
+                        onsubmit="return confirm('Uploading a backup will replace existing events, entries, and results for this meet. Are you sure?');"
+                    >
+                        {% csrf_token %}
+                        {{ backup_form.csv_file }}
+                        <button
+                            type="submit"
+                            class="inline-flex items-center gap-2 rounded-full bg-amber-400 px-4 py-2 text-sm font-medium text-amber-950 shadow hover:bg-amber-300"
+                        >
+                            Upload Back Up File
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </section>
+    {% endif %}
 </section>
 <script>
     document.addEventListener("DOMContentLoaded", () => {
