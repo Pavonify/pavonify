@@ -1711,25 +1711,140 @@ def _persist_imported_events(payload: str, meet: models.Meet) -> dict[str, objec
 
 
 def entries_bulk(request: HttpRequest, slug: str) -> HttpResponse:
-    """Bulk assign entries to events within a meet."""
+    """Spreadsheet-style bulk assignment UI for a meet."""
 
     meet = get_object_or_404(models.Meet, slug=slug)
-    form = forms.BulkEntryAssignmentForm(
-        request.POST or None, request.FILES or None, meet=meet
+    students = list(
+        models.Student.objects.filter(is_active=True).order_by("last_name", "first_name")
     )
+
+    def _eligible_students(event: models.Event) -> list[models.Student]:
+        return [
+            student
+            for student in students
+            if event.grade_allows(student.grade) and event.gender_allows(student.gender)
+        ]
+
+    events = list(
+        meet.events.prefetch_related(
+            Prefetch("entries", queryset=models.Entry.objects.select_related("student"))
+        )
+    )
+
     summary: dict[str, object] | None = None
 
-    if request.method == "POST" and form.is_valid():
-        mode = form.cleaned_data["mode"]
-        if mode == forms.BulkEntryAssignmentForm.MODE_CSV:
-            summary = _bulk_assign_entries_from_csv(meet, form.cleaned_data["csv_file"])
-        else:
-            summary = _bulk_assign_entries_from_rules(meet, form.cleaned_data["events"])
-        form = forms.BulkEntryAssignmentForm(meet=meet)
+    if request.method == "POST":
+        summary = {
+            "created": 0,
+            "removed": 0,
+            "errors": [],
+        }
+        for event in events:
+            lock_reason = _event_lock_reason(event)
+            if lock_reason:
+                summary["errors"].append(f"{event.name}: {lock_reason}")
+                continue
 
+            slot_count = max(
+                int(request.POST.get(f"event-{event.pk}-slots", event.capacity) or 0),
+                len(event.entries.all()),
+                event.capacity,
+            )
+            selected_ids: list[int] = []
+
+            for index in range(slot_count):
+                raw_value = (request.POST.get(f"event-{event.pk}-slot-{index}") or "").strip()
+                if not raw_value:
+                    continue
+                match = re.match(r"^(\d+)", raw_value)
+                if not match:
+                    summary["errors"].append(
+                        f"{event.name}: Could not understand '{raw_value}'. Use the suggested options."
+                    )
+                    continue
+                selected_ids.append(int(match.group(1)))
+
+            eligible_ids = {student.pk for student in _eligible_students(event)}
+            filtered_ids: list[int] = []
+            for student_id in selected_ids:
+                if student_id in filtered_ids:
+                    continue
+                if student_id not in eligible_ids:
+                    summary["errors"].append(
+                        f"{event.name}: Student {student_id} is not eligible for this event."
+                    )
+                    continue
+                filtered_ids.append(student_id)
+
+            existing = {
+                entry.student_id: entry
+                for entry in event.entries.all()
+                if entry.round_no == 1
+            }
+
+            for student_id, entry in list(existing.items()):
+                if student_id not in filtered_ids:
+                    entry.delete()
+                    summary["removed"] += 1
+
+            for student_id in filtered_ids:
+                if student_id in existing:
+                    continue
+                try:
+                    models.Entry.objects.create(
+                        event=event,
+                        student_id=student_id,
+                        round_no=1,
+                        heat=1,
+                    )
+                except ValidationError as exc:
+                    summary["errors"].append(
+                        f"{event.name}: {exc.messages[0] if exc.messages else 'Could not add student.'}"
+                    )
+                    continue
+                summary["created"] += 1
+
+        events = list(
+            meet.events.prefetch_related(
+                Prefetch("entries", queryset=models.Entry.objects.select_related("student"))
+            )
+        )
+
+    event_rows: list[dict[str, object]] = []
+    for event in events:
+        eligible = _eligible_students(event)
+        existing_entries = [
+            entry for entry in event.entries.all() if getattr(entry, "round_no", 1) == 1
+        ]
+        slot_count = max(event.capacity, len(existing_entries))
+        assigned_values = [
+            f"{entry.student.pk} · {entry.student.first_name} {entry.student.last_name}"
+            for entry in existing_entries
+        ]
+        slot_values = [assigned_values[i] if i < len(assigned_values) else "" for i in range(slot_count)]
+        event_rows.append(
+            {
+                "event": event,
+                "eligible_students": eligible,
+                "entries": existing_entries,
+                "slot_count": slot_count,
+                "fill_count": len(existing_entries),
+                "assigned_values": assigned_values,
+                "slot_range": range(slot_count),
+                "slot_values": slot_values,
+            }
+        )
+
+    max_slot_count = max((row["slot_count"] for row in event_rows), default=0)
+    for row in event_rows:
+        padding = max_slot_count - row["slot_count"]
+        row["slot_range"] = range(row["slot_count"])
+        row["padding_range"] = range(padding if padding > 0 else 0)
     context = {
         "meet": meet,
-        "form": form,
+        "event_rows": event_rows,
+        "max_slot_count": max_slot_count,
+        "slot_range": range(max_slot_count),
         "summary": summary,
         "active_meet": meet,
     }
