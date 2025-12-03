@@ -966,9 +966,11 @@ def _build_student_totals(records: list[services.ScoringRecord]):
 
     def _sort_key(item: dict[str, object]):
         student = item["student"]
+        events_value = item["events"]
+        events_count = len(events_value) if hasattr(events_value, "__len__") else events_value
         return (
             -(item["points"] + item["participation"]),
-            -len(item["events"]),
+            -events_count,
             getattr(student, "last_name", ""),
             getattr(student, "first_name", ""),
         )
