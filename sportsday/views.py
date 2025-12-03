@@ -945,6 +945,10 @@ def _build_student_totals(records: list[services.ScoringRecord]):
     totals: dict[int, dict[str, object]] = {}
     for record in records:
         student = record.student
+        if student is None:
+            # Skip incomplete records that are missing a linked student; they
+            # cannot be tallied meaningfully and would break aggregation below.
+            continue
         if student.pk not in totals:
             totals[student.pk] = {
                 "student": student,
