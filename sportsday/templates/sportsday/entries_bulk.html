@@ -61,9 +61,11 @@
                                     <span class="inline-flex min-w-[3rem] items-center justify-center rounded-full bg-slate-800 px-2 py-1 text-xs font-semibold text-slate-100">{{ row.fill_count }}</span>
                                 </td>
                                 <td class="px-3 py-2 text-center">
-                                    {% with is_full=row.fill_count|add:"0" == event.capacity %}
-                                        <span class="inline-flex min-w-[3rem] items-center justify-center rounded-full px-2 py-1 text-xs font-semibold {% if is_full %}bg-emerald-500/80 text-emerald-950{% else %}bg-slate-800 text-slate-100{% endif %}">{{ event.capacity }}</span>
-                                    {% endwith %}
+                                    {% if row.fill_count|add:"0" == event.capacity %}
+                                        <span class="inline-flex min-w-[3rem] items-center justify-center rounded-full px-2 py-1 text-xs font-semibold bg-emerald-500/80 text-emerald-950">{{ event.capacity }}</span>
+                                    {% else %}
+                                        <span class="inline-flex min-w-[3rem] items-center justify-center rounded-full px-2 py-1 text-xs font-semibold bg-slate-800 text-slate-100">{{ event.capacity }}</span>
+                                    {% endif %}
                                 </td>
                                 <input type="hidden" name="event-{{ event.pk }}-slots" value="{{ row.slot_count }}">
                                 {% for value in row.slot_values %}
