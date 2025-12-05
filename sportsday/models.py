@@ -292,29 +292,6 @@ class Entry(models.Model):
                     }
                 )
 
-        if event.schedule_dt and not (event.is_locked or event.meet.is_locked):
-            from . import services
-
-            clashes = services.compute_timetable_clashes(
-                student=student,
-                event=event,
-                exclude_entry_id=self.pk,
-            )
-            if clashes:
-                conflicting = clashes[0].event
-                when = (
-                    conflicting.schedule_dt.strftime("%H:%M")
-                    if conflicting.schedule_dt
-                    else "the same session"
-                )
-                raise ValidationError(
-                    {
-                        "student": (
-                            f"Student already has an entry in {conflicting.name} at {when}."
-                        )
-                    }
-                )
-
     def save(self, *args, **kwargs):
         self.full_clean()
         return super().save(*args, **kwargs)
