@@ -472,8 +472,6 @@ def _annotate_replacement_options(
         combo: [] for combo in combos
     }
     for student in candidates:
-        if not event.grade_allows(student.grade):
-            continue
         combo = ((student.house or "").strip(), (student.gender or "").strip())
         if combo not in mapping:
             continue
@@ -3290,13 +3288,6 @@ def manage_event(request: HttpRequest, event_id: int) -> HttpResponse:
                 messages.error(
                     request,
                     "Replacement students must match the original participant's gender.",
-                )
-                return redirect(manage_url)
-
-            if not event.grade_allows(replacement.grade):
-                messages.error(
-                    request,
-                    "Replacement students must fall within the event's allowed grade range.",
                 )
                 return redirect(manage_url)
             if not event.gender_allows(replacement.gender):
