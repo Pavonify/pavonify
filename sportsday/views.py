@@ -1985,11 +1985,14 @@ def entries_bulk(request: HttpRequest, slug: str) -> HttpResponse:
         ]
         slot_count = max(event.capacity, len(existing_entries))
         assigned_values = [
-            f"{entry.student.pk} · {entry.student.first_name} {entry.student.last_name}"
+            {
+                "id": entry.student.pk,
+                "label": f"{entry.student.first_name} {entry.student.last_name}",
+            }
             for entry in existing_entries
         ]
         slot_values = [
-            assigned_values[i] if i < len(assigned_values) else ""
+            assigned_values[i] if i < len(assigned_values) else None
             for i in range(slot_count)
         ]
         event_rows.append(
