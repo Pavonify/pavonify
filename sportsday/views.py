@@ -3504,7 +3504,10 @@ def _result_form_factory(event: models.Event, field_size: int) -> tuple[type[for
     if archetype == models.SportType.Archetype.TRACK_TIME:
         return forms.TrackResultForm, {}
     if archetype == models.SportType.Archetype.FIELD_DISTANCE:
-        return forms.FieldDistanceResultForm, {"attempts": event.attempts}
+        return forms.FieldDistanceResultForm, {
+            "attempts": event.attempts,
+            "measure_unit": event.measure_unit,
+        }
     if archetype == models.SportType.Archetype.FIELD_COUNT:
         return forms.FieldCountResultForm, {}
     if archetype == models.SportType.Archetype.RANK_ONLY:
@@ -3570,6 +3573,17 @@ def _entry_payload_from_attempts(event: models.Event, entry: models.Entry) -> di
         else:
             payload["tiebreak"] = {}
     return payload
+
+
+def _measure_unit_label(unit: str | None) -> str:
+    """Return a human-friendly unit label for templates."""
+
+    if not unit:
+        return ""
+    try:
+        return models.SportType.DefaultUnit(unit).label
+    except ValueError:
+        return unit
 
 
 def _build_payload_from_form(event: models.Event, form: forms.BaseResultForm) -> dict[str, object]:
@@ -5002,6 +5016,7 @@ def event_results_fragment(request: HttpRequest, pk: int) -> HttpResponse:
     context = {
         "event": event,
         "forms": forms_list,
+        "measure_unit_label": _measure_unit_label(event.measure_unit),
         "round_no": round_no,
         "round_options": round_options,
         "heat": heat,

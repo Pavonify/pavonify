@@ -100,7 +100,7 @@
                         {% if event.sport_type.archetype == 'TRACK_TIME' %}
                             <div>
                                 <label class="flex flex-col text-xs uppercase tracking-widest text-slate-600">
-                                    Time · {{ event.measure_unit|default:"sec" }}
+                                    Time · {{ measure_unit_label|default:"sec" }}
                                     {{ form.time_display }}
                                 </label>
                                 {% if form.time_display.errors %}
@@ -112,7 +112,7 @@
                                 {% for distance_bound, valid_bound, idx in form.attempt_bound_fields %}
                                     <div class="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-center">
                                         <label class="flex flex-col text-xs uppercase tracking-widest text-slate-600">
-                                            Attempt {{ idx }} · {{ event.measure_unit|default:"m" }}
+                                            Attempt {{ idx }} · {{ measure_unit_label|default:"m" }}
                                             {{ distance_bound }}
                                         </label>
                                         <label class="flex items-center gap-2 text-xs uppercase tracking-widest text-slate-600">
@@ -127,7 +127,7 @@
                         {% elif event.sport_type.archetype == 'FIELD_COUNT' %}
                             <div>
                                 <label class="flex flex-col text-xs uppercase tracking-widest text-slate-600">
-                                    Count · {{ event.measure_unit|default:"count" }}
+                                    Count · {{ measure_unit_label|default:"count" }}
                                     {{ form.count }}
                                 </label>
                                 {% if form.count.errors %}

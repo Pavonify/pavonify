@@ -19,6 +19,7 @@ __all__ = [
     "parse_time",
     "parse_distance",
     "parse_count",
+    "parse_imperial_distance",
     "parse_time_to_seconds",
     "normalize_distance",
     "rank_track",
@@ -142,11 +143,20 @@ def parse_count(value: str | float | Decimal | None) -> int | None:
     return candidate
 
 
-def normalize_distance(value: str | float | Decimal | None) -> Decimal | None:
+def normalize_distance(
+    value: str | float | Decimal | None,
+    *,
+    unit: str | None = None,
+) -> Decimal | None:
     """Normalise a distance/count entry into metres or integer counts."""
 
     if value in (None, ""):
         return None
+
+    default_unit = unit or models.SportType.DefaultUnit.METRES
+    if default_unit == models.SportType.DefaultUnit.FEET_INCHES:
+        return parse_imperial_distance(value)
+
     if isinstance(value, str):
         text = value.strip().lower()
         if text.endswith("cm"):
@@ -157,6 +167,46 @@ def normalize_distance(value: str | float | Decimal | None) -> Decimal | None:
         if text.endswith("m"):
             return parse_distance(text[:-1])
     return parse_distance(value)
+
+
+def parse_imperial_distance(value: str | float | Decimal | None) -> Decimal | None:
+    """Convert a feet and inches measurement into metres."""
+
+    if value in (None, ""):
+        return None
+
+    if isinstance(value, (int, float, Decimal)):
+        text_value = str(value)
+    elif isinstance(value, str):
+        text_value = value
+    else:  # pragma: no cover - defensive
+        raise ValueError("Invalid distance supplied.")
+
+    cleaned = text_value.strip().lower().replace("\u2032", "'").replace("\u2033", '"')
+    if not cleaned:
+        return None
+
+    # Accept formats like 5'11", 5 ft 11, or 5ft11in
+    import re
+
+    match = re.match(
+        r"^(?P<feet>-?\d+(?:\.\d+)?)\s*(?:'|ft)?\s*(?P<inches>\d+(?:\.\d+)?)?\s*(?:\"|in|inch|inches)?$",
+        cleaned,
+    )
+    if not match:
+        raise ValueError("Use feet and inches, e.g. 5'11\".")
+
+    feet = Decimal(match.group("feet"))
+    inches_text = match.group("inches")
+    inches = Decimal(inches_text) if inches_text else Decimal("0")
+
+    if feet < 0 or inches < 0:
+        raise ValueError("Distance cannot be negative.")
+    if inches >= 12:
+        raise ValueError("Inches value must be less than 12.")
+
+    metres = feet * Decimal("0.3048") + inches * Decimal("0.0254")
+    return metres.quantize(Decimal("0.001"))
 
 
 def compute_timetable_clashes(

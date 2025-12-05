@@ -729,12 +729,20 @@ class TrackResultForm(BaseResultForm):
 class FieldDistanceResultForm(BaseResultForm):
     """Capture distances for field events where attempts are measured in metres."""
 
-    def __init__(self, *args, entry: models.Entry, attempts: int, **kwargs) -> None:
+    def __init__(
+        self,
+        *args,
+        entry: models.Entry,
+        attempts: int,
+        measure_unit: str | None = None,
+        **kwargs,
+    ) -> None:
         super().__init__(*args, entry=entry, **kwargs)
         attempt_records = {attempt.attempt_no: attempt for attempt in entry.attempts.all()}
         self.distance_fields: list[str] = []
         self.valid_fields: list[str] = []
         self.attempt_field_pairs: list[tuple[str, str, int]] = []
+        self.measure_unit = measure_unit or models.SportType.DefaultUnit.METRES
         for attempt_no in range(1, attempts + 1):
             distance_field = f"distance_{attempt_no}"
             valid_field = f"valid_{attempt_no}"
@@ -745,13 +753,17 @@ class FieldDistanceResultForm(BaseResultForm):
                 if record.distance_m is not None:
                     self.initial.setdefault(distance_field, f"{record.distance_m}")
                 self.initial.setdefault(valid_field, record.valid)
+            placeholder = "0.000"
+            widget_attrs = {
+                "class": LARGE_TEXT_INPUT_CLASSES,
+                "placeholder": placeholder,
+                "autocomplete": "off",
+                "inputmode": "decimal",
+            }
+            if self.measure_unit == models.SportType.DefaultUnit.FEET_INCHES:
+                widget_attrs.update({"placeholder": "5'11\"", "inputmode": "text"})
             self.fields[distance_field].widget.attrs.update(
-                {
-                    "class": LARGE_TEXT_INPUT_CLASSES,
-                    "placeholder": "0.000",
-                    "autocomplete": "off",
-                    "inputmode": "decimal",
-                }
+                widget_attrs
             )
             self.fields[valid_field].widget.attrs.update(
                 {
@@ -780,7 +792,7 @@ class FieldDistanceResultForm(BaseResultForm):
                 parsed = None
             else:
                 try:
-                    parsed = services.normalize_distance(distance_value)
+                    parsed = services.normalize_distance(distance_value, unit=self.measure_unit)
                 except ValueError as exc:
                     self.add_error(field_name, str(exc))
                     parsed = None

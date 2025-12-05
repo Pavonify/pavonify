@@ -98,6 +98,10 @@ class ServicesLogicTests(TestCase):
     def test_normalize_distance_parses_units(self):
         self.assertEqual(services.normalize_distance("5.250"), Decimal("5.250"))
         self.assertEqual(services.normalize_distance("525cm"), Decimal("5.250"))
+        self.assertEqual(
+            services.normalize_distance("16'4\"", unit=models.SportType.DefaultUnit.FEET_INCHES),
+            Decimal("4.978"),
+        )
         with self.assertRaises(ValueError):
             services.normalize_distance("-3")
 
