@@ -149,6 +149,7 @@ class SportType(models.Model):
         SECONDS = "sec", "Seconds"
         METRES = "m", "Metres"
         CENTIMETRES = "cm", "Centimetres"
+        FEET_INCHES = "ft_in", "Feet & inches"
         COUNT = "count", "Count"
 
     key = models.SlugField(unique=True)
