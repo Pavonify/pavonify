@@ -302,7 +302,7 @@ class SportsdayViewsTests(TestCase):
         remaining = self.event.entries.filter(round_no=1)
         self.assertEqual(remaining.count(), 2)
 
-    def test_event_participants_handles_validation_error(self):
+    def test_event_participants_allows_schedule_conflicts(self):
         conflict_time = timezone.make_aware(datetime(2025, 5, 1, 12, 30))
         self.event.schedule_dt = conflict_time
         self.event.save(update_fields=["schedule_dt"])
@@ -339,9 +339,8 @@ class SportsdayViewsTests(TestCase):
             {"participants": [self.student.pk, conflicting_student.pk]},
         )
 
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Student already has an entry")
-        self.assertFalse(
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(
             models.Entry.objects.filter(event=self.event, student=conflicting_student).exists()
         )
 
