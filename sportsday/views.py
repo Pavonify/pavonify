@@ -462,20 +462,12 @@ def _annotate_replacement_options(
         candidates = candidates.filter(candidate_filter)
     candidates = candidates.order_by("last_name", "first_name")
 
-    event_student_ids: set[int] = set()
-    for row in rows:
-        entry = row.get("entry")
-        if isinstance(entry, models.Entry) and entry.student_id is not None:
-            event_student_ids.add(entry.student_id)
-
     mapping: dict[tuple[str, str], list[dict[str, object]]] = {
         combo: [] for combo in combos
     }
     for student in candidates:
         combo = ((student.house or "").strip(), (student.gender or "").strip())
         if combo not in mapping:
-            continue
-        if student.pk in event_student_ids:
             continue
         grade = (student.grade or "").strip()
         label_grade = f"Grade {grade}" if grade else "Grade —"
@@ -3292,14 +3284,6 @@ def manage_event(request: HttpRequest, event_id: int) -> HttpResponse:
                 return redirect(manage_url)
             if not event.gender_allows(replacement.gender):
                 messages.error(request, "Replacement student does not meet the event's gender rules.")
-                return redirect(manage_url)
-
-            if (
-                event.entries.exclude(pk=entry.pk)
-                .filter(student_id=replacement.pk)
-                .exists()
-            ):
-                messages.error(request, "That student already has an entry in this event.")
                 return redirect(manage_url)
 
             previous_status = entry.status
