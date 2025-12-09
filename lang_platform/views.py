@@ -1,5 +1,5 @@
 import io
-from typing import Dict, List
+from typing import Dict, List, Sequence
 
 import pandas as pd
 from django.http import HttpResponse
@@ -268,3 +268,185 @@ def _transform_dataframe(
 
     long_df = long_df[final_cols]
     return long_df
+
+
+def _pivot_long_to_wide(
+    df: pd.DataFrame,
+    row_identifiers: Sequence[str],
+    column_groups: Sequence[str],
+    value_column: str,
+) -> pd.DataFrame:
+    if not row_identifiers:
+        raise ValueError("Please select at least one column to define the rows.")
+
+    if not column_groups:
+        raise ValueError("Please select at least one column to define the column headers.")
+
+    missing_cols = [
+        col
+        for col in list(row_identifiers) + list(column_groups) + [value_column]
+        if col not in df.columns
+    ]
+
+    if missing_cols:
+        raise ValueError(
+            "The uploaded file is missing the following columns: "
+            + ", ".join(missing_cols)
+        )
+
+    work_df = df.copy()
+    work_df = work_df[row_identifiers + list(column_groups) + [value_column]]
+
+    for col in column_groups:
+        work_df[col] = work_df[col].apply(_clean_cell)
+
+    pivot = work_df.pivot_table(
+        index=list(row_identifiers),
+        columns=list(column_groups),
+        values=value_column,
+        aggfunc="first",
+    )
+
+    pivot = pivot.sort_index(axis=1)
+    pivot.reset_index(inplace=True)
+    pivot.columns.name = None
+
+    flat_columns = []
+    for col in pivot.columns:
+        if isinstance(col, tuple):
+            parts = [str(part).strip() for part in col if part not in (None, "")]
+            flat_columns.append("_".join(parts))
+        else:
+            flat_columns.append(str(col))
+
+    pivot.columns = flat_columns
+    return pivot
+
+
+def _read_uploaded_table(uploaded_file):
+    """Read an uploaded CSV or Excel file into a DataFrame."""
+
+    name = (uploaded_file.name or "").lower()
+
+    if name.endswith(".xlsx"):
+        return pd.read_excel(uploaded_file, engine="openpyxl")
+
+    try:
+        return pd.read_csv(uploaded_file)
+    except Exception:
+        uploaded_file.seek(0)
+        return pd.read_excel(uploaded_file, engine="openpyxl")
+
+
+def isams_long_to_wide_view(request):
+    context = {"stage": "upload"}
+    error_message = None
+
+    if request.method == "POST":
+        stage = request.POST.get("stage")
+
+        if stage == "configure":
+            uploaded_file = request.FILES.get("long_file")
+
+            if not uploaded_file:
+                error_message = "Please upload a CSV or Excel file to convert."
+            else:
+                try:
+                    df = _read_uploaded_table(uploaded_file)
+                except Exception:
+                    error_message = "Unable to read the uploaded file. Please upload a valid CSV or Excel document."
+                else:
+                    if df.empty:
+                        error_message = "The uploaded file has no data rows."
+                    else:
+                        request.session["isams_long_df"] = df.to_json(orient="split")
+
+                        columns = df.columns.tolist()
+
+                        default_rows = [col for col in ["StudentID", "StudentName"] if col in columns]
+                        if not default_rows and columns:
+                            default_rows = columns[:1]
+
+                        default_col_groups = []
+                        for candidate in ["SubjectName", "SubjectCode", "MetricName"]:
+                            if candidate in columns and candidate not in default_col_groups:
+                                default_col_groups.append(candidate)
+
+                        if not default_col_groups and len(columns) > 1:
+                            default_col_groups.append(columns[1])
+
+                        value_column = "MetricValue" if "MetricValue" in columns else columns[-1]
+
+                        preview_rows = df.head(5).fillna("").values.tolist()
+
+                        context.update(
+                            {
+                                "stage": "configure",
+                                "columns": columns,
+                                "default_rows": default_rows,
+                                "default_col_groups": default_col_groups,
+                                "value_column": value_column,
+                                "preview_rows": preview_rows,
+                            }
+                        )
+
+        elif stage == "transform":
+            if "isams_long_df" not in request.session:
+                error_message = "Session expired. Please upload your file again."
+            else:
+                row_identifiers = request.POST.getlist("row_identifiers")
+                column_group_1 = _clean_cell(request.POST.get("column_group_1"))
+                column_group_2 = _clean_cell(request.POST.get("column_group_2"))
+                value_column = _clean_cell(request.POST.get("value_column"))
+
+                column_groups = [
+                    col for col in [column_group_1, column_group_2] if col
+                ]
+
+                try:
+                    df = pd.read_json(request.session["isams_long_df"], orient="split")
+                except Exception:
+                    error_message = "Unable to load the stored file data. Please restart the process."
+                else:
+                    columns = df.columns.tolist()
+                    preview_rows = df.head(5).fillna("").values.tolist()
+
+                    try:
+                        wide_df = _pivot_long_to_wide(
+                            df,
+                            row_identifiers=row_identifiers,
+                            column_groups=column_groups,
+                            value_column=value_column,
+                        )
+                    except ValueError as exc:
+                        error_message = str(exc)
+                        context.update(
+                            {
+                                "stage": "configure",
+                                "columns": columns,
+                                "default_rows": row_identifiers or [],
+                                "default_col_groups": column_groups or [],
+                                "value_column": value_column or (columns[-1] if columns else ""),
+                                "preview_rows": preview_rows,
+                            }
+                        )
+                    else:
+                        buffer = io.StringIO()
+                        wide_df.to_csv(buffer, index=False)
+                        buffer.seek(0)
+
+                        response = HttpResponse(
+                            buffer.getvalue(),
+                            content_type="text/csv",
+                        )
+                        response[
+                            "Content-Disposition"
+                        ] = 'attachment; filename="isams_wide_table.csv"'
+
+                        request.session.pop("isams_long_df", None)
+                        return response
+
+    if error_message:
+        context["error_message"] = error_message
+
+    return render(request, "isams_long_to_wide.html", context)

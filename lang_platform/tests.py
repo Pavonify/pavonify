@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 import pandas as pd
 
-from .views import isams_transform_view
+from .views import _pivot_long_to_wide, isams_transform_view
 
 
 def _add_session(request):
@@ -71,3 +71,56 @@ class IsamsTransformMetricsTest(TestCase):
                 "Flight Path Grade",
             ],
         )
+
+
+class IsamsLongToWideTest(TestCase):
+    def test_pivot_creates_subject_and_metric_columns(self):
+        df = pd.DataFrame(
+            [
+                {
+                    "StudentID": "1",
+                    "StudentName": "Alice",
+                    "SubjectName": "Math",
+                    "MetricName": "Exam grade",
+                    "MetricValue": "A*",
+                },
+                {
+                    "StudentID": "1",
+                    "StudentName": "Alice",
+                    "SubjectName": "Math",
+                    "MetricName": "Assessment grade",
+                    "MetricValue": "B",
+                },
+                {
+                    "StudentID": "2",
+                    "StudentName": "Bob",
+                    "SubjectName": "Art",
+                    "MetricName": "Assessment grade",
+                    "MetricValue": "A",
+                },
+            ]
+        )
+
+        wide = _pivot_long_to_wide(
+            df,
+            row_identifiers=["StudentID", "StudentName"],
+            column_groups=["SubjectName", "MetricName"],
+            value_column="MetricValue",
+        )
+
+        self.assertListEqual(
+            wide.columns.tolist(),
+            ["StudentID", "StudentName", "Art_Assessment grade", "Math_Assessment grade", "Math_Exam grade"],
+        )
+        self.assertEqual(wide.loc[wide["StudentID"] == "1", "Math_Exam grade"].iloc[0], "A*")
+
+    def test_missing_required_columns_raise_error(self):
+        df = pd.DataFrame([{"StudentID": 1, "Value": "A"}])
+
+        with self.assertRaises(ValueError):
+            _pivot_long_to_wide(
+                df,
+                row_identifiers=["StudentID"],
+                column_groups=["SubjectName"],
+                value_column="MetricValue",
+            )

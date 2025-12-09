@@ -10,10 +10,20 @@
     <div class="max-w-4xl mx-auto p-6">
       <div class="bg-white shadow rounded-lg p-6 space-y-6">
         <header class="space-y-2">
-          <h1 class="text-2xl font-semibold text-slate-900">iSAMS Reporting Transformer</h1>
-          <p class="text-slate-600 text-sm">
-            Turn wide iSAMS Excel exports into a clean long-format CSV ready for Power BI dashboards.
-          </p>
+          <div class="flex items-start justify-between gap-3 flex-wrap">
+            <div>
+              <h1 class="text-2xl font-semibold text-slate-900">iSAMS Reporting Transformer</h1>
+              <p class="text-slate-600 text-sm">
+                Turn wide iSAMS Excel exports into a clean long-format CSV ready for Power BI dashboards.
+              </p>
+            </div>
+            <a
+              href="{% url 'isams_long_to_wide' %}"
+              class="inline-flex items-center text-sm text-slate-700 hover:text-slate-900"
+            >
+              Need to rebuild a wide table? Try the long → wide tool →
+            </a>
+          </div>
         </header>
 
         {% if error_message %}

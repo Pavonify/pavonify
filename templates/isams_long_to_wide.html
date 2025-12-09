@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>iSAMS Long → Wide Rebuilder</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-slate-100 min-h-screen">
+    <div class="max-w-5xl mx-auto p-6">
+      <div class="bg-white shadow rounded-lg p-6 space-y-6">
+        <header class="space-y-2">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h1 class="text-2xl font-semibold text-slate-900">iSAMS Long → Wide Rebuilder</h1>
+              <p class="text-slate-600 text-sm">
+                Turn your edited long-format CSV back into a wide table, choosing how rows and columns are arranged.
+              </p>
+            </div>
+            <a
+              href="{% url 'isams_transform' %}"
+              class="inline-flex items-center text-sm text-slate-700 hover:text-slate-900"
+            >
+              ← Back to long-format builder
+            </a>
+          </div>
+          <p class="text-sm text-slate-500">
+            Upload the CSV you downloaded from the long-format transformer (after making any edits). Pick which columns
+            should define each row and which fields to spread across the top.
+          </p>
+        </header>
+
+        {% if error_message %}
+        <div class="rounded-md bg-red-50 p-4 text-sm text-red-700">{{ error_message }}</div>
+        {% endif %}
+
+        {% if stage == "configure" %}
+        <div class="space-y-6">
+          <div class="bg-slate-50 border border-slate-200 rounded-lg p-4">
+            <h2 class="text-sm font-semibold text-slate-900 mb-2">Quick preview</h2>
+            <div class="overflow-x-auto text-sm">
+              <table class="min-w-full border border-slate-200 rounded">
+                <thead class="bg-white text-left text-slate-600">
+                  <tr>
+                    {% for column in columns %}
+                    <th class="px-3 py-2 border-b border-slate-200">{{ column }}</th>
+                    {% endfor %}
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200">
+                  {% for row in preview_rows %}
+                  <tr class="bg-white">
+                    {% for value in row %}
+                    <td class="px-3 py-2 whitespace-nowrap text-slate-800">{{ value }}</td>
+                    {% endfor %}
+                  </tr>
+                  {% empty %}
+                  <tr>
+                    <td class="px-3 py-2 text-slate-500" colspan="{{ columns|length }}">No preview rows available.</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <form method="post" class="space-y-6">
+            {% csrf_token %}
+            <input type="hidden" name="stage" value="transform" />
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div class="space-y-2">
+                <label class="block text-sm font-medium text-slate-700">Columns that define each row</label>
+                <p class="text-xs text-slate-500">Select one or more columns to identify a unique row (e.g. StudentID and StudentName).</p>
+                <select
+                  name="row_identifiers"
+                  multiple
+                  class="w-full rounded border-slate-300 focus:border-slate-500 focus:ring-slate-500 min-h-[8rem] text-sm"
+                  required
+                >
+                  {% for column in columns %}
+                  <option value="{{ column }}" {% if column in default_rows %}selected{% endif %}>{{ column }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+
+              <div class="space-y-2">
+                <label class="block text-sm font-medium text-slate-700">Columns to spread across the top</label>
+                <p class="text-xs text-slate-500">Choose one or two fields to build the column headers (e.g. Subject then Metric Name).</p>
+                <div class="space-y-2">
+                  <select
+                    name="column_group_1"
+                    class="w-full rounded border-slate-300 focus:border-slate-500 focus:ring-slate-500 text-sm"
+                    required
+                  >
+                    <option value="">-- Select column --</option>
+                    {% for column in columns %}
+                    <option value="{{ column }}" {% if column in default_col_groups|slice:":1" %}selected{% endif %}>{{ column }}</option>
+                    {% endfor %}
+                  </select>
+                  <select
+                    name="column_group_2"
+                    class="w-full rounded border-slate-300 focus:border-slate-500 focus:ring-slate-500 text-sm"
+                  >
+                    <option value="">-- Optional second column --</option>
+                    {% for column in columns %}
+                    <option value="{{ column }}" {% if column in default_col_groups|slice:"1:2" %}selected{% endif %}>{{ column }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="space-y-2">
+              <label class="block text-sm font-medium text-slate-700">Values to place inside the table</label>
+              <select
+                name="value_column"
+                class="w-full rounded border-slate-300 focus:border-slate-500 focus:ring-slate-500 text-sm"
+                required
+              >
+                {% for column in columns %}
+                <option value="{{ column }}" {% if column == value_column %}selected{% endif %}>{{ column }}</option>
+                {% endfor %}
+              </select>
+              <p class="text-xs text-slate-500">This column will be filled under each generated header (e.g. MetricValue).</p>
+            </div>
+
+            <div class="flex justify-end">
+              <button type="submit" class="inline-flex items-center px-4 py-2 bg-slate-900 text-white rounded-md hover:bg-slate-800">
+                Rebuild wide table
+              </button>
+            </div>
+          </form>
+        </div>
+        {% else %}
+        <form method="post" enctype="multipart/form-data" class="space-y-4">
+          {% csrf_token %}
+          <input type="hidden" name="stage" value="configure" />
+
+          <div>
+            <label for="long_file" class="block text-sm font-medium text-slate-700">Upload edited long-format file</label>
+            <input
+              type="file"
+              id="long_file"
+              name="long_file"
+              accept=".csv, .xlsx"
+              class="mt-1 block w-full text-sm text-slate-700"
+              required
+            />
+          </div>
+
+          <div class="flex justify-end">
+            <button type="submit" class="inline-flex items-center px-4 py-2 bg-slate-900 text-white rounded-md hover:bg-slate-800">
+              Upload and configure
+            </button>
+          </div>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+  </body>
+</html>
