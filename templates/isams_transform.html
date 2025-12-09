@@ -75,7 +75,7 @@
               <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
                 {% for metric in metrics %}
                 <label class="flex items-center gap-2 rounded border border-slate-200 px-3 py-2">
-                  <input type="checkbox" name="metrics" value="{{ metric }}" checked class="rounded border-slate-300" />
+                  <input type="checkbox" name="metrics[]" value="{{ metric }}" checked class="rounded border-slate-300" />
                   <span class="text-slate-700">{{ metric }}</span>
                 </label>
                 {% endfor %}
