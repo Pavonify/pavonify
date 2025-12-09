@@ -13,9 +13,14 @@
             {% endif %}
         </div>
         <form method="get" class="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <label class="flex items-center gap-2 text-sm text-slate-700">
-                <span class="text-xs uppercase tracking-widest text-slate-600">Meet</span>
-                <select name="meet" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-ink focus:border-sky-500 focus:ring-sky-500">
+            <label class="flex items-center gap-2 text-sm text-slate-700" for="leaderboard-meet">
+                <span class="text-xs uppercase tracking-widest text-slate-600">View</span>
+                <select
+                    id="leaderboard-meet"
+                    name="meet"
+                    class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-ink focus:border-sky-500 focus:ring-sky-500"
+                    onchange="this.form.requestSubmit()"
+                >
                     <option value="">All meets</option>
                     {% for meet in meet_options %}
                         <option value="{{ meet.slug }}" {% if meet.slug == request.GET.meet %}selected{% endif %}>{{ meet.name }}</option>
