@@ -92,6 +92,20 @@
               </div>
             </div>
 
+            <div>
+              <h2 class="text-lg font-semibold text-slate-900 mb-3">Row filters</h2>
+              <label class="flex items-center gap-2 rounded border border-slate-200 px-3 py-2 text-sm">
+                <input
+                  type="checkbox"
+                  name="exclude_dash"
+                  value="true"
+                  class="rounded border-slate-300"
+                  checked
+                />
+                <span class="text-slate-700">Remove rows where the metric value is "-" (students not taking the subject)</span>
+              </label>
+            </div>
+
             <div class="flex justify-end">
               <button type="submit" class="inline-flex items-center px-4 py-2 bg-slate-900 text-white rounded-md hover:bg-slate-800">
                 Transform and download CSV

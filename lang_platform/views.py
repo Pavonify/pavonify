@@ -133,6 +133,13 @@ def isams_transform_view(request):
 
                         academic_year = request.session.get("isams_academic_year", "")
                         reporting_cycle = request.session.get("isams_reporting_cycle", "")
+                        exclude_dash = request.POST.get("exclude_dash") not in (
+                            None,
+                            "",
+                            "false",
+                            "False",
+                            "0",
+                        )
 
                         try:
                             result = _transform_dataframe(
@@ -141,6 +148,7 @@ def isams_transform_view(request):
                                 subject_map,
                                 academic_year,
                                 reporting_cycle,
+                                exclude_dash_values=exclude_dash,
                             )
                         except ValueError as exc:
                             error_message = str(exc)
@@ -178,6 +186,7 @@ def _transform_dataframe(
     subject_map: Dict[str, str],
     academic_year: str,
     reporting_cycle: str,
+    exclude_dash_values: bool = False,
 ) -> pd.DataFrame:
     if df.shape[0] < 3:
         raise ValueError("The stored report data is missing header rows.")
@@ -239,6 +248,8 @@ def _transform_dataframe(
 
     long_df = long_df.dropna(subset=["MetricValue"])
     long_df = long_df[long_df["MetricValue"].astype(str).str.strip() != ""]
+    if exclude_dash_values:
+        long_df = long_df[long_df["MetricValue"].astype(str).str.strip() != "-"]
 
     long_df["SubjectName"] = (
         long_df["subject_code"].map(subject_map).fillna(long_df["subject_code"])
