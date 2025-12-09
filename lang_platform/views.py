@@ -101,7 +101,19 @@ def isams_transform_view(request):
                 except Exception:
                     error_message = "Unable to load the stored file data. Please restart the process."
                 else:
-                    selected_metrics = request.POST.getlist("metrics")
+                    selected_metrics_raw = request.POST.getlist("metrics")
+                    if not selected_metrics_raw:
+                        selected_metrics_raw = request.POST.getlist("metrics[]")
+
+                    selected_metrics = [
+                        metric
+                        for metric in (
+                            _clean_cell(metric_value) for metric_value in selected_metrics_raw
+                        )
+                        if metric
+                    ]
+                    selected_metrics = list(dict.fromkeys(selected_metrics))
+
                     if not selected_metrics:
                         error_message = "Please select at least one metric to include."
                     else:
