@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 import pandas as pd
 
-from .views import _pivot_long_to_wide, isams_transform_view
+from .views import _calculate_ib_scores, _pivot_long_to_wide, isams_transform_view
 
 
 def _add_session(request):
@@ -124,3 +124,88 @@ class IsamsLongToWideTest(TestCase):
                 column_groups=["SubjectName"],
                 value_column="MetricValue",
             )
+
+
+class IsamsIBCalculateTest(TestCase):
+    def setUp(self):
+        subjects = [
+            ("Math HL", 6, "6+"),
+            ("Physics HL", 6, "6-"),
+            ("Chemistry HL", 7, "7"),
+            ("History SL", 5, "5+"),
+            ("English SL", 6, "6"),
+            ("Spanish SL", 6, "6+"),
+            ("TOK", 7, "7"),
+        ]
+
+        rows = []
+        for name, assessment, flight in subjects:
+            rows.append(
+                {
+                    "StudentName": "Alice",
+                    "SubjectName": name,
+                    "SubjectCode": name,
+                    "MetricName": "Assessment grade",
+                    "MetricValue": assessment,
+                }
+            )
+            rows.append(
+                {
+                    "StudentName": "Alice",
+                    "SubjectName": name,
+                    "SubjectCode": name,
+                    "MetricName": "Flight Path grade",
+                    "MetricValue": flight,
+                }
+            )
+
+        for name, assessment, flight in subjects[:4]:
+            rows.append(
+                {
+                    "StudentName": "Bob",
+                    "SubjectName": name,
+                    "SubjectCode": name,
+                    "MetricName": "Assessment grade",
+                    "MetricValue": assessment,
+                }
+            )
+            rows.append(
+                {
+                    "StudentName": "Bob",
+                    "SubjectName": name,
+                    "SubjectCode": name,
+                    "MetricName": "Flight Path grade",
+                    "MetricValue": flight,
+                }
+            )
+
+        self.df = pd.DataFrame(rows)
+
+    def test_calculations_total_scores_and_subjects(self):
+        result = _calculate_ib_scores(self.df)
+
+        self.assertIn("StudentName", result.columns)
+        self.assertIn("AssessmentTotal", result.columns)
+        self.assertIn("FlightPathTotal", result.columns)
+        self.assertIn("ValidSubjects", result.columns)
+
+        alice_row = result[result["StudentName"] == "Alice"].iloc[0]
+        self.assertEqual(alice_row["AssessmentTotal"], 36)
+        self.assertEqual(alice_row["FlightPathTotal"], 36)
+        self.assertEqual(alice_row["ValidSubjects"], "Y")
+
+        subject_columns = [col for col in result.columns if col.startswith("Subject ")]
+        subjects_listed = alice_row[subject_columns].tolist()
+        self.assertIn("Math HL", subjects_listed)
+        self.assertIn("Spanish SL", subjects_listed)
+
+        bob_row = result[result["StudentName"] == "Bob"].iloc[0]
+        self.assertEqual(bob_row["ValidSubjects"], "")
+
+    def test_calculations_respect_manual_exclusions(self):
+        result = _calculate_ib_scores(self.df, user_exclusions={"spanish sl"})
+
+        alice_row = result[result["StudentName"] == "Alice"].iloc[0]
+        self.assertEqual(alice_row["AssessmentTotal"], 30)
+        self.assertEqual(alice_row["FlightPathTotal"], 30)
+        self.assertEqual(alice_row["ValidSubjects"], "")
