@@ -31,12 +31,21 @@ from learning.webhooks import stripe_webhook
 from learning.api.enrichment import EnrichmentPreviewAPI, EnrichmentConfirmAPI
 from learning.api import schools as school_api
 from live.views import teacher_live_console
-from lang_platform.views import isams_transform_view, isams_long_to_wide_view
+from lang_platform.views import (
+    isams_ib_calculate_view,
+    isams_long_to_wide_view,
+    isams_transform_view,
+)
 handler404 = custom_404_view
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('isams-transform/', isams_transform_view, name='isams_transform'),
+    path(
+        'isams-transform/ib-calculate/',
+        isams_ib_calculate_view,
+        name='isams_ib_calculate',
+    ),
     path(
         'isams-transform/long-to-wide/',
         isams_long_to_wide_view,
