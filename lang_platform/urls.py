@@ -29,7 +29,6 @@ from learning.views import update_assignment_points, log_assignment_attempt, ref
 from django.conf.urls import handler404
 from learning.webhooks import stripe_webhook
 from learning.api.enrichment import EnrichmentPreviewAPI, EnrichmentConfirmAPI
-from learning.api import schools as school_api
 from live.views import teacher_live_console
 from lang_platform.views import (
     isams_ib_calculate_view,
@@ -64,8 +63,6 @@ urlpatterns = [
     path('add-words/<int:list_id>/', views.add_words_to_list, name='add_words_to_list'),
     path('edit-words/<int:list_id>/', views.edit_vocabulary_words, name='edit_vocabulary_words'),
     path('view-words/<int:list_id>/', views.view_vocabulary_words, name='view_vocabulary_words'),
-    path('vocabulary/<int:list_id>/sharing/', views.toggle_vocab_list_sharing, name='toggle_vocab_list_sharing'),
-    path('vocabulary/<int:list_id>/duplicate/', views.duplicate_vocabulary_list, name='duplicate_vocabulary_list'),
     path('', views.landing_page, name='landing_page'),  # Landing page
     path('logout/', views.teacher_logout, name='teacher_logout'),  # Logout
     path('student-logout/', views.student_logout, name='student_logout'),
@@ -101,7 +98,6 @@ urlpatterns = [
     path("lead-teacher-dashboard/", views.lead_teacher_dashboard, name="lead_teacher_dashboard"),
     path("lead-teacher-login/", views.lead_teacher_login, name="lead_teacher_login"),
     path("school-signup/", views.school_signup, name="school_signup"),  # Placeholder for future payment page
-    path('school/remove-teacher/<int:teacher_id>/', views.remove_school_teacher, name='remove_school_teacher'),
     path("update-points/", views.update_points, name="update_points"),
     path('destroy-the-wall/<int:vocab_list_id>/', views.destroy_the_wall, name='destroy_the_wall'),
     path('unscramble-the-word/<int:vocab_list_id>/', views.unscramble_the_word, name='unscramble_the_word'),
@@ -149,10 +145,6 @@ urlpatterns = [
     path('sports-day/', include('sportsday.urls')),
     path("api/vocab/enrichment/preview", EnrichmentPreviewAPI.as_view(), name="vocab-enrichment-preview"),
     path("api/vocab/enrichment/confirm", EnrichmentConfirmAPI.as_view(), name="vocab-enrichment-confirm"),
-    path("api/schools/create", school_api.create_school, name="api_school_create"),
-    path("api/schools/join", school_api.join_school, name="api_school_join"),
-    path("api/schools/teachers", school_api.list_teachers, name="api_school_teachers"),
-    path("api/schools/leaderboard/school", school_api.school_leaderboard, name="api_school_leaderboard"),
     path("api/analytics/<int:assignment_id>/word-stats/", views_api.api_word_stats, name="api_word_stats"),
     path("api/analytics/<int:assignment_id>/mode-breakdown/", views_api.api_mode_breakdown, name="api_mode_breakdown"),
     path("api/analytics/<int:assignment_id>/student-mastery/", views_api.api_student_mastery, name="api_student_mastery"),
