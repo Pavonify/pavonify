@@ -2,92 +2,23 @@
 <html>
 <head>
     <title>Leaderboard</title>
-    <style>
-      body {
-        font-family: Arial, sans-serif;
-        margin: 20px;
-      }
-      h1 {
-        color: #1A73E8;
-      }
-      form {
-        margin-bottom: 20px;
-        display: flex;
-        align-items: center;
-        gap: 15px;
-      }
-      table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 10px;
-      }
-      th, td {
-        border: 1px solid #ddd;
-        padding: 10px;
-        text-align: left;
-      }
-      th {
-        background-color: #f3f4f6;
-      }
-    </style>
 </head>
 <body>
     <h1>Leaderboard</h1>
-    <form method="get">
-      <label for="scope">View:</label>
-      <select name="scope" id="scope" onchange="this.form.submit()">
-        <option value="class" {% if scope == 'class' %}selected{% endif %}>My Class</option>
-        <option value="school" {% if scope == 'school' %}selected{% endif %} {% if not school %}disabled{% endif %}>My School</option>
-        <option value="grade" {% if scope == 'grade' %}selected{% endif %} {% if not school %}disabled{% endif %}>By Grade Group</option>
-        <option value="language" {% if scope == 'language' %}selected{% endif %} {% if not school %}disabled{% endif %}>By Language</option>
-      </select>
-
-      {% if scope == 'class' %}
-        <label for="class_id">Class:</label>
-        <select name="class_id" id="class_id" onchange="this.form.submit()">
-          {% for class_obj in classes %}
-          <option value="{{ class_obj.id }}" {% if selected_class and class_obj.id == selected_class.id %}selected{% endif %}>{{ class_obj.name }}</option>
-          {% endfor %}
-        </select>
-      {% endif %}
-    </form>
-
-    {% if scope == 'class' and selected_class %}
-      <h2>{{ selected_class.name }}</h2>
-    {% elif scope == 'school' and school %}
-      <h2>{{ school.name }}</h2>
-    {% elif scope == 'grade' %}
-      <h2>Points by Grade Group</h2>
-    {% elif scope == 'language' %}
-      <h2>Points by Language</h2>
-    {% endif %}
-
     <table>
         <thead>
             <tr>
                 <th>Rank</th>
-                <th>
-                  {% if scope == 'grade' %}
-                    Year Group
-                  {% elif scope == 'language' %}
-                    Language
-                  {% else %}
-                    Student
-                  {% endif %}
-                </th>
+                <th>Student</th>
                 <th>Points</th>
             </tr>
         </thead>
         <tbody>
-            {% for entry in entries %}
+            {% for entry in leaderboard %}
                 <tr>
                     <td>{{ forloop.counter }}</td>
-                    <td>{{ entry.label }}</td>
+                    <td>{{ entry.student__username }}</td>
                     <td>{{ entry.total_points }}</td>
-                </tr>
-            {% empty %}
-                <tr>
-                    <td colspan="3">No data available.</td>
                 </tr>
             {% endfor %}
         </tbody>

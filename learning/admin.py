@@ -53,9 +53,8 @@ class StudentTrophyAdmin(admin.ModelAdmin):
 # **📌 School Admin**
 @admin.register(School)
 class SchoolAdmin(admin.ModelAdmin):
-    list_display = ('name', 'location', 'school_code', 'created_at', 'updated_at')
-    search_fields = ('name', 'location', 'school_code')
-    readonly_fields = ('created_at', 'updated_at')
+    list_display = ('name', 'location', 'key', 'created_at')
+    search_fields = ('name', 'location')
 
 
 # **📌 Class Admin**
@@ -283,16 +282,8 @@ class UserAdminForm(forms.ModelForm):
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):
     form = UserAdminForm
-    list_display = (
-        'username',
-        'is_student',
-        'is_teacher',
-        'is_school_lead',
-        'school',
-        'premium_expiration',
-        'is_premium_display',
-    )
-    list_filter = ('school', 'is_student', 'is_teacher', 'is_school_lead')
+    list_display = ('username', 'is_student', 'is_teacher', 'is_lead_teacher', 'school', 'premium_expiration', 'is_premium_display')
+    list_filter = ('school', 'is_student', 'is_teacher', 'is_lead_teacher')
     search_fields = ('username', 'first_name', 'last_name')
     
     def is_premium_display(self, obj):
