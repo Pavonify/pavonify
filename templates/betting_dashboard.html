@@ -185,6 +185,28 @@
       font-size: .9rem;
     }
 
+    .error details {
+      margin-top: 8px;
+      color: #ffdfdf;
+    }
+
+    .error summary {
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .error pre {
+      margin: 8px 0 0;
+      padding: 10px;
+      border-radius: 8px;
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-size: .78rem;
+      color: #ffe5e5;
+    }
+
     .skeleton {
       border-radius: 12px;
       min-height: 95px;
@@ -242,10 +264,10 @@
   </main>
 
   <script>
-    const API_BASE = 'https://api-football-v1.p.rapidapi.com/v3';
+    const API_BASE = 'https://v3.football.api-sports.io';
+    const API_KEY = 'ba26d768516f5ab3062c4d3ec4d61502';
     const HEADERS = {
-      'x-rapidapi-key': 'ba26d768516f5ab3062c4d3ec4d61502',
-      'x-rapidapi-host': 'api-football-v1.p.rapidapi.com'
+      'x-apisports-key': API_KEY
     };
 
     const MAJOR_LEAGUE_IDS = new Set([
@@ -274,11 +296,38 @@
       return d.toISOString().split('T')[0];
     }
 
+    function escapeHtml(text = '') {
+      return String(text)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+    }
+
     async function fetchJson(path) {
-      const response = await fetch(`${API_BASE}${path}`, { headers: HEADERS });
+      const requestUrl = `${API_BASE}${path}`;
+      const response = await fetch(requestUrl, { headers: HEADERS });
       if (!response.ok) {
         const err = new Error(`API request failed (${response.status})`);
         err.status = response.status;
+        err.statusText = response.statusText;
+        err.requestUrl = requestUrl;
+
+        const responseHeaders = {};
+        for (const [key, value] of response.headers.entries()) {
+          responseHeaders[key] = value;
+        }
+        err.responseHeaders = responseHeaders;
+
+        const bodyText = await response.text();
+        err.bodyText = bodyText;
+        try {
+          err.bodyJson = JSON.parse(bodyText);
+        } catch (_) {
+          err.bodyJson = null;
+        }
+
         throw err;
       }
       return response.json();
@@ -491,9 +540,14 @@
       `;
     }
 
-    function showError(message) {
-      recContainer.innerHTML = `<div class="error">${message}</div>`;
-      accaContainer.innerHTML = `<div class="error">${message}</div>`;
+    function showError(message, debugDetails = null) {
+      const detailsBlock = debugDetails
+        ? `<details><summary>Debug details</summary><pre>${escapeHtml(debugDetails)}</pre></details>`
+        : '';
+
+      const markup = `<div class="error">${escapeHtml(message)}${detailsBlock}</div>`;
+      recContainer.innerHTML = markup;
+      accaContainer.innerHTML = markup;
       lastUpdatedEl.textContent = 'Unable to refresh data';
     }
 
@@ -532,10 +586,33 @@
           picks: rankedPicks.slice(0, 20)
         }));
       } catch (err) {
+        const debugPayload = {
+          timestamp: new Date().toISOString(),
+          status: err?.status || null,
+          statusText: err?.statusText || null,
+          requestUrl: err?.requestUrl || null,
+          endpointBase: API_BASE,
+          authHeaderUsed: Object.keys(HEADERS),
+          responseHeaders: err?.responseHeaders || null,
+          responseBody: err?.bodyJson || err?.bodyText || null,
+          note: 'If your RapidAPI dashboard usage stays at 0, verify you are calling the RapidAPI hostname/header pair instead of API-Sports direct host.'
+        };
+
         if (err.status === 429) {
-          showError('API limit reached for now. Please wait and refresh shortly; cached picks are shown when available.');
+          showError(
+            'API responded with HTTP 429 (rate limited). Expand debug details to inspect provider headers/body and confirm endpoint/auth combination.',
+            JSON.stringify(debugPayload, null, 2)
+          );
+        } else if (err.status === 401 || err.status === 403) {
+          showError(
+            `Authentication/authorization failed (HTTP ${err.status}). Expand debug details to inspect exact API response and headers.`,
+            JSON.stringify(debugPayload, null, 2)
+          );
         } else {
-          showError('Network/API issue while fetching fixtures. If offline, cached picks will be loaded.');
+          showError(
+            'Network/API issue while fetching fixtures. Expand debug details for raw response info; cached picks will be used when available.',
+            JSON.stringify(debugPayload, null, 2)
+          );
         }
 
         const cache = localStorage.getItem('bettingDashboardCache');
