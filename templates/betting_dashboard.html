@@ -48,6 +48,14 @@
       gap: 14px;
     }
 
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
     h1 { margin: 0; font-size: clamp(1.1rem, 1.5vw + 0.8rem, 1.8rem); }
     .sub { color: var(--muted); font-size: .92rem; margin-top: 4px; }
 
@@ -173,6 +181,16 @@
       font-weight: 700;
       cursor: pointer;
     }
+
+    .refresh-btn {
+      background: linear-gradient(180deg, #2f9f67 0%, #1f7a4d 100%);
+      border-color: rgba(92, 224, 154, .55);
+    }
+
+    .refresh-btn[disabled] {
+      opacity: .7;
+      cursor: not-allowed;
+    }
     button:hover { filter: brightness(1.08); }
 
     .error {
@@ -235,7 +253,10 @@
         <h1>Football Betting Intelligence Dashboard</h1>
         <div class="sub">Top recommendations + auto 6-leg accumulator from API-Football v3</div>
       </div>
-      <div id="lastUpdated" class="status-pill">Loading fixtures…</div>
+      <div class="header-actions">
+        <button id="refreshBtn" class="refresh-btn" type="button">Refresh Live Data</button>
+        <div id="lastUpdated" class="status-pill">Loading fixtures…</div>
+      </div>
     </header>
 
     <section class="grid">
@@ -297,6 +318,7 @@
     const fixtureCountEl = document.getElementById('fixtureCount');
     const lastUpdatedEl = document.getElementById('lastUpdated');
     const regenBtn = document.getElementById('regenBtn');
+    const refreshBtn = document.getElementById('refreshBtn');
 
     let rankedPicks = [];
     let accaOffset = 0;
@@ -649,9 +671,15 @@
       return enriched;
     }
 
-    async function loadDashboard() {
+    async function loadDashboard(options = {}) {
+      const { allowCacheFallback = true, clearCacheFirst = false } = options;
+      if (clearCacheFirst) {
+        localStorage.removeItem('bettingDashboardCache');
+      }
       showSkeletons();
       try {
+        refreshBtn.disabled = true;
+        refreshBtn.textContent = 'Refreshing…';
         const fixtures = await getFixturesForDates();
 
         if (!fixtures.length) {
@@ -715,7 +743,7 @@
           );
         }
 
-        const cache = localStorage.getItem('bettingDashboardCache');
+        const cache = allowCacheFallback ? localStorage.getItem('bettingDashboardCache') : null;
         if (cache) {
           try {
             const parsed = JSON.parse(cache);
@@ -728,8 +756,16 @@
             }
           } catch (_) {}
         }
+      } finally {
+        refreshBtn.disabled = false;
+        refreshBtn.textContent = 'Refresh Live Data';
       }
     }
+
+    refreshBtn.addEventListener('click', () => {
+      lastUpdatedEl.textContent = 'Refreshing live data (cache bypass)…';
+      loadDashboard({ allowCacheFallback: false, clearCacheFirst: true });
+    });
 
     regenBtn.addEventListener('click', () => {
       if (!rankedPicks.length) return;
