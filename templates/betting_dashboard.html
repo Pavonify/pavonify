@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Private Football Betting Recommendations</title>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: #121a2f;
+      --panel-2: #0f1730;
+      --text: #e6ecff;
+      --muted: #96a2c7;
+      --accent: #52a8ff;
+      --green: #39d98a;
+      --orange: #ffb020;
+      --danger: #ff6b6b;
+      --border: rgba(142, 162, 216, 0.2);
+      --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: radial-gradient(circle at top, #132042 0%, var(--bg) 48%);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .container {
+      width: min(1200px, 92vw);
+      margin: 24px auto 40px;
+      display: grid;
+      gap: 20px;
+    }
+
+    .header {
+      background: linear-gradient(140deg, #17264f 0%, #101937 100%);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 18px 20px;
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    h1 { margin: 0; font-size: clamp(1.1rem, 1.5vw + 0.8rem, 1.8rem); }
+    .sub { color: var(--muted); font-size: .92rem; margin-top: 4px; }
+
+    .status-pill {
+      font-size: .83rem;
+      color: #dbe4ff;
+      background: rgba(82, 168, 255, .18);
+      border: 1px solid rgba(82, 168, 255, .35);
+      padding: 6px 10px;
+      border-radius: 999px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 20px;
+      align-items: start;
+    }
+
+    .panel {
+      background: linear-gradient(160deg, var(--panel) 0%, var(--panel-2) 100%);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .panel-head {
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .panel-title { margin: 0; font-size: 1.05rem; }
+    .panel-note { color: var(--muted); font-size: .86rem; margin: 3px 0 0; }
+
+    .recommendations {
+      display: grid;
+      gap: 12px;
+      padding: 14px;
+    }
+
+    .rec-card {
+      border: 1px solid var(--border);
+      background: rgba(9, 15, 35, 0.78);
+      border-radius: 12px;
+      padding: 13px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .rec-top {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .league-logo {
+      width: 32px;
+      height: 32px;
+      object-fit: contain;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 4px;
+    }
+
+    .teams { font-weight: 700; }
+    .meta, .reason, .stat-line { color: var(--muted); font-size: .84rem; }
+    .market {
+      font-size: .8rem;
+      background: rgba(82, 168, 255, .18);
+      color: #cce6ff;
+      border: 1px solid rgba(82, 168, 255, .4);
+      border-radius: 999px;
+      padding: 6px 10px;
+      white-space: nowrap;
+    }
+
+    .confidence {
+      margin-top: 2px;
+      font-weight: 700;
+      color: var(--green);
+      font-size: .95rem;
+    }
+
+    .acca {
+      padding: 14px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .acca-leg {
+      border: 1px solid var(--border);
+      background: rgba(7, 12, 28, 0.7);
+      border-radius: 12px;
+      padding: 10px;
+      display: grid;
+      gap: 4px;
+    }
+
+    .acca-footer {
+      margin-top: 4px;
+      border-top: 1px solid var(--border);
+      padding-top: 12px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .combined { font-size: 1.08rem; font-weight: 700; }
+
+    button {
+      appearance: none;
+      border: 1px solid rgba(82, 168, 255, .5);
+      color: white;
+      background: linear-gradient(180deg, #267cf0 0%, #1b5ab7 100%);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .refresh-btn {
+      background: linear-gradient(180deg, #2f9f67 0%, #1f7a4d 100%);
+      border-color: rgba(92, 224, 154, .55);
+    }
+
+    .refresh-btn[disabled] {
+      opacity: .7;
+      cursor: not-allowed;
+    }
+    button:hover { filter: brightness(1.08); }
+
+    .error {
+      margin: 14px;
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 107, 107, .4);
+      background: rgba(255, 107, 107, .12);
+      color: #ffd5d5;
+      font-size: .9rem;
+    }
+
+    .error details {
+      margin-top: 8px;
+      color: #ffdfdf;
+    }
+
+    .error summary {
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .error pre {
+      margin: 8px 0 0;
+      padding: 10px;
+      border-radius: 8px;
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-size: .78rem;
+      color: #ffe5e5;
+    }
+
+    .skeleton {
+      border-radius: 12px;
+      min-height: 95px;
+      background: linear-gradient(90deg, rgba(255,255,255,.04), rgba(255,255,255,.13), rgba(255,255,255,.04));
+      background-size: 200% 100%;
+      animation: pulse 1.2s infinite;
+      border: 1px solid rgba(255, 255, 255, 0.07);
+    }
+
+    @keyframes pulse {
+      0% { background-position: 0% 50%; }
+      100% { background-position: 200% 50%; }
+    }
+
+    .small-muted { color: var(--muted); font-size: .8rem; }
+
+    @media (max-width: 960px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <header class="header">
+      <div>
+        <h1>Football Betting Intelligence Dashboard</h1>
+        <div class="sub">Top recommendations + auto 6-leg accumulator from API-Football v3</div>
+      </div>
+      <div class="header-actions">
+        <button id="refreshBtn" class="refresh-btn" type="button">Refresh Live Data</button>
+        <div id="lastUpdated" class="status-pill">Loading fixtures…</div>
+      </div>
+    </header>
+
+    <section class="grid">
+      <article class="panel">
+        <div class="panel-head">
+          <div>
+            <h2 class="panel-title">Top Recommendations</h2>
+            <p class="panel-note">Highest-confidence picks for today + tomorrow</p>
+          </div>
+          <span class="small-muted" id="fixtureCount">0 matches scored</span>
+        </div>
+        <div id="recommendations" class="recommendations"></div>
+      </article>
+
+      <article class="panel">
+        <div class="panel-head">
+          <div>
+            <h2 class="panel-title">6-Game Accumulator</h2>
+            <p class="panel-note">Unique-match legs, confidence blended</p>
+          </div>
+          <button id="regenBtn" type="button">Regenerate Acca</button>
+        </div>
+        <div id="acca" class="acca"></div>
+      </article>
+    </section>
+  </main>
+
+  <script>
+    const API_PROVIDER = 'rapidapi'; // 'rapidapi' or 'apisports'
+    const API_KEY = 'ba26d768516f5ab3062c4d3ec4d61502';
+    const RAPIDAPI_HOST = 'api-football-v1.p.rapidapi.com';
+
+    const API_CONFIG = API_PROVIDER === 'rapidapi'
+      ? {
+          base: 'https://api-football-v1.p.rapidapi.com/v3',
+          headers: {
+            'x-rapidapi-key': API_KEY,
+            'x-rapidapi-host': RAPIDAPI_HOST
+          }
+        }
+      : {
+          base: 'https://v3.football.api-sports.io',
+          headers: {
+            'x-apisports-key': API_KEY
+          }
+        };
+
+    const API_BASE = API_CONFIG.base;
+    const HEADERS = API_CONFIG.headers;
+
+    const MAJOR_LEAGUE_IDS = new Set([
+      39, 140, 78, 135, 61, 88, 94, 203, 144, 253,
+      307, 71, 179, 2, 3, 848, 262, 128, 188, 197,
+      119, 106, 113, 103, 98
+    ]);
+
+    const recContainer = document.getElementById('recommendations');
+    const accaContainer = document.getElementById('acca');
+    const fixtureCountEl = document.getElementById('fixtureCount');
+    const lastUpdatedEl = document.getElementById('lastUpdated');
+    const regenBtn = document.getElementById('regenBtn');
+    const refreshBtn = document.getElementById('refreshBtn');
+
+    let rankedPicks = [];
+    let accaOffset = 0;
+
+    const requestMetrics = {
+      total: 0,
+      failed: 0,
+      byEndpoint: {}
+    };
+
+    function showSkeletons() {
+      recContainer.innerHTML = Array.from({ length: 8 }).map(() => '<div class="skeleton"></div>').join('');
+      accaContainer.innerHTML = Array.from({ length: 6 }).map(() => '<div class="skeleton"></div>').join('');
+    }
+
+    function dateStr(offset = 0) {
+      const d = new Date();
+      d.setDate(d.getDate() + offset);
+      return d.toISOString().split('T')[0];
+    }
+
+    function escapeHtml(text = '') {
+      return String(text)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+    }
+
+    function trackRequest(path, ok) {
+      requestMetrics.total += 1;
+      const endpoint = path.split('?')[0];
+      requestMetrics.byEndpoint[endpoint] = (requestMetrics.byEndpoint[endpoint] || 0) + 1;
+      if (!ok) requestMetrics.failed += 1;
+    }
+
+    async function fetchJson(path) {
+      const requestUrl = `${API_BASE}${path}`;
+      let response;
+      try {
+        response = await fetch(requestUrl, { headers: HEADERS });
+      } catch (networkError) {
+        trackRequest(path, false);
+        const err = new Error(`Network error calling ${path}`);
+        err.status = 0;
+        err.statusText = 'NETWORK_ERROR';
+        err.requestUrl = requestUrl;
+        err.bodyText = networkError?.message || 'Unknown network error';
+        err.responseHeaders = {};
+        throw err;
+      }
+
+      trackRequest(path, response.ok);
+
+      if (!response.ok) {
+        const err = new Error(`API request failed (${response.status})`);
+        err.status = response.status;
+        err.statusText = response.statusText;
+        err.requestUrl = requestUrl;
+
+        const responseHeaders = {};
+        for (const [key, value] of response.headers.entries()) {
+          responseHeaders[key] = value;
+        }
+        err.responseHeaders = responseHeaders;
+
+        const bodyText = await response.text();
+        err.bodyText = bodyText;
+        try {
+          err.bodyJson = JSON.parse(bodyText);
+        } catch (_) {
+          err.bodyJson = null;
+        }
+
+        throw err;
+      }
+
+      return response.json();
+    }
+
+    const predictionCache = new Map();
+
+    async function getPrediction(fixtureId) {
+      if (predictionCache.has(fixtureId)) return predictionCache.get(fixtureId);
+      const data = await fetchJson(`/predictions?fixture=${fixtureId}`);
+      const prediction = data?.response?.[0] || null;
+      predictionCache.set(fixtureId, prediction);
+      return prediction;
+    }
+
+    function parseForm(form = '') {
+      const last5 = String(form).slice(-5).split('');
+      const wins = last5.filter(c => c === 'W').length;
+      const draws = last5.filter(c => c === 'D').length;
+      const losses = last5.filter(c => c === 'L').length;
+      return { wins, draws, losses, games: last5.length || 1 };
+    }
+
+    function toNum(v, fallback = 0) {
+      const n = Number(v);
+      return Number.isFinite(n) ? n : fallback;
+    }
+
+    function toProb(value, fallback = 0.5) {
+      if (typeof value === 'string') {
+        return Math.max(0, Math.min(1, toNum(value.replace('%', ''), fallback * 100) / 100));
+      }
+      if (typeof value === 'number') {
+        return Math.max(0, Math.min(1, value > 1 ? value / 100 : value));
+      }
+      return fallback;
+    }
+
+    function clamp(num, min, max) {
+      return Math.min(max, Math.max(min, num));
+    }
+
+    function confidenceColor(c) {
+      if (c >= 74) return 'var(--green)';
+      if (c >= 62) return 'var(--orange)';
+      return '#ffd3a4';
+    }
+
+    function buildReason(match, market) {
+      const { homeForm, awayForm, homeAvgFor, awayAvgFor, h2hGoalAvg, favoriteProb, drawProb } = match;
+      const homeUnbeaten = homeForm.wins + homeForm.draws;
+      if (market === '1X2') {
+        return `Model favors ${match.favoredTeam} (${(favoriteProb * 100).toFixed(1)}%) vs draw ${(drawProb * 100).toFixed(1)}%, with home trend ${homeUnbeaten}/${homeForm.games} unbeaten.`;
+      }
+      if (market === 'Over 2.5 Goals') {
+        return `Expected goals ${(match.expectedGoalsModel).toFixed(2)} with attack average ${(homeAvgFor + awayAvgFor).toFixed(2)} and H2H goals ${h2hGoalAvg.toFixed(2)}.`;
+      }
+      return `BTTS model boosted by attacking rates ${homeAvgFor.toFixed(2)} + ${awayAvgFor.toFixed(2)} and balanced win probs (${(match.homeWinProb * 100).toFixed(1)}%/${(match.awayWinProb * 100).toFixed(1)}%).`;
+    }
+
+    function scoreFixture(match) {
+      const formDelta = (match.homeForm.wins - match.awayForm.wins) / 5;
+      const formStability = ((match.homeForm.wins + match.awayForm.wins) + (match.homeForm.draws + match.awayForm.draws) * 0.4) / 10;
+      const homeAwayEdge = match.homeHomeWinRate - match.awayAwayWinRate;
+      const h2hEdge = (match.h2hHomeWins - match.h2hAwayWins) / 5;
+
+      const favoriteProb = Math.max(match.homeWinProb, match.awayWinProb);
+      const secondProb = Math.max(Math.min(match.homeWinProb, match.awayWinProb), match.drawProb);
+      const probabilityGap = favoriteProb - secondProb;
+      const closeness = 1 - Math.min(1, Math.abs(match.homeWinProb - match.awayWinProb) * 2.1);
+
+      const expectedGoals = ((match.homeAvgFor + match.awayAvgFor + match.homeAvgAgainst + match.awayAvgAgainst) / 2);
+      const attackAvg = (match.homeAvgFor + match.awayAvgFor) / 2;
+      const defenseLeak = (match.homeAvgAgainst + match.awayAvgAgainst) / 2;
+      const goalsMomentum = clamp((expectedGoals - 2.35) / 1.25, -1, 1);
+      const h2hGoalsMomentum = clamp((match.h2hGoalAvg - 2.25) / 1.1, -1, 1);
+      const bttsMomentum = clamp(((attackAvg + defenseLeak) - 2.45) / 1.1, -1, 1);
+
+      const oneX2Score =
+        46 +
+        (favoriteProb * 36) +
+        (probabilityGap * 26) +
+        (homeAwayEdge * 10) +
+        (formDelta * 8) +
+        (h2hEdge * 5);
+
+      const over25Score =
+        44 +
+        ((goalsMomentum + 1) * 14) +
+        ((h2hGoalsMomentum + 1) * 9) +
+        (formStability * 8);
+
+      const bttsScore =
+        43 +
+        ((bttsMomentum + 1) * 13) +
+        ((closeness) * 10) +
+        ((h2hGoalsMomentum + 1) * 6);
+
+      const markets = [
+        {
+          key: '1X2',
+          label: `${match.favoredTeam} to Win`,
+          confidence: oneX2Score
+        },
+        {
+          key: 'Over 2.5 Goals',
+          label: 'Over 2.5 Goals',
+          confidence: over25Score
+        },
+        {
+          key: 'BTTS',
+          label: 'Both Teams To Score',
+          confidence: bttsScore
+        }
+      ].sort((a, b) => b.confidence - a.confidence);
+
+      const best = markets[0];
+      const confidence = clamp(best.confidence, 52, 92);
+
+      return {
+        ...match,
+        market: best.key,
+        marketDetail: best.label,
+        confidence: Number(confidence.toFixed(1)),
+        expectedGoalsModel: expectedGoals,
+        favoriteProb,
+        reason: buildReason({ ...match, expectedGoalsModel: expectedGoals, favoriteProb }, best.key)
+      };
+    }
+
+    async function getFixturesForDates() {
+
+      const [todayData, tomorrowData] = await Promise.all([
+        fetchJson(`/fixtures?date=${dateStr(0)}&timezone=UTC`),
+        fetchJson(`/fixtures?date=${dateStr(1)}&timezone=UTC`)
+      ]);
+
+      return [...(todayData.response || []), ...(tomorrowData.response || [])]
+        .filter(f => MAJOR_LEAGUE_IDS.has(f.league.id))
+        .sort((a, b) => a.fixture.timestamp - b.fixture.timestamp)
+        .slice(0, 24);
+    }
+
+    async function enrichFixture(fixture) {
+      const prediction = await getPrediction(fixture.fixture.id);
+      if (!prediction) throw new Error(`No prediction response for fixture ${fixture.fixture.id}`);
+
+      const homeForm = parseForm(prediction?.comparison?.form?.home || prediction?.teams?.home?.league?.form || '');
+      const awayForm = parseForm(prediction?.comparison?.form?.away || prediction?.teams?.away?.league?.form || '');
+
+      const homeWinProb = toProb(prediction?.predictions?.percent?.home, toProb(prediction?.comparison?.att?.home, 0.5));
+      const drawProb = toProb(prediction?.predictions?.percent?.draw, 0.24);
+      const awayWinProb = toProb(prediction?.predictions?.percent?.away, toProb(prediction?.comparison?.att?.away, 0.5));
+
+      const homeAvgFor = toNum(prediction?.teams?.home?.league?.goals?.for?.total?.home, 1.3) /
+        Math.max(1, toNum(prediction?.teams?.home?.league?.fixtures?.played?.home, 1));
+      const awayAvgFor = toNum(prediction?.teams?.away?.league?.goals?.for?.total?.away, 1.1) /
+        Math.max(1, toNum(prediction?.teams?.away?.league?.fixtures?.played?.away, 1));
+
+      const homeAvgAgainst = toNum(prediction?.teams?.home?.league?.goals?.against?.total?.home, 1.0) /
+        Math.max(1, toNum(prediction?.teams?.home?.league?.fixtures?.played?.home, 1));
+      const awayAvgAgainst = toNum(prediction?.teams?.away?.league?.goals?.against?.total?.away, 1.1) /
+        Math.max(1, toNum(prediction?.teams?.away?.league?.fixtures?.played?.away, 1));
+
+      const h2hList = prediction?.h2h || [];
+      const homeId = fixture.teams.home.id;
+      const awayId = fixture.teams.away.id;
+
+      const h2hHomeWins = h2hList.filter(g => g?.teams?.home?.winner && g?.teams?.home?.id === homeId).length;
+      const h2hAwayWins = h2hList.filter(g => g?.teams?.away?.winner && g?.teams?.away?.id === awayId).length;
+      const h2hGoalAvg = h2hList.length
+        ? h2hList.reduce((acc, g) => acc + toNum(g?.goals?.home) + toNum(g?.goals?.away), 0) / h2hList.length
+        : 2.2;
+
+      return {
+        fixture,
+        homeForm,
+        awayForm,
+        homeHomeWins: toNum(prediction?.teams?.home?.league?.fixtures?.wins?.home, Math.round(homeWinProb * 5)),
+        awayAwayLosses: toNum(prediction?.teams?.away?.league?.fixtures?.loses?.away, Math.round((1 - awayWinProb) * 5)),
+        homeHomeWinRate: toNum(prediction?.teams?.home?.league?.fixtures?.wins?.home, homeWinProb * 10) /
+          Math.max(1, toNum(prediction?.teams?.home?.league?.fixtures?.played?.home, 10)),
+        awayAwayWinRate: toNum(prediction?.teams?.away?.league?.fixtures?.wins?.away, awayWinProb * 10) /
+          Math.max(1, toNum(prediction?.teams?.away?.league?.fixtures?.played?.away, 10)),
+        homeAvgFor,
+        awayAvgFor,
+        homeAvgAgainst,
+        awayAvgAgainst,
+        h2hHomeWins,
+        h2hAwayWins,
+        h2hGoalAvg,
+        homeWinProb,
+        drawProb,
+        awayWinProb,
+        favoredTeam: homeWinProb >= awayWinProb ? fixture.teams.home.name : fixture.teams.away.name
+      };
+    }
+
+    function renderRecommendations(picks) {
+      recContainer.innerHTML = picks.slice(0, 8).map((p, i) => {
+        const time = new Date(p.fixture.fixture.date).toLocaleString([], { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+        return `
+          <div class="rec-card">
+            <div class="rec-top">
+              <img class="league-logo" src="${p.fixture.league.logo || ''}" alt="${p.fixture.league.name} logo" />
+              <div>
+                <div class="teams">${i + 1}. ${p.fixture.teams.home.name} vs ${p.fixture.teams.away.name}</div>
+                <div class="meta">${p.fixture.league.name} • ${time}</div>
+              </div>
+              <span class="market">${p.marketDetail}</span>
+            </div>
+            <div class="confidence" style="color:${confidenceColor(p.confidence)}">Confidence: ${p.confidence}%</div>
+            <div class="stat-line">Form: ${p.fixture.teams.home.name} ${p.homeForm.wins}-${p.homeForm.draws}-${p.homeForm.losses} | ${p.fixture.teams.away.name} ${p.awayForm.wins}-${p.awayForm.draws}-${p.awayForm.losses}</div>
+            <div class="reason">${p.reason}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function buildAccumulator() {
+      const used = new Set();
+      const legs = [];
+      for (let i = accaOffset; i < rankedPicks.length; i++) {
+        const p = rankedPicks[i];
+        const fixtureId = p.fixture.fixture.id;
+        if (used.has(fixtureId)) continue;
+        used.add(fixtureId);
+        legs.push(p);
+        if (legs.length === 6) break;
+      }
+
+      if (legs.length < 6) {
+        accaContainer.innerHTML = '<div class="error">Not enough unique fixtures to build a full 6-leg accumulator yet.</div>';
+        return;
+      }
+
+      const combined = legs.reduce((acc, leg) => acc * (leg.confidence / 100), 1) * 100;
+
+      accaContainer.innerHTML = `
+        ${legs.map((leg, idx) => `
+          <div class="acca-leg">
+            <div><strong>Leg ${idx + 1}:</strong> ${leg.fixture.teams.home.name} vs ${leg.fixture.teams.away.name}</div>
+            <div class="meta">Pick: ${leg.marketDetail}</div>
+            <div class="confidence" style="color:${confidenceColor(leg.confidence)}">${leg.confidence}% confidence</div>
+          </div>
+        `).join('')}
+        <div class="acca-footer">
+          <div class="combined">Combined accumulator confidence: ${combined.toFixed(2)}%</div>
+          <div class="small-muted">Regenerate shifts to the next confidence tier while keeping one pick per fixture.</div>
+        </div>
+      `;
+    }
+
+    function showError(message, debugDetails = null) {
+      const detailsBlock = debugDetails
+        ? `<details><summary>Debug details</summary><pre>${escapeHtml(debugDetails)}</pre></details>`
+        : '';
+
+      const markup = `<div class="error">${escapeHtml(message)}${detailsBlock}</div>`;
+      recContainer.innerHTML = markup;
+      accaContainer.innerHTML = markup;
+      lastUpdatedEl.textContent = 'Unable to refresh data';
+    }
+
+    async function enrichInBatches(fixtures, chunkSize = 6) {
+      const enriched = [];
+      for (let i = 0; i < fixtures.length; i += chunkSize) {
+        const chunk = fixtures.slice(i, i + chunkSize);
+        const results = await Promise.allSettled(chunk.map(enrichFixture));
+        for (const result of results) {
+          if (result.status === 'fulfilled') enriched.push(result.value);
+        }
+      }
+      return enriched;
+    }
+
+    async function loadDashboard(options = {}) {
+      const { allowCacheFallback = true, clearCacheFirst = false } = options;
+      if (clearCacheFirst) {
+        localStorage.removeItem('bettingDashboardCache');
+      }
+      showSkeletons();
+      try {
+        refreshBtn.disabled = true;
+        refreshBtn.textContent = 'Refreshing…';
+        const fixtures = await getFixturesForDates();
+
+        if (!fixtures.length) {
+          showError('No major-league fixtures found for today or tomorrow. Try again later.');
+          return;
+        }
+
+        const enriched = await enrichInBatches(fixtures, 6);
+
+        rankedPicks = enriched.map(scoreFixture).sort((a, b) => b.confidence - a.confidence);
+        if (!rankedPicks.length) {
+          showError('Could not score fixtures from API data. Check API quota and try again.');
+          return;
+        }
+
+        renderRecommendations(rankedPicks);
+        buildAccumulator();
+
+        fixtureCountEl.textContent = `${rankedPicks.length} matches scored`;
+        const now = new Date();
+        lastUpdatedEl.textContent = `Updated ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} UTC`;
+
+        localStorage.setItem('bettingDashboardCache', JSON.stringify({
+          ts: Date.now(),
+          picks: rankedPicks.slice(0, 20)
+        }));
+      } catch (err) {
+        const debugPayload = {
+          timestamp: new Date().toISOString(),
+          provider: API_PROVIDER,
+          endpointBase: API_BASE,
+          authHeaderUsed: Object.keys(HEADERS),
+          status: err?.status || null,
+          statusText: err?.statusText || null,
+          requestUrl: err?.requestUrl || null,
+          responseHeaders: err?.responseHeaders || null,
+          responseBody: err?.bodyJson || err?.bodyText || null,
+          requestMetrics,
+          diagnosisHints: [
+            'If RapidAPI usage is 0, ensure provider is rapidapi and base URL is api-football-v1.p.rapidapi.com.',
+            'If provider is apisports, RapidAPI dashboard will remain at 0 by design.',
+            '401/403 usually indicate key/header mismatch or plan restrictions for specific endpoints.',
+            '429 can come from per-minute throttling even when monthly quota is available.'
+          ]
+        };
+
+        if (err.status === 429) {
+          showError(
+            'API responded with HTTP 429 (rate limited/throttled). Expand debug details for exact headers/body.',
+            JSON.stringify(debugPayload, null, 2)
+          );
+        } else if (err.status === 401 || err.status === 403) {
+          showError(
+            `Authentication/authorization failed (HTTP ${err.status}). Expand debug details for raw provider response.`,
+            JSON.stringify(debugPayload, null, 2)
+          );
+        } else {
+          showError(
+            'Network/API issue while fetching fixtures. Expand debug details for raw response info; cached picks will be used when available.',
+            JSON.stringify(debugPayload, null, 2)
+          );
+        }
+
+        const cache = allowCacheFallback ? localStorage.getItem('bettingDashboardCache') : null;
+        if (cache) {
+          try {
+            const parsed = JSON.parse(cache);
+            rankedPicks = parsed.picks || [];
+            if (rankedPicks.length) {
+              renderRecommendations(rankedPicks);
+              buildAccumulator();
+              fixtureCountEl.textContent = `${rankedPicks.length} cached matches`;
+              lastUpdatedEl.textContent = `Offline cache from ${new Date(parsed.ts).toLocaleString()}`;
+            }
+          } catch (_) {}
+        }
+      } finally {
+        refreshBtn.disabled = false;
+        refreshBtn.textContent = 'Refresh Live Data';
+      }
+    }
+
+    refreshBtn.addEventListener('click', () => {
+      lastUpdatedEl.textContent = 'Refreshing live data (cache bypass)…';
+      loadDashboard({ allowCacheFallback: false, clearCacheFirst: true });
+    });
+
+    regenBtn.addEventListener('click', () => {
+      if (!rankedPicks.length) return;
+      accaOffset += 1;
+      if (accaOffset > rankedPicks.length - 6) accaOffset = 0;
+      buildAccumulator();
+    });
+
+    loadDashboard();
+  </script>
+</body>
+</html>
