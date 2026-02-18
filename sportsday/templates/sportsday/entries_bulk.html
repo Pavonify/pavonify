@@ -72,23 +72,22 @@
                                         style="grid-template-columns: repeat({{ row.slot_count }}, minmax(7rem, 1fr));"
                                     >
                                         {% for value in row.slot_values %}
-                                            <input
-                                                type="text"
+                                            <label class="sr-only" for="event-{{ event.pk }}-slot-{{ forloop.counter0 }}">Add participant</label>
+                                            <select
+                                                id="event-{{ event.pk }}-slot-{{ forloop.counter0 }}"
                                                 name="event-{{ event.pk }}-slot-{{ forloop.counter0 }}"
-                                                value="{{ value }}"
-                                                list="eligible-{{ event.pk }}"
-                                                class="w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600 focus:border-sky-400 focus:outline-none"
-                                                placeholder="Add participant"
-                                                autocomplete="off"
+                                                class="w-full rounded-lg border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-slate-100 focus:border-sky-400 focus:outline-none"
                                             >
+                                                <option value="" {% if not value %}selected{% endif %}>Add participant</option>
+                                                {% for student in row.eligible_students %}
+                                                    <option value="{{ student.pk }}" {% if value and value.id == student.pk %}selected{% endif %}>
+                                                        {{ student.first_name }} {{ student.last_name }} · {{ student.grade }} · {{ student.house }}
+                                                    </option>
+                                                {% endfor %}
+                                            </select>
                                         {% endfor %}
                                     </div>
                                 </td>
-                                <datalist id="eligible-{{ event.pk }}">
-                                    {% for student in row.eligible_students %}
-                                        <option value="{{ student.pk }} · {{ student.first_name }} {{ student.last_name }}">{{ student.first_name }} {{ student.last_name }} · {{ student.grade }} · {{ student.house }}</option>
-                                    {% endfor %}
-                                </datalist>
                             </tr>
                         {% endwith %}
                     {% empty %}
