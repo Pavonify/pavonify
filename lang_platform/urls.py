@@ -34,6 +34,7 @@ from lang_platform.views import (
     isams_ib_calculate_view,
     isams_long_to_wide_view,
     isams_transform_view,
+    betting_dashboard_view,
 )
 handler404 = custom_404_view
 
@@ -64,6 +65,7 @@ urlpatterns = [
     path('edit-words/<int:list_id>/', views.edit_vocabulary_words, name='edit_vocabulary_words'),
     path('view-words/<int:list_id>/', views.view_vocabulary_words, name='view_vocabulary_words'),
     path('', views.landing_page, name='landing_page'),  # Landing page
+    path('betting-dashboard/', betting_dashboard_view, name='betting_dashboard'),
     path('logout/', views.teacher_logout, name='teacher_logout'),  # Logout
     path('student-logout/', views.student_logout, name='student_logout'),
     path('login/', auth_views.LoginView.as_view(template_name='registration/login.html'), name='login'),  # Teacher login
