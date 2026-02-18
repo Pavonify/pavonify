@@ -264,11 +264,27 @@
   </main>
 
   <script>
-    const API_BASE = 'https://v3.football.api-sports.io';
+    const API_PROVIDER = 'rapidapi'; // 'rapidapi' or 'apisports'
     const API_KEY = 'ba26d768516f5ab3062c4d3ec4d61502';
-    const HEADERS = {
-      'x-apisports-key': API_KEY
-    };
+    const RAPIDAPI_HOST = 'api-football-v1.p.rapidapi.com';
+
+    const API_CONFIG = API_PROVIDER === 'rapidapi'
+      ? {
+          base: 'https://api-football-v1.p.rapidapi.com/v3',
+          headers: {
+            'x-rapidapi-key': API_KEY,
+            'x-rapidapi-host': RAPIDAPI_HOST
+          }
+        }
+      : {
+          base: 'https://v3.football.api-sports.io',
+          headers: {
+            'x-apisports-key': API_KEY
+          }
+        };
+
+    const API_BASE = API_CONFIG.base;
+    const HEADERS = API_CONFIG.headers;
 
     const MAJOR_LEAGUE_IDS = new Set([
       39, 140, 78, 135, 61, 88, 94, 203, 144, 253,
@@ -284,6 +300,12 @@
 
     let rankedPicks = [];
     let accaOffset = 0;
+
+    const requestMetrics = {
+      total: 0,
+      failed: 0,
+      byEndpoint: {}
+    };
 
     function showSkeletons() {
       recContainer.innerHTML = Array.from({ length: 8 }).map(() => '<div class="skeleton"></div>').join('');
@@ -305,9 +327,31 @@
         .replaceAll("'", '&#039;');
     }
 
+    function trackRequest(path, ok) {
+      requestMetrics.total += 1;
+      const endpoint = path.split('?')[0];
+      requestMetrics.byEndpoint[endpoint] = (requestMetrics.byEndpoint[endpoint] || 0) + 1;
+      if (!ok) requestMetrics.failed += 1;
+    }
+
     async function fetchJson(path) {
       const requestUrl = `${API_BASE}${path}`;
-      const response = await fetch(requestUrl, { headers: HEADERS });
+      let response;
+      try {
+        response = await fetch(requestUrl, { headers: HEADERS });
+      } catch (networkError) {
+        trackRequest(path, false);
+        const err = new Error(`Network error calling ${path}`);
+        err.status = 0;
+        err.statusText = 'NETWORK_ERROR';
+        err.requestUrl = requestUrl;
+        err.bodyText = networkError?.message || 'Unknown network error';
+        err.responseHeaders = {};
+        throw err;
+      }
+
+      trackRequest(path, response.ok);
+
       if (!response.ok) {
         const err = new Error(`API request failed (${response.status})`);
         err.status = response.status;
@@ -330,32 +374,22 @@
 
         throw err;
       }
+
       return response.json();
     }
 
-    const teamStatsCache = new Map();
-    const h2hCache = new Map();
+    const predictionCache = new Map();
 
-    async function getTeamStats(teamId, leagueId, season) {
-      const key = `${teamId}-${leagueId}-${season}`;
-      if (teamStatsCache.has(key)) return teamStatsCache.get(key);
-      const data = await fetchJson(`/teams/statistics?team=${teamId}&league=${leagueId}&season=${season}`);
-      const stats = data.response || null;
-      teamStatsCache.set(key, stats);
-      return stats;
-    }
-
-    async function getH2H(homeId, awayId) {
-      const key = `${homeId}-${awayId}`;
-      if (h2hCache.has(key)) return h2hCache.get(key);
-      const data = await fetchJson(`/fixtures/headtohead?h2h=${homeId}-${awayId}&last=5`);
-      const h2h = data.response || [];
-      h2hCache.set(key, h2h);
-      return h2h;
+    async function getPrediction(fixtureId) {
+      if (predictionCache.has(fixtureId)) return predictionCache.get(fixtureId);
+      const data = await fetchJson(`/predictions?fixture=${fixtureId}`);
+      const prediction = data?.response?.[0] || null;
+      predictionCache.set(fixtureId, prediction);
+      return prediction;
     }
 
     function parseForm(form = '') {
-      const last5 = form.slice(-5).split('');
+      const last5 = String(form).slice(-5).split('');
       const wins = last5.filter(c => c === 'W').length;
       const draws = last5.filter(c => c === 'D').length;
       const losses = last5.filter(c => c === 'L').length;
@@ -367,8 +401,18 @@
       return Number.isFinite(n) ? n : fallback;
     }
 
-    function safeAvg(obj, path, fallback = 1.2) {
-      return toNum(path.reduce((acc, key) => acc && acc[key], obj), fallback);
+    function toProb(value, fallback = 0.5) {
+      if (typeof value === 'string') {
+        return Math.max(0, Math.min(1, toNum(value.replace('%', ''), fallback * 100) / 100));
+      }
+      if (typeof value === 'number') {
+        return Math.max(0, Math.min(1, value > 1 ? value / 100 : value));
+      }
+      return fallback;
+    }
+
+    function clamp(num, min, max) {
+      return Math.min(max, Math.max(min, num));
     }
 
     function confidenceColor(c) {
@@ -378,60 +422,89 @@
     }
 
     function buildReason(match, market) {
-      const { homeForm, awayForm, homeAvgFor, awayAvgFor, homeHomeWins, awayAwayLosses, h2hGoalAvg } = match;
+      const { homeForm, awayForm, homeAvgFor, awayAvgFor, h2hGoalAvg, favoriteProb, drawProb } = match;
       const homeUnbeaten = homeForm.wins + homeForm.draws;
       if (market === '1X2') {
-        return `Home side unbeaten in ${homeUnbeaten}/${homeForm.games} recent games, with opponent losing ${awayAwayLosses} away matches.`;
+        return `Model favors ${match.favoredTeam} (${(favoriteProb * 100).toFixed(1)}%) vs draw ${(drawProb * 100).toFixed(1)}%, with home trend ${homeUnbeaten}/${homeForm.games} unbeaten.`;
       }
       if (market === 'Over 2.5 Goals') {
-        return `Combined scoring average is ${(homeAvgFor + awayAvgFor).toFixed(2)} goals/game and H2H average is ${h2hGoalAvg.toFixed(2)}.`;
+        return `Expected goals ${(match.expectedGoalsModel).toFixed(2)} with attack average ${(homeAvgFor + awayAvgFor).toFixed(2)} and H2H goals ${h2hGoalAvg.toFixed(2)}.`;
       }
-      return `Both teams averaging ${(homeAvgFor).toFixed(2)} and ${(awayAvgFor).toFixed(2)} goals, with ${homeHomeWins} home wins in recent trend.`;
+      return `BTTS model boosted by attacking rates ${homeAvgFor.toFixed(2)} + ${awayAvgFor.toFixed(2)} and balanced win probs (${(match.homeWinProb * 100).toFixed(1)}%/${(match.awayWinProb * 100).toFixed(1)}%).`;
     }
 
     function scoreFixture(match) {
-      const formEdge = ((match.homeForm.wins - match.awayForm.losses) + (match.homeForm.draws * 0.3)) / 5;
-      const homeAwayEdge = (match.homeHomeWinRate - match.awayAwayWinRate);
-      const goalEdge = (match.homeAvgFor + match.awayAvgFor) - (match.homeAvgAgainst + match.awayAvgAgainst);
+      const formDelta = (match.homeForm.wins - match.awayForm.wins) / 5;
+      const formStability = ((match.homeForm.wins + match.awayForm.wins) + (match.homeForm.draws + match.awayForm.draws) * 0.4) / 10;
+      const homeAwayEdge = match.homeHomeWinRate - match.awayAwayWinRate;
       const h2hEdge = (match.h2hHomeWins - match.h2hAwayWins) / 5;
 
-      const weighted =
-        (formEdge * 0.34) +
-        (homeAwayEdge * 0.28) +
-        (goalEdge * 0.22) +
-        (h2hEdge * 0.16);
+      const favoriteProb = Math.max(match.homeWinProb, match.awayWinProb);
+      const secondProb = Math.max(Math.min(match.homeWinProb, match.awayWinProb), match.drawProb);
+      const probabilityGap = favoriteProb - secondProb;
+      const closeness = 1 - Math.min(1, Math.abs(match.homeWinProb - match.awayWinProb) * 2.1);
 
       const expectedGoals = ((match.homeAvgFor + match.awayAvgFor + match.homeAvgAgainst + match.awayAvgAgainst) / 2);
-      const bttsLean = (match.homeAvgFor > 1.1 && match.awayAvgFor > 1.0 && match.homeAvgAgainst > 0.8 && match.awayAvgAgainst > 0.8);
+      const attackAvg = (match.homeAvgFor + match.awayAvgFor) / 2;
+      const defenseLeak = (match.homeAvgAgainst + match.awayAvgAgainst) / 2;
+      const goalsMomentum = clamp((expectedGoals - 2.35) / 1.25, -1, 1);
+      const h2hGoalsMomentum = clamp((match.h2hGoalAvg - 2.25) / 1.1, -1, 1);
+      const bttsMomentum = clamp(((attackAvg + defenseLeak) - 2.45) / 1.1, -1, 1);
 
-      let market = '1X2';
-      let marketDetail = `${match.fixture.teams.home.name} to Win`;
-      let confidence = 55 + (weighted * 24);
+      const oneX2Score =
+        46 +
+        (favoriteProb * 36) +
+        (probabilityGap * 26) +
+        (homeAwayEdge * 10) +
+        (formDelta * 8) +
+        (h2hEdge * 5);
 
-      if (expectedGoals > 2.8 && Math.abs(weighted) < 0.55) {
-        market = 'Over 2.5 Goals';
-        marketDetail = 'Over 2.5 Goals';
-        confidence = 58 + (Math.min(expectedGoals, 3.8) - 2.4) * 12;
-      }
+      const over25Score =
+        44 +
+        ((goalsMomentum + 1) * 14) +
+        ((h2hGoalsMomentum + 1) * 9) +
+        (formStability * 8);
 
-      if (bttsLean && expectedGoals > 2.45 && match.h2hGoalAvg > 2.2) {
-        market = 'BTTS';
-        marketDetail = 'Both Teams To Score';
-        confidence = 56 + ((match.homeAvgFor + match.awayAvgFor) / 3.2) * 18;
-      }
+      const bttsScore =
+        43 +
+        ((bttsMomentum + 1) * 13) +
+        ((closeness) * 10) +
+        ((h2hGoalsMomentum + 1) * 6);
 
-      confidence = Math.max(50, Math.min(91, confidence));
+      const markets = [
+        {
+          key: '1X2',
+          label: `${match.favoredTeam} to Win`,
+          confidence: oneX2Score
+        },
+        {
+          key: 'Over 2.5 Goals',
+          label: 'Over 2.5 Goals',
+          confidence: over25Score
+        },
+        {
+          key: 'BTTS',
+          label: 'Both Teams To Score',
+          confidence: bttsScore
+        }
+      ].sort((a, b) => b.confidence - a.confidence);
+
+      const best = markets[0];
+      const confidence = clamp(best.confidence, 52, 92);
 
       return {
         ...match,
-        market,
-        marketDetail,
+        market: best.key,
+        marketDetail: best.label,
         confidence: Number(confidence.toFixed(1)),
-        reason: buildReason(match, market)
+        expectedGoalsModel: expectedGoals,
+        favoriteProb,
+        reason: buildReason({ ...match, expectedGoalsModel: expectedGoals, favoriteProb }, best.key)
       };
     }
 
     async function getFixturesForDates() {
+
       const [todayData, tomorrowData] = await Promise.all([
         fetchJson(`/fixtures?date=${dateStr(0)}&timezone=UTC`),
         fetchJson(`/fixtures?date=${dateStr(1)}&timezone=UTC`)
@@ -440,48 +513,61 @@
       return [...(todayData.response || []), ...(tomorrowData.response || [])]
         .filter(f => MAJOR_LEAGUE_IDS.has(f.league.id))
         .sort((a, b) => a.fixture.timestamp - b.fixture.timestamp)
-        .slice(0, 52);
+        .slice(0, 24);
     }
 
     async function enrichFixture(fixture) {
-      const leagueId = fixture.league.id;
-      const season = fixture.league.season;
+      const prediction = await getPrediction(fixture.fixture.id);
+      if (!prediction) throw new Error(`No prediction response for fixture ${fixture.fixture.id}`);
+
+      const homeForm = parseForm(prediction?.comparison?.form?.home || prediction?.teams?.home?.league?.form || '');
+      const awayForm = parseForm(prediction?.comparison?.form?.away || prediction?.teams?.away?.league?.form || '');
+
+      const homeWinProb = toProb(prediction?.predictions?.percent?.home, toProb(prediction?.comparison?.att?.home, 0.5));
+      const drawProb = toProb(prediction?.predictions?.percent?.draw, 0.24);
+      const awayWinProb = toProb(prediction?.predictions?.percent?.away, toProb(prediction?.comparison?.att?.away, 0.5));
+
+      const homeAvgFor = toNum(prediction?.teams?.home?.league?.goals?.for?.total?.home, 1.3) /
+        Math.max(1, toNum(prediction?.teams?.home?.league?.fixtures?.played?.home, 1));
+      const awayAvgFor = toNum(prediction?.teams?.away?.league?.goals?.for?.total?.away, 1.1) /
+        Math.max(1, toNum(prediction?.teams?.away?.league?.fixtures?.played?.away, 1));
+
+      const homeAvgAgainst = toNum(prediction?.teams?.home?.league?.goals?.against?.total?.home, 1.0) /
+        Math.max(1, toNum(prediction?.teams?.home?.league?.fixtures?.played?.home, 1));
+      const awayAvgAgainst = toNum(prediction?.teams?.away?.league?.goals?.against?.total?.away, 1.1) /
+        Math.max(1, toNum(prediction?.teams?.away?.league?.fixtures?.played?.away, 1));
+
+      const h2hList = prediction?.h2h || [];
       const homeId = fixture.teams.home.id;
       const awayId = fixture.teams.away.id;
 
-      const [homeStats, awayStats, h2h] = await Promise.all([
-        getTeamStats(homeId, leagueId, season),
-        getTeamStats(awayId, leagueId, season),
-        getH2H(homeId, awayId)
-      ]);
-
-      const homeForm = parseForm(homeStats?.form || '');
-      const awayForm = parseForm(awayStats?.form || '');
-
-      const homeHomePlayed = toNum(homeStats?.fixtures?.played?.home, 1);
-      const awayAwayPlayed = toNum(awayStats?.fixtures?.played?.away, 1);
-
-      const h2hHomeWins = h2h.filter(g => g.teams.home.winner && g.teams.home.id === homeId).length;
-      const h2hAwayWins = h2h.filter(g => g.teams.away.winner && g.teams.away.id === awayId).length;
-      const h2hGoalAvg = h2h.length
-        ? h2h.reduce((acc, g) => acc + (toNum(g.goals.home) + toNum(g.goals.away)), 0) / h2h.length
+      const h2hHomeWins = h2hList.filter(g => g?.teams?.home?.winner && g?.teams?.home?.id === homeId).length;
+      const h2hAwayWins = h2hList.filter(g => g?.teams?.away?.winner && g?.teams?.away?.id === awayId).length;
+      const h2hGoalAvg = h2hList.length
+        ? h2hList.reduce((acc, g) => acc + toNum(g?.goals?.home) + toNum(g?.goals?.away), 0) / h2hList.length
         : 2.2;
 
       return {
         fixture,
         homeForm,
         awayForm,
-        homeHomeWins: toNum(homeStats?.fixtures?.wins?.home),
-        awayAwayLosses: toNum(awayStats?.fixtures?.loses?.away),
-        homeHomeWinRate: toNum(homeStats?.fixtures?.wins?.home) / homeHomePlayed,
-        awayAwayWinRate: toNum(awayStats?.fixtures?.wins?.away) / awayAwayPlayed,
-        homeAvgFor: safeAvg(homeStats, ['goals', 'for', 'average', 'total'], 1.2),
-        awayAvgFor: safeAvg(awayStats, ['goals', 'for', 'average', 'total'], 1.1),
-        homeAvgAgainst: safeAvg(homeStats, ['goals', 'against', 'average', 'total'], 1.0),
-        awayAvgAgainst: safeAvg(awayStats, ['goals', 'against', 'average', 'total'], 1.1),
+        homeHomeWins: toNum(prediction?.teams?.home?.league?.fixtures?.wins?.home, Math.round(homeWinProb * 5)),
+        awayAwayLosses: toNum(prediction?.teams?.away?.league?.fixtures?.loses?.away, Math.round((1 - awayWinProb) * 5)),
+        homeHomeWinRate: toNum(prediction?.teams?.home?.league?.fixtures?.wins?.home, homeWinProb * 10) /
+          Math.max(1, toNum(prediction?.teams?.home?.league?.fixtures?.played?.home, 10)),
+        awayAwayWinRate: toNum(prediction?.teams?.away?.league?.fixtures?.wins?.away, awayWinProb * 10) /
+          Math.max(1, toNum(prediction?.teams?.away?.league?.fixtures?.played?.away, 10)),
+        homeAvgFor,
+        awayAvgFor,
+        homeAvgAgainst,
+        awayAvgAgainst,
         h2hHomeWins,
         h2hAwayWins,
-        h2hGoalAvg
+        h2hGoalAvg,
+        homeWinProb,
+        drawProb,
+        awayWinProb,
+        favoredTeam: homeWinProb >= awayWinProb ? fixture.teams.home.name : fixture.teams.away.name
       };
     }
 
@@ -551,6 +637,18 @@
       lastUpdatedEl.textContent = 'Unable to refresh data';
     }
 
+    async function enrichInBatches(fixtures, chunkSize = 6) {
+      const enriched = [];
+      for (let i = 0; i < fixtures.length; i += chunkSize) {
+        const chunk = fixtures.slice(i, i + chunkSize);
+        const results = await Promise.allSettled(chunk.map(enrichFixture));
+        for (const result of results) {
+          if (result.status === 'fulfilled') enriched.push(result.value);
+        }
+      }
+      return enriched;
+    }
+
     async function loadDashboard() {
       showSkeletons();
       try {
@@ -561,12 +659,7 @@
           return;
         }
 
-        const enriched = [];
-        for (const fixture of fixtures) {
-          try {
-            enriched.push(await enrichFixture(fixture));
-          } catch (_) {}
-        }
+        const enriched = await enrichInBatches(fixtures, 6);
 
         rankedPicks = enriched.map(scoreFixture).sort((a, b) => b.confidence - a.confidence);
         if (!rankedPicks.length) {
@@ -588,24 +681,31 @@
       } catch (err) {
         const debugPayload = {
           timestamp: new Date().toISOString(),
+          provider: API_PROVIDER,
+          endpointBase: API_BASE,
+          authHeaderUsed: Object.keys(HEADERS),
           status: err?.status || null,
           statusText: err?.statusText || null,
           requestUrl: err?.requestUrl || null,
-          endpointBase: API_BASE,
-          authHeaderUsed: Object.keys(HEADERS),
           responseHeaders: err?.responseHeaders || null,
           responseBody: err?.bodyJson || err?.bodyText || null,
-          note: 'If your RapidAPI dashboard usage stays at 0, verify you are calling the RapidAPI hostname/header pair instead of API-Sports direct host.'
+          requestMetrics,
+          diagnosisHints: [
+            'If RapidAPI usage is 0, ensure provider is rapidapi and base URL is api-football-v1.p.rapidapi.com.',
+            'If provider is apisports, RapidAPI dashboard will remain at 0 by design.',
+            '401/403 usually indicate key/header mismatch or plan restrictions for specific endpoints.',
+            '429 can come from per-minute throttling even when monthly quota is available.'
+          ]
         };
 
         if (err.status === 429) {
           showError(
-            'API responded with HTTP 429 (rate limited). Expand debug details to inspect provider headers/body and confirm endpoint/auth combination.',
+            'API responded with HTTP 429 (rate limited/throttled). Expand debug details for exact headers/body.',
             JSON.stringify(debugPayload, null, 2)
           );
         } else if (err.status === 401 || err.status === 403) {
           showError(
-            `Authentication/authorization failed (HTTP ${err.status}). Expand debug details to inspect exact API response and headers.`,
+            `Authentication/authorization failed (HTTP ${err.status}). Expand debug details for raw provider response.`,
             JSON.stringify(debugPayload, null, 2)
           );
         } else {
