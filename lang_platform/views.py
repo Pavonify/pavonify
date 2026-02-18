@@ -762,3 +762,7 @@ def isams_long_to_wide_view(request):
         context["error_message"] = error_message
 
     return render(request, "isams_long_to_wide.html", context)
+
+
+def betting_dashboard_view(request):
+    return render(request, "betting_dashboard.html")
